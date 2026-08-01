@@ -250,7 +250,10 @@ grep -rn 'maturin\|cffi\|ctypes\|cgo' pyproject.toml go.mod 2>/dev/null
 ls Cargo.toml */Cargo.toml 2>/dev/null                              # Rust already here?
 
 # Hot-path nouns & parallelism attempts (D1, D2, D7, D10)
-grep -rniE 'worker_threads|new Worker|SharedArrayBuffer|wasm|multiprocessing|rayon' src/ --include='*.{ts,js,py,go}' -l
+# NOTE: repeat --include per extension — a quoted brace glob ('*.{ts,py}') silently
+# matches nothing on BSD grep; and `| head` masks grep's exit code, so treat an
+# empty result as "not shown", not "absent" — re-run unfiltered before concluding.
+grep -rniE 'worker_threads|new Worker|SharedArrayBuffer|wasm|multiprocessing|rayon' src/ --include='*.ts' --include='*.js' --include='*.py' --include='*.go' -l
 grep -rniE '\b(parse|tokeni|diff|encode|decode|compress|serializ|hash)' src/ -l | head
 
 # Perf evidence (D1, D2, D3, evidence tier)
