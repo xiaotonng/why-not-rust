@@ -138,7 +138,14 @@ Other languages: translate with the same register (engineering-report, terse).
 prose — never half-width `,;:` squeezed between hanzi; interpunct `·` (U+00B7) for
 term separators (「真·owned-CPU」); half-width colon only in `key: value` chips
 where the key is Latin. Keep line length ≤ ~42 chars by trusting the template's
-max-widths — don't fight them.
+max-widths — don't fight them. Verbatim quotes stay in their original language
+("We tried. It didn't work out for us") — never translate evidence.
+
+**Multi-target reports:** duplicate the scorecard's `REPEAT target` block once
+per target with its heading (`A · <name> (<archetype> · Index <n>)`); the gauge's
+solid needle = the highest target index, one `.needle.alt` per remaining target,
+all named in `GAUGE_NOTE`; per-target verdict chips join the hero chip row; any
+C1 rider attaches to its target's chip only.
 
 ## QA before delivering
 

@@ -14,7 +14,9 @@ that override the numeric index.
 - Verdict bands (before caps/floors):
   - `≥ +40` → **MIGRATE** (full migration justified)
   - `+15 … +40` → **PARTIAL** (rewrite one component/service)
-  - `−10 … +15` → **EXTRACT** if a clean seam exists (D10 ≥ +1), else **STAY**
+  - `−10 … +15` → **EXTRACT** if a clean seam exists (D10 ≥ +1) **and at least
+    one gain dimension among D1–D9 scored ≥ +1 on evidence** (a clean seam with
+    nothing behind it is an option, not a verdict), else **STAY**
   - `< −10` → **STAY** (still note a kernel opportunity if D10 ≥ +1 and some
     dimension scored +2 on measured evidence)
 - Scores must cite evidence (`file:line`, a profile, a config) or be marked
@@ -93,7 +95,7 @@ figure (MSRC, Chrome) and the Android trajectory apply only to memory-unsafe cod
   not the app; the case for replacing a risky native dep goes in the findings and
   path as prose — it never lifts this score above 0)
 - **+2** C/C++ core parsing untrusted input / privileged context (also triggers
-  floor F1)
+  floor C4)
 For security-parser targets, the highest-value D6 artifact is an **advisory
 taxonomy**: dissect the project's own CVE/advisory history (NEWS, security
 advisories) into {eliminated-by-construction in Rust / downgraded to safe crash /
@@ -188,7 +190,17 @@ moved performance 2–5%; fish shipped C++→Rust at self-declared parity; uutil
 shipped with regressions against 40-year-tuned GNU C. The live dimensions become
 D6 (untrusted-input exposure — use the advisory taxonomy), concurrency
 *correctness* (fish's actual motive), D11 contributor economics, and D12 in the
-form "what would sandboxing/fuzzing/isolation buy without a rewrite?".
+form "what would sandboxing/fuzzing/isolation buy without a rewrite?". Rule:
+for an AOT-native source, cap D1 at 0 unless a measured, language-attributed
+delta exists (otherwise D1 double-counts what D12 already scores).
+
+**Migration already in flight?** When the repo contains a live migration
+experiment (an `engine-rs` beside the shipping engine), don't invent a fifth
+verdict and don't score the experiment as a separate target: score the shipping
+target normally, and express the experiment's disposition as a **quantified
+promotion gate** rider — the measurable bars (same-dataset quality ≥ incumbent,
+latency ≤ incumbent, etc.) it must clear to be promoted, and what archiving it
+gracefully looks like if it stalls (the curl-hyper precedent).
 
 ## Meta-attributes (not scored, but binding)
 
@@ -197,8 +209,12 @@ form "what would sandboxing/fuzzing/isolation buy without a rewrite?".
   .cpuprofile, a bench script + numbers, CI perf output)
 - `E1 repo-signal`: indirect evidence (perf commits, worker experiments, caching
   layers, TODO(perf) density). **A first-party documented claim without a
-  checkable artifact — "compiling doubled performance" in the docs — is E1, not
-  E2.** C1 hinges on this exact call; when in doubt, E1.
+  checkable artifact — "compiling doubled performance" in the docs, a
+  measurement in an engineering note with methodology but no re-runnable
+  script — is E1, not E2.** C1 hinges on this exact call; when in doubt, E1.
+  Well-documented first-party notes may justify individual dimension scores, but
+  confidence caps at Medium and the path must include landing a re-runnable
+  benchmark in-repo.
 - `E0 hearsay`: "feels slow", hype, no artifacts
 Confidence: High = E2 on decisive dimensions; Medium = E1; Low = E0 or partial
 scan. Confidence appears in the hero, always.
@@ -246,7 +262,9 @@ its wins come from kernels and architecture, almost never from app-code language
   distribution (D8) with hard external requirements. Rider display rule: the
   "(measure first)" qualifier appears on the verdict chip only when the capped
   verdict is EXTRACT or above — a STAY verdict doesn't need it (it reads as
-  indecision); there, C1 lives in the methodology box and as path step 1.
+  indecision); there, C1 lives in the methodology box and as path step 1. In a
+  multi-target report the rider attaches to the affected target's own chip,
+  never to the global verdict.
 - **C2 · Wrong-layer cap.** D1 ≤ −1 (time lives in DOM/DB/network) → verdict caps
   at **PARTIAL**, and any PARTIAL must target only the owned-CPU component. You
   cannot rewrite your way out of the browser layout pipeline or a slow query.

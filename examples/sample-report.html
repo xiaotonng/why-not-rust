@@ -25,7 +25,7 @@
     --amber: #a06a00; --amber-tint: rgba(160,106,0,.12);
     --track: #efeeea;
   }
-  /* verdict theming — set ONE of these classes on <body> */
+  /* verdict theming — set ONE of these classes on the body element */
   body.v-stay     { --verdict-ink: var(--stay);  --verdict-tint: var(--stay-tint); }
   body.v-extract  { --verdict-ink: var(--teal);  --verdict-tint: var(--teal-tint); }
   body.v-partial  { --verdict-ink: var(--amber); --verdict-tint: var(--amber-tint); }
@@ -85,6 +85,10 @@
   h2 .no { color: var(--ink-3); font-weight: 500; font-size: .85rem; }
   .sec-sub { color: var(--ink-3); font-size: .82rem; margin-top: 4px; }
 
+  .target-head { margin: 16px 0 2px; font-size: .84rem; font-weight: 650; color: var(--ink-2); }
+  .target-head:first-child { margin-top: 2px; }
+  .target-head .mono { color: var(--ink-3); font-weight: 500; font-size: .74rem; }
+  .gauge .needle.alt { opacity: .45; width: 6px; }
   .legend { display: flex; gap: 18px; margin: 16px 0 8px; font-size: .78rem; color: var(--ink-2); }
   .key { display: inline-flex; align-items: center; gap: 6px; }
   .key i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
@@ -188,7 +192,10 @@
       <div class="gtrack">
         <span class="zero"></span>
         <span class="tick" style="left:45%"></span><span class="tick" style="left:57.5%"></span><span class="tick" style="left:70%"></span>
-        <!-- needle position: INDEX_PCT = (index + 100) / 2, as a percentage -->
+        <!-- needle position: INDEX_PCT = (index + 100) / 2, as a percentage.
+             Multi-target: the solid needle is the HIGHEST target index (most
+             decision-relevant); add one <span class="needle alt" style="left:calc(P% - 3px)"></span>
+             per remaining target and name each in GAUGE_NOTE. -->
         <span class="needle" style="left: calc(45.5% - 5px)"></span>
       </div>
       <div class="gbands"><span>STAY</span><span>MIGRATE</span></div>

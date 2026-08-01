@@ -134,7 +134,7 @@ Nuance flags inline: (vendor-claim), (vendor-curated), (N=1), (baseline-age), (s
 - scope: privilege tool; Ubuntu 25.10 default | archetype: cli-quick (security boundary) | drivers: memory-safety-from-c
 - facts: [V] shipped as default with zero performance framing anywhere first-party; "less is more" attack-surface reduction; original sudo maintainer Todd Miller advising. https://trifectatech.org/blog/memory-safe-sudo-to-become-the-default-in-ubuntu/
 - true driver: setuid C parsing attacker-influenced input — the exact C4-floor shape.
-- proves: D6 +2 with floor F1/C4: security-relevant C on untrusted input justifies migration with no perf argument at all.
+- proves: D6 +2 with floor C4: security-relevant C on untrusted input justifies migration with no perf argument at all.
 - skeptic: proves nothing about performance or about migrating memory-safe code.
 
 ### uutils coreutils — GNU C → Rust (Ubuntu 25.10 default, 2025)
