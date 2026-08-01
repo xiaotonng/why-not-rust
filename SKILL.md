@@ -1,5 +1,6 @@
 ---
 name: why-not-rust
+version: 0.1.0
 description: >-
   Evidence-based analysis of whether the current project should migrate to Rust —
   and, almost always more useful, whether it should NOT. Produces a verdict
@@ -48,7 +49,10 @@ of proof is on the migration.
 Extract from the user's prompt: scope (whole repo? one module?), constraints
 (team, compliance, budget, deadlines), depth (`quick` | default | `deep`), output
 language (default: the conversation's language) and path (default:
-`<repo-root>/why-not-rust-report.html`). Apply the adaptation table in
+`<repo-root>/why-not-rust-report.html` — an untracked file; say so in the TL;DR.
+If the checkout must stay pristine — CI bot, read-only clone — write next to the
+repo instead: `<repo-parent>/<name>-why-not-rust.html`). Apply the adaptation
+table in
 `dimensions.md`. If the prompt presupposes a conclusion, note it — the engine
 still runs honestly.
 
@@ -90,8 +94,10 @@ end-to-end ≥4× including boundary cost"). Full-migration steps appear only un
 a MIGRATE verdict or as the explicitly-labeled trigger condition of the last step.
 
 ### 7 · Render the report
-Copy `assets/report-template.html`, fill every `{{TOKEN}}`, duplicate the marked
-repeatable blocks, delete unused optional blocks, translate labels to the report
+Copy `assets/report-template.html`, delete its instructional header comment, fill
+every `{{TOKEN}}` (`SKILL_VERSION` = the `version` in this file's frontmatter),
+duplicate the marked repeatable blocks, delete unused optional blocks, translate
+labels to the report
 language. Follow `report-style.md` exactly — same palette, same section order; the
 uniform look across projects and users is a feature. Verify: every bar width =
 |score×weight| ÷ 6 × 50 (% of the full track — recompute one row by hand); numbers

@@ -24,8 +24,8 @@ and follow this contract. Deviations are bugs.
 
 | Verdict | `<body>` class | Color role | Subtitle template (zh / en) |
 |---|---|---|---|
-| STAY | `v-stay` | blue | 留在现栈,按清单优化 / stay; optimize in place |
-| EXTRACT | `v-extract` | teal | 提取热核,不整体迁移 / extract the hot kernel, don't migrate |
+| STAY | `v-stay` | blue | 留在现栈，按清单优化 / stay; optimize in place |
+| EXTRACT | `v-extract` | teal | 提取热核，不整体迁移 / extract the hot kernel, don't migrate |
 | PARTIAL | `v-partial` | amber | 只重写 X 组件 / rewrite only the X component |
 | MIGRATE | `v-migrate` | rust orange | 整体迁移成立 / full migration is justified |
 
@@ -41,6 +41,11 @@ en ` (measure first)` — via `{{VERDICT_QUALIFIER}}`; otherwise fill it with ""
   the numbers plugged in + band meaning; **if the index sits within 3 points of a
   band boundary, say so explicitly** (e.g. "−9 — 1 point above the STAY line"),
   because near-boundary is the most decision-relevant fact a gauge can carry.
+  **Caps and floors never move the needle** — the needle always shows the
+  arithmetic index; when a cap lowers the actionable verdict (e.g. index in the
+  PARTIAL band but C1 caps at EXTRACT), the verdict word/chips carry the capped
+  verdict and `{{GAUGE_NOTE}}` explains the cap. A gauge that contradicts the
+  formula is worse than a gap it explains.
 - **Scorecard bars:** rows sorted by impact descending (most pro-Rust on top).
   `DIM_WIDTH = |score × weight| ÷ 6 × 50` — percent of the **full** track; the
   axis is at 50%, so ±6 exactly touches the track edge. Getting this wrong is
@@ -85,7 +90,7 @@ gate list (reuse `.cards` with one card per question), keep 05–07.
   `.ref` chip. Balance is not required — direction classes must reflect content.
 - **Precedents:** 3–5 from `case-library.md` only, tag class per outcome
   (`stayed`/`hybrid`/`moved`/`failed`), each with its URL in the `.src` line.
-  Tag text ≤ 6 CJK chars / ≤ 14 latin chars — nuance goes in the body, not the
+  Tag text ≤ 6 CJK chars / ≤ 16 latin chars — nuance goes in the body, not the
   chip. Never cite a case that isn't in the library (add it to the library
   first, with a source).
 - **Path steps:** each has a cost estimate and, where measurable, an explicit

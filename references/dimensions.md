@@ -46,7 +46,12 @@ before admiring the multiplier.
 - **0** 20–40%, or plausible but unmeasured (mark estimated)
 - **+2** ≥ 60% of a path users care about, measured
 Signals: profile percentages; if absent, back-of-envelope from operation counts —
-and say so.
+and say so. Structural inference is allowed for tool-shaped repos: when the tool
+IS the hot path (a formatter, compiler, codec CLI — no DB, no DOM, no network in
+the loop), +2 may rest on structural certainty plus in-repo compilation evidence
+(e.g. "AOT-compiling the core doubled throughput" implies owned-CPU dominance);
+label the residual share `estimated`. C1 still applies — structural certainty is
+not a profile artifact.
 
 ### D3 · Latency profile — GC pauses and tail SLOs
 The Discord case (Go GC spikes vs a hard tail SLO) is real but narrow. Modern GCs
@@ -85,9 +90,15 @@ figure (MSRC, Chrome) and the Android trajectory apply only to memory-unsafe cod
 - **−2** source is memory-safe and has no meaningful native/FFI surface (claiming
   "safety" here is the classic conflation — flag it)
 - **0** memory-safe source but a real native-dep/FFI surface (score the surface,
-  not the app; replacing a risky native dep is at most a scoped +1 argument)
+  not the app; the case for replacing a risky native dep goes in the findings and
+  path as prose — it never lifts this score above 0)
 - **+2** C/C++ core parsing untrusted input / privileged context (also triggers
   floor F1)
+For security-parser targets, the highest-value D6 artifact is an **advisory
+taxonomy**: dissect the project's own CVE/advisory history (NEWS, security
+advisories) into {eliminated-by-construction in Rust / downgraded to safe crash /
+language-independent} and score from the first bucket's share, not from the raw
+count.
 
 ### D7 · Concurrency & parallelism upside
 Score the *unclaimed* parallelism the current stack can't reach: single-threaded
@@ -135,6 +146,9 @@ canonical pair.
 - **0** seam exists but boundary cost unmeasured
 - **+2** clean coarse-grained boundary; data crosses rarely and in bulk; bindings
   story proven in this ecosystem
+Score seam × payload: a clean boundary with **no hot kernel behind it** caps at
++1, and the note must name the absence — an empty seam is an option, not an
+argument.
 Boundary math to include when scoring +: kernel_speedup_effective =
 1 ÷ (boundary_cost_share + kernel_share/kernel_speedup).
 
@@ -160,14 +174,31 @@ batching DOM writes).
 - **+2** counterfactual exhausted: algorithmic best-known in current language,
   profiled, and still short of the requirement by a language-sized gap
 Note the direction: this dimension is *reverse-framed*. A strong untried
-counterfactual pushes the index down.
+counterfactual pushes the index down. Worked example: a repo that already ships
+AOT-compiled wheels, caching, and multiprocess parallelism has *spent* its
+counterfactual → score +1/+2 (pushes the index UP — staying has little left to
+offer); a repo with an obvious untried algorithm swap scores −2 (pushes it DOWN).
+
+### Source-language calibration (read before scoring native→native)
+
+The anchors above are written from a GC-runtime source's perspective. When the
+source is already a native, non-GC language (C/C++/Zig), recalibrate: D1/D3/D5
+performance upside anchors near **0 absent measured wins** — Bun's Zig→Rust port
+moved performance 2–5%; fish shipped C++→Rust at self-declared parity; uutils
+shipped with regressions against 40-year-tuned GNU C. The live dimensions become
+D6 (untrusted-input exposure — use the advisory taxonomy), concurrency
+*correctness* (fish's actual motive), D11 contributor economics, and D12 in the
+form "what would sandboxing/fuzzing/isolation buy without a rewrite?".
 
 ## Meta-attributes (not scored, but binding)
 
 **Evidence tier** — grade the whole assessment:
-- `E2 measured`: profiles/benchmarks exist for the decisive claims
+- `E2 measured`: profiles/benchmarks exist as **checkable artifacts** (a
+  .cpuprofile, a bench script + numbers, CI perf output)
 - `E1 repo-signal`: indirect evidence (perf commits, worker experiments, caching
-  layers, TODO(perf) density)
+  layers, TODO(perf) density). **A first-party documented claim without a
+  checkable artifact — "compiling doubled performance" in the docs — is E1, not
+  E2.** C1 hinges on this exact call; when in doubt, E1.
 - `E0 hearsay`: "feels slow", hype, no artifacts
 Confidence: High = E2 on decisive dimensions; Medium = E1; Low = E0 or partial
 scan. Confidence appears in the hero, always.
@@ -212,7 +243,10 @@ its wins come from kernels and architecture, almost never from app-code language
 - **C1 · Evidence cap.** No E2 evidence behind the performance-motivated scores →
   verdict caps at **EXTRACT**, and recommendation #1 must be *measure* (name the
   exact profile to capture). Does not apply when the driver is safety (D6) or
-  distribution (D8) with hard external requirements.
+  distribution (D8) with hard external requirements. Rider display rule: the
+  "(measure first)" qualifier appears on the verdict chip only when the capped
+  verdict is EXTRACT or above — a STAY verdict doesn't need it (it reads as
+  indecision); there, C1 lives in the methodology box and as path step 1.
 - **C2 · Wrong-layer cap.** D1 ≤ −1 (time lives in DOM/DB/network) → verdict caps
   at **PARTIAL**, and any PARTIAL must target only the owned-CPU component. You
   cannot rewrite your way out of the browser layout pipeline or a slow query.
@@ -232,6 +266,15 @@ its wins come from kernels and architecture, almost never from app-code language
 
 Run what applies; skip what doesn't; never run the project's own build/tests or
 any network call without the user asking. Sample large repos and disclose sampling.
+
+Run every `git` probe as `git -C "$TARGET"` (the shell's cwd drifts across tool
+calls; relative-path xargs failures look like empty results). And check history
+depth FIRST — on a shallow clone every `git log` probe silently returns nothing:
+
+```sh
+git -C "$TARGET" rev-parse --is-shallow-repository   # true → history probes lie;
+                                                     # fall back to NEWS/CHANGELOG files
+```
 
 ```sh
 # Inventory & languages (all dimensions' context)
@@ -256,9 +299,11 @@ ls Cargo.toml */Cargo.toml 2>/dev/null                              # Rust alrea
 grep -rniE 'worker_threads|new Worker|SharedArrayBuffer|wasm|multiprocessing|rayon' src/ --include='*.ts' --include='*.js' --include='*.py' --include='*.go' -l
 grep -rniE '\b(parse|tokeni|diff|encode|decode|compress|serializ|hash)' src/ -l | head
 
-# Perf evidence (D1, D2, D3, evidence tier)
-ls **/*.cpuprofile **/flamegraph* bench*/ benchmarks/ 2>/dev/null
-git log --oneline --grep='perf\|slow\|optimi\|latency\|memory' | head -30
+# Perf evidence (D1, D2, D3, evidence tier) — find, not ** globs (globstar is
+# shell-dependent; a silent non-match reads as "no evidence")
+find . -name '*.cpuprofile' -o -name 'flamegraph*' -o -name '*.speedscope.json' 2>/dev/null | head
+ls -d bench* benchmarks* perf* 2>/dev/null
+git -C "$TARGET" log --oneline --grep='perf\|slow\|optimi\|latency\|memory' | head -30
 
 # IO/DB shape (D1)
 grep -oE '"(pg|mysql2?|redis|ioredis|prisma|mongoose|sqlalchemy|gorm)"' package.json */package.json pyproject.toml 2>/dev/null

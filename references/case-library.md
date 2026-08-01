@@ -302,6 +302,13 @@ Nuance flags inline: (vendor-claim), (vendor-curated), (N=1), (baseline-age), (s
 - proves: D1 for CRUD: the language is rarely the binding constraint at even extreme read scale.
 - skeptic: dated snapshot, but the shape (IO-bound CRUD on a GC runtime) recurs everywhere.
 
+### jaq — the "ecosystem already shipped the Rust version" shape (2020–)
+- scope: independent Rust reimplementation of jq (not a migration by the jq project) | archetype: cli-quick | drivers: ecosystem-pull, startup-time
+- facts: [V] README: "a clone of the JSON data processing tool jq", "focussed on correctness, speed, and simplicity"; own benchmarks: jaq-3.0 fastest on 20 of the suite's benchmarks vs jq-1.8.1 on 5 and gojq-0.12.18 on 6; original motivation included jq 1.6's ~50ms startup; two NLnet-funded security audits; >500-test suite. https://github.com/01mf02/jaq
+- true driver: a greenfield third-party reimplementation — evidence that "X but in Rust" may already exist without X's maintainers writing a line.
+- proves: the D9-inversion/D12 move for maintainers AND users: before rewriting X in Rust, check whether the ecosystem already shipped it — adopting/recommending the existing tool can satisfy the requirement at zero rewrite cost, and it relieves (without erasing) the C4 pressure on the original.
+- skeptic: author-run benchmarks; "drop-in" compatibility holds "in most cases", not byte-for-byte — the compatibility tax moves to the adopter.
+
 ### Prettier · pure-JavaScript CLI, 3x — same language, post-bounty (2023)
 - scope: formatter CLI rework by a hired engineer, zero Rust | archetype: compiler-buildtool | drivers: (control case) attribution
 - facts: [V] ~3x (e18e reproduced 29s → 9s) via profiling, caching and IPC fixes — announced days after Biome claimed the Rust bounty. https://prettier.io/blog/2023/11/30/cli-deep-dive · https://e18e.dev/blog/prettier-speed-up.html

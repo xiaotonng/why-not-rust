@@ -6,6 +6,8 @@
 <title>why-not-rust · {{PROJECT_NAME}}</title>
 <!--
   why-not-rust report template.
+  DELETE THIS ENTIRE COMMENT BLOCK when filling — it contains literal token text
+  that would otherwise trip the "no {{ left" QA grep.
   RULES (see references/report-style.md):
   - Replace every {{TOKEN}}. Duplicate blocks between BEGIN/END repeat markers.
   - Delete optional blocks you don't use. Leave the CSS untouched except the
@@ -38,7 +40,7 @@
     --amber: #a06a00; --amber-tint: rgba(160,106,0,.12);
     --track: #efeeea;
   }
-  /* verdict theming — set ONE of these classes on <body> */
+  /* verdict theming — set ONE of these classes on the body element */
   body.v-stay     { --verdict-ink: var(--stay);  --verdict-tint: var(--stay-tint); }
   body.v-extract  { --verdict-ink: var(--teal);  --verdict-tint: var(--teal-tint); }
   body.v-partial  { --verdict-ink: var(--amber); --verdict-tint: var(--amber-tint); }
