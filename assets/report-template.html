@@ -10,7 +10,9 @@
   - Replace every {{TOKEN}}. Duplicate blocks between BEGIN/END repeat markers.
   - Delete optional blocks you don't use. Leave the CSS untouched except the
     verdict class on <body> (v-stay | v-extract | v-partial | v-migrate).
-  - Bar widths: |score × weight| ÷ 6 × 100, capped at 100, as % of the half-axis.
+  - Bar widths: DIM_WIDTH = |score × weight| ÷ 6 × 50  (percent of the FULL track;
+    the axis sits at 50%, so ±6 exactly reaches the track edge). Impact 0 rows use
+    <span class="fill zerodot"></span> instead of a bar.
   - Gauge needle: left: calc({{INDEX_PCT}}% - 5px)  where INDEX_PCT = (index+100)/2.
   - Translate visible UI labels to the report language using the table in
     report-style.md; keep verdict words (STAY/EXTRACT/PARTIAL/MIGRATE) in English.
@@ -44,7 +46,7 @@
   :root[data-theme="dark"] body.v-extract { --verdict-ink: #4cd29e; }
 
   * { box-sizing: border-box; margin: 0; }
-  html { font-size: 16px; }
+  html { font-size: 16px; background: var(--page); }
   body {
     background: var(--page); color: var(--ink);
     font: 400 0.9375rem/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
@@ -105,10 +107,11 @@
   .dim .name .w { color: var(--ink-3); font-size: .72rem; margin-left: 6px; }
   .dim .impact { text-align: right; font-size: .84rem; color: var(--ink-2); }
   .barbox { position: relative; height: 22px; background: var(--track); border-radius: 6px; overflow: hidden; }
-  .barbox .axis { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--hairline); }
+  .barbox .axis { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--ink-3); opacity: .5; }
   .barbox .fill { position: absolute; top: 4px; bottom: 4px; }
   .fill.pro { left: 50%; background: var(--rust); border-radius: 0 4px 4px 0; }
   .fill.con { right: 50%; background: var(--stay); border-radius: 4px 0 0 4px; }
+  .fill.zerodot { left: calc(50% - 3px); top: 50%; bottom: auto; width: 6px !important; height: 6px; margin-top: -3px; border-radius: 999px; background: var(--ink-3); }
   .dims-note { color: var(--ink-3); font-size: .74rem; margin-top: 12px; }
 
   .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
@@ -151,7 +154,7 @@
   .trap { display: flex; gap: 10px; align-items: baseline; font-size: .85rem; color: var(--ink-2); background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px; padding: 10px 14px; }
   .trap .st { font-size: .7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
   .st.hit { background: var(--amber-tint); color: var(--amber); }
-  .st.ok { background: var(--stay-tint); color: var(--stay); }
+  .st.ok { background: var(--surface-2); color: var(--ink-2); }
   .trap b { color: var(--ink); }
 
   .appendix { margin-top: 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; font-size: .8rem; color: var(--ink-2); }
@@ -224,7 +227,7 @@
     <span class="key"><i style="background:var(--rust)"></i>{{L_KEY_RUST}}</span>
   </div>
   <div class="dims">
-    <!-- BEGIN REPEAT dim (all 12, sorted by impact descending; width% = |score×weight|/6×100, class pro if impact>0, con if <0, no fill if 0) -->
+    <!-- BEGIN REPEAT dim (all 12, sorted by impact descending; width% = |score×weight|/6×50 of the FULL track; class pro if impact>0, con if <0; impact 0 → replace the fill span with <span class="fill zerodot"></span> and no width) -->
     <div class="dim"><div class="name">{{DIM_NAME}}<span class="w">w{{DIM_WEIGHT}}</span></div><div class="barbox"><span class="axis"></span><span class="fill {{DIM_DIR}}" style="width:{{DIM_WIDTH}}%"></span></div><div class="impact mono">{{DIM_IMPACT}}</div></div>
     <!-- END REPEAT dim -->
   </div>

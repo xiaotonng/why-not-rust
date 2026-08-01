@@ -33,7 +33,7 @@
   :root[data-theme="dark"] body.v-extract { --verdict-ink: #4cd29e; }
 
   * { box-sizing: border-box; margin: 0; }
-  html { font-size: 16px; }
+  html { font-size: 16px; background: var(--page); }
   body {
     background: var(--page); color: var(--ink);
     font: 400 0.9375rem/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
@@ -94,10 +94,11 @@
   .dim .name .w { color: var(--ink-3); font-size: .72rem; margin-left: 6px; }
   .dim .impact { text-align: right; font-size: .84rem; color: var(--ink-2); }
   .barbox { position: relative; height: 22px; background: var(--track); border-radius: 6px; overflow: hidden; }
-  .barbox .axis { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--hairline); }
+  .barbox .axis { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--ink-3); opacity: .5; }
   .barbox .fill { position: absolute; top: 4px; bottom: 4px; }
   .fill.pro { left: 50%; background: var(--rust); border-radius: 0 4px 4px 0; }
   .fill.con { right: 50%; background: var(--stay); border-radius: 4px 0 0 4px; }
+  .fill.zerodot { left: calc(50% - 3px); top: 50%; bottom: auto; width: 6px !important; height: 6px; margin-top: -3px; border-radius: 999px; background: var(--ink-3); }
   .dims-note { color: var(--ink-3); font-size: .74rem; margin-top: 12px; }
 
   .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
@@ -140,7 +141,7 @@
   .trap { display: flex; gap: 10px; align-items: baseline; font-size: .85rem; color: var(--ink-2); background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px; padding: 10px 14px; }
   .trap .st { font-size: .7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
   .st.hit { background: var(--amber-tint); color: var(--amber); }
-  .st.ok { background: var(--stay-tint); color: var(--stay); }
+  .st.ok { background: var(--surface-2); color: var(--ink-2); }
   .trap b { color: var(--ink); }
 
   .appendix { margin-top: 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; font-size: .8rem; color: var(--ink-2); }
@@ -198,7 +199,6 @@
 
 <div class="tiles">
   <div class="tile"><div class="lb">Rust Case Index (−100…+100)</div><div class="v mono">−9<span class="unit"></span></div><div class="s">weighted score ÷ full scale; negative leans stay</div></div>
-  <div class="tile"><div class="lb">Evidence tier</div><div class="v mono">Measured<span class="unit"></span></div><div class="s">paths with a CPU profile: 1 / 3</div></div>
   <div class="tile"><div class="lb">Measured hotspot share</div><div class="v mono">31<span class="unit">%</span></div><div class="s">diff kernel ÷ large-diff frame budget (profiled)</div></div>
   <div class="tile"><div class="lb">Memory-safety delta</div><div class="v mono">≈0<span class="unit"></span></div><div class="s">TS is already memory-safe; 2 native deps at the edge</div></div>
   <div class="tile"><div class="lb">Expected kernel gain</div><div class="v mono">6–20<span class="unit">×</span></div><div class="s">precedent range (pydantic-core / tokenizers)</div></div>
@@ -213,18 +213,18 @@
     <span class="key"><i style="background:var(--rust)"></i>favors migration / real Rust gain</span>
   </div>
   <div class="dims">
-    <div class="dim"><div class="name">Seam quality · incremental path<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:100%"></span></div><div class="impact mono">+6</div></div>
-    <div class="dim"><div class="name">Amdahl ceiling (hotspot share)<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:66.7%"></span></div><div class="impact mono">+4</div></div>
-    <div class="dim"><div class="name">Concurrency / data-parallel upside<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:33.3%"></span></div><div class="impact mono">+2</div></div>
-    <div class="dim"><div class="name">Memory / density economics<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill " style="width:0%"></span></div><div class="impact mono">0</div></div>
-    <div class="dim"><div class="name">Ecosystem fit<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill " style="width:0%"></span></div><div class="impact mono">0</div></div>
-    <div class="dim"><div class="name">Tail latency / GC sensitivity<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−1</div></div>
-    <div class="dim"><div class="name">Startup / invocation shape<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−1</div></div>
-    <div class="dim"><div class="name">Team readiness<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:33.3%"></span></div><div class="impact mono">−2</div></div>
-    <div class="dim"><div class="name">Distribution / deployment constraints<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:33.3%"></span></div><div class="impact mono">−2</div></div>
-    <div class="dim"><div class="name">Bottleneck locus (where time goes)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:50%"></span></div><div class="impact mono">−3</div></div>
-    <div class="dim"><div class="name">Counterfactual strength (stay-stack moves)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:50%"></span></div><div class="impact mono">−3</div></div>
-    <div class="dim"><div class="name">Memory-safety delta<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:66.7%"></span></div><div class="impact mono">−4</div></div>
+    <div class="dim"><div class="name">Seam quality · incremental path<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:50%"></span></div><div class="impact mono">+6</div></div>
+    <div class="dim"><div class="name">Amdahl ceiling (hotspot share)<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:33.3%"></span></div><div class="impact mono">+4</div></div>
+    <div class="dim"><div class="name">Concurrency / data-parallel upside<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:16.7%"></span></div><div class="impact mono">+2</div></div>
+    <div class="dim"><div class="name">Memory / density economics<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill zerodot" style="width:0%"></span></div><div class="impact mono">0</div></div>
+    <div class="dim"><div class="name">Ecosystem fit<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill zerodot" style="width:0%"></span></div><div class="impact mono">0</div></div>
+    <div class="dim"><div class="name">Tail latency / GC sensitivity<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:8.3%"></span></div><div class="impact mono">−1</div></div>
+    <div class="dim"><div class="name">Startup / invocation shape<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:8.3%"></span></div><div class="impact mono">−1</div></div>
+    <div class="dim"><div class="name">Team readiness<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−2</div></div>
+    <div class="dim"><div class="name">Distribution / deployment constraints<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−2</div></div>
+    <div class="dim"><div class="name">Bottleneck locus (where time goes)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:25%"></span></div><div class="impact mono">−3</div></div>
+    <div class="dim"><div class="name">Counterfactual strength (stay-stack moves)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:25%"></span></div><div class="impact mono">−3</div></div>
+    <div class="dim"><div class="name">Memory-safety delta<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:33.3%"></span></div><div class="impact mono">−4</div></div>
   </div>
   <div class="dims-note">Index = 100 × Σ(score×weight) ÷ (2×Σweight) = 100 × (−4) ÷ 46 = −9 → band −10…+15 → EXTRACT (a clean seam exists). Bands and override rules: see methodology.</div>
 </section>

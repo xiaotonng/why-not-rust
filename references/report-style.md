@@ -35,14 +35,25 @@ en ` (measure first)` — via `{{VERDICT_QUALIFIER}}`; otherwise fill it with ""
 ## The two charts and their math
 
 - **Gauge (hero):** `INDEX_PCT = (index + 100) / 2`. Needle sits at
-  `calc({{INDEX_PCT}}% - 5px)`. Band split in the track background is fixed
-  (STAY 45% / EXTRACT 12.5% / PARTIAL 12.5% / MIGRATE 30%) matching the bands
-  −100…−10…+15…+40…+100. `{{GAUGE_NOTE}}` = one line: formula + band meaning.
+  `calc({{INDEX_PCT}}% - 5px)`. Band split in the track background and the three
+  boundary ticks are fixed (STAY 45% / EXTRACT 12.5% / PARTIAL 12.5% / MIGRATE
+  30%) matching the bands −100…−10…+15…+40…+100. `{{GAUGE_NOTE}}` = formula with
+  the numbers plugged in + band meaning; **if the index sits within 3 points of a
+  band boundary, say so explicitly** (e.g. "−9 — 1 point above the STAY line"),
+  because near-boundary is the most decision-relevant fact a gauge can carry.
 - **Scorecard bars:** rows sorted by impact descending (most pro-Rust on top).
-  `DIM_WIDTH = |score × weight| ÷ 6 × 100` (cap 100), `DIM_DIR` = `pro` if
-  impact > 0, `con` if < 0; omit the `.fill` span entirely when impact = 0.
-  `DIM_IMPACT` shows the signed product (`+6`, `−3`, `0`) with a true minus sign
-  (U+2212). Every row keeps its weight chip `w0–w3`.
+  `DIM_WIDTH = |score × weight| ÷ 6 × 50` — percent of the **full** track; the
+  axis is at 50%, so ±6 exactly touches the track edge. Getting this wrong is
+  the one rendering bug that silently lies (a doubled width gets clipped and
+  ±6 becomes indistinguishable from ±3) — recompute one row by hand after
+  filling. `DIM_DIR` = `pro` if impact > 0, `con` if < 0; **impact = 0 rows
+  replace the bar span with `<span class="fill zerodot"></span>`** — a measured
+  zero must be visibly different from an empty row. `DIM_IMPACT` shows the
+  signed product (`+6`, `−3`, `0`) with a true minus sign (U+2212). Every row
+  keeps its weight chip `w0–w3`.
+  Deliberate deviation from label-at-the-tip charting: impact values live in a
+  fixed right-hand column — the scorecard is a *table with embedded bars*, so
+  the values align vertically for scanning. Do not move them onto the bars.
 
 Data-ink rules (inherited from the palette validation): color appears only on
 marks (bars, needle, swatches, left borders, tag tints) — **all text wears text
@@ -64,15 +75,19 @@ gate list (reuse `.cards` with one card per question), keep 05–07.
 - **Hero why:** ≤ 3 sentences; must name the decisive evidence and the decisive
   constraint. No hedging ("might", "perhaps") — confidence is expressed by the
   confidence chip, not by mushy prose.
-- **Tiles:** 4–6. Tile 1 is always the Index. Every tile note says how the number
-  was derived (`profiled`, `estimated`, `precedent range`). Estimated numbers use
-  ranges, never point values.
+- **Tiles:** 4–6. Tile 1 is always the Index; the rest are **magnitude facts**
+  (hotspot shares, expected gains, costs) — judgment facts (confidence, evidence
+  tier) already live in the hero chips, don't duplicate them as tiles. Every tile
+  note says how the number was derived (`profiled`, `estimated`, `precedent
+  range`). Estimated numbers use ranges, never point values. Never let a value's
+  unit wrap: long units go into the note line.
 - **Findings:** 3–6 cards, each anchored `file:line` or artifact name in the
   `.ref` chip. Balance is not required — direction classes must reflect content.
 - **Precedents:** 3–5 from `case-library.md` only, tag class per outcome
   (`stayed`/`hybrid`/`moved`/`failed`), each with its URL in the `.src` line.
-  Never cite a case that isn't in the library (add it to the library first, with
-  a source).
+  Tag text ≤ 6 CJK chars / ≤ 14 latin chars — nuance goes in the body, not the
+  chip. Never cite a case that isn't in the library (add it to the library
+  first, with a source).
 - **Path steps:** each has a cost estimate and, where measurable, an explicit
   acceptance threshold inside the body text.
 - **Traps:** always render at least the four core checks (safety-conflation,
@@ -113,6 +128,12 @@ gate list (reuse `.cards` with one card per question), keep 05–07.
 | Precedent tags | stayed & won / hybrid win / migrated / failed-reverted | 留守获胜 / 热核提取 / 整体迁移 / 失败-回退 |
 
 Other languages: translate with the same register (engineering-report, terse).
+
+**CJK punctuation discipline (zh reports):** full-width `，；：（）` inside Chinese
+prose — never half-width `,;:` squeezed between hanzi; interpunct `·` (U+00B7) for
+term separators (「真·owned-CPU」); half-width colon only in `key: value` chips
+where the key is Latin. Keep line length ≤ ~42 chars by trusting the template's
+max-widths — don't fight them.
 
 ## QA before delivering
 

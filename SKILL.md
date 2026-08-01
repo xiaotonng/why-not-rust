@@ -94,8 +94,9 @@ Copy `assets/report-template.html`, fill every `{{TOKEN}}`, duplicate the marked
 repeatable blocks, delete unused optional blocks, translate labels to the report
 language. Follow `report-style.md` exactly — same palette, same section order; the
 uniform look across projects and users is a feature. Verify: every bar width =
-|score×weight| ÷ 6 × 100% of the half-axis; numbers in the HTML match the scores;
-no `{{` left. Then give the chat TL;DR: verdict + index + confidence + 3 decisive
+|score×weight| ÷ 6 × 50 (% of the full track — recompute one row by hand); numbers
+in the HTML match the scores; no `{{` left. Then give the chat TL;DR: verdict +
+index + confidence + 3 decisive
 bullets + report path. If an artifact-delivery tool exists in this environment,
 also deliver the file.
 
