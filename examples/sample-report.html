@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · acme-desk</title>
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0c0d10; --surface: #14161b; --surface-2: #1a1d24; --hairline: #262a33;
+    --ink: #f2f3f5; --ink-2: #b6bac4; --ink-3: #7d8290;
+    --stay: #3987e5; --stay-tint: rgba(57,135,229,.14);
+    --rust: #e0672f; --rust-tint: rgba(224,103,47,.14);
+    --teal: #1baf7a; --teal-tint: rgba(27,175,122,.16);
+    --amber: #eda100; --amber-tint: rgba(237,161,0,.14);
+    --track: #21242c;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page: #f7f7f5; --surface: #fbfbfa; --surface-2: #f1f1ee; --hairline: #e3e2dc;
+    --ink: #101113; --ink-2: #4c4f56; --ink-3: #85888f;
+    --stay: #2a78d6; --stay-tint: rgba(42,120,214,.10);
+    --rust: #c2410c; --rust-tint: rgba(194,65,12,.10);
+    --teal: #0e7d57; --teal-tint: rgba(14,125,87,.10);
+    --amber: #a06a00; --amber-tint: rgba(160,106,0,.12);
+    --track: #efeeea;
+  }
+  /* verdict theming — set ONE of these classes on <body> */
+  body.v-stay     { --verdict-ink: var(--stay);  --verdict-tint: var(--stay-tint); }
+  body.v-extract  { --verdict-ink: var(--teal);  --verdict-tint: var(--teal-tint); }
+  body.v-partial  { --verdict-ink: var(--amber); --verdict-tint: var(--amber-tint); }
+  body.v-migrate  { --verdict-ink: var(--rust);  --verdict-tint: var(--rust-tint); }
+  :root[data-theme="dark"] body.v-extract { --verdict-ink: #4cd29e; }
+
+  * { box-sizing: border-box; margin: 0; }
+  html { font-size: 16px; }
+  body {
+    background: var(--page); color: var(--ink);
+    font: 400 0.9375rem/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+    padding: 0 24px 96px;
+  }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  a { color: var(--stay); text-decoration: none; } a:hover { text-decoration: underline; }
+
+  header.mast { display: flex; align-items: center; gap: 12px; padding: 20px 0; border-bottom: 1px solid var(--hairline); }
+  .mast .logo { font-weight: 700; letter-spacing: .02em; font-size: .95rem; }
+  .mast .logo .q { color: var(--rust); }
+  .mast .meta { margin-left: auto; color: var(--ink-3); font-size: .8rem; display: flex; gap: 16px; align-items: center; }
+  .theme-btn { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--hairline); border-radius: 6px; padding: 4px 10px; font-size: .75rem; cursor: pointer; }
+
+  .hero { padding: 40px 0 34px; border-bottom: 1px solid var(--hairline); }
+  .hero .kicker { color: var(--ink-3); font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; }
+  .hero .kicker .proj { color: var(--ink-2); }
+  .hero-grid { display: grid; grid-template-columns: 1fr 320px; gap: 36px; align-items: start; margin-top: 14px; }
+  .verdict-row { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .verdict-word { font-size: 3.4rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; color: var(--verdict-ink); }
+  .verdict-zh { font-size: 1.3rem; font-weight: 600; }
+  .hero .why { margin-top: 14px; max-width: 700px; color: var(--ink-2); font-size: 1rem; }
+  .hero .chips { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { font-size: .75rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--hairline); color: var(--ink-2); background: var(--surface); }
+  .chip.acc { border-color: transparent; background: var(--verdict-tint); color: var(--verdict-ink); font-weight: 600; }
+  .chip.warnc { background: var(--amber-tint); color: var(--amber); border-color: transparent; font-weight: 600; }
+
+  .gauge { background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px; padding: 16px 18px; }
+  .gauge .glb { display: flex; justify-content: space-between; font-size: .75rem; color: var(--ink-3); }
+  .gauge .glb .val { color: var(--ink); font-weight: 650; font-size: .95rem; }
+  .gauge .gtrack { position: relative; height: 12px; border-radius: 999px; margin-top: 12px;
+    background: linear-gradient(90deg, var(--stay-tint) 0 45%, var(--teal-tint) 45% 57.5%, var(--amber-tint) 57.5% 70%, var(--rust-tint) 70% 100%); }
+  .gauge .gtrack .zero { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); opacity: .55; }
+  .gauge .gtrack .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--ink-3); opacity: .35; }
+  .gauge .needle { position: absolute; top: -3px; bottom: -3px; width: 10px; border-radius: 999px; background: var(--verdict-ink); box-shadow: 0 0 0 2px var(--page); }
+  .gauge .gbands { display: flex; justify-content: space-between; font-size: .66rem; color: var(--ink-3); margin-top: 8px; letter-spacing: .06em; }
+  .gauge .gnote { margin-top: 10px; font-size: .7rem; color: var(--ink-3); line-height: 1.5; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; padding: 26px 0; border-bottom: 1px solid var(--hairline); }
+  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 14px 16px; }
+  .tile .lb { font-size: .75rem; color: var(--ink-3); }
+  .tile .v { font-size: 1.55rem; font-weight: 650; margin-top: 4px; letter-spacing: -.01em; }
+  .tile .v .unit { font-size: .85rem; color: var(--ink-2); font-weight: 500; }
+  .tile .s { font-size: .72rem; color: var(--ink-3); margin-top: 2px; }
+
+  section { padding: 32px 0 6px; }
+  h2 { font-size: 1.05rem; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
+  h2 .no { color: var(--ink-3); font-weight: 500; font-size: .85rem; }
+  .sec-sub { color: var(--ink-3); font-size: .82rem; margin-top: 4px; }
+
+  .legend { display: flex; gap: 18px; margin: 16px 0 8px; font-size: .78rem; color: var(--ink-2); }
+  .key { display: inline-flex; align-items: center; gap: 6px; }
+  .key i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .dim { display: grid; grid-template-columns: 240px 1fr 74px; gap: 14px; align-items: center; padding: 7px 0; }
+  .dim + .dim { border-top: 1px solid color-mix(in oklab, var(--hairline) 55%, transparent); }
+  .dim .name { font-size: .86rem; }
+  .dim .name .w { color: var(--ink-3); font-size: .72rem; margin-left: 6px; }
+  .dim .impact { text-align: right; font-size: .84rem; color: var(--ink-2); }
+  .barbox { position: relative; height: 22px; background: var(--track); border-radius: 6px; overflow: hidden; }
+  .barbox .axis { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--hairline); }
+  .barbox .fill { position: absolute; top: 4px; bottom: 4px; }
+  .fill.pro { left: 50%; background: var(--rust); border-radius: 0 4px 4px 0; }
+  .fill.con { right: 50%; background: var(--stay); border-radius: 4px 0 0 4px; }
+  .dims-note { color: var(--ink-3); font-size: .74rem; margin-top: 12px; }
+
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--hairline); border-left: 3px solid var(--hairline); border-radius: 10px; padding: 14px 16px; }
+  .card.pro { border-left-color: var(--rust); } .card.con { border-left-color: var(--stay); }
+  .card h3 { font-size: .9rem; font-weight: 650; }
+  .card p { color: var(--ink-2); font-size: .84rem; margin-top: 6px; }
+  .card .ref { display: inline-block; margin-top: 8px; font-size: .74rem; color: var(--ink-3); background: var(--surface-2); padding: 2px 8px; border-radius: 5px; }
+
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .duo .col { border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; background: var(--surface); }
+  .duo h3 { font-size: .88rem; display: flex; align-items: center; gap: 8px; }
+  .duo h3 i { width: 12px; height: 12px; border-radius: 3px; }
+  .duo ul { margin: 10px 0 0; padding-left: 18px; color: var(--ink-2); font-size: .85rem; }
+  .duo li { margin: 6px 0; } .duo li b { color: var(--ink); font-weight: 600; }
+
+  .prec { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+  .prec .p { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 13px 16px; }
+  .prec .p .t { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .prec .p .nm { font-weight: 650; font-size: .88rem; }
+  .prec .p .tag { font-size: .68rem; padding: 1px 8px; border-radius: 999px; }
+  .tag.stayed { background: var(--stay-tint); color: var(--stay); }
+  .tag.hybrid { background: var(--teal-tint); color: var(--verdict-ink); }
+  body.v-stay .tag.hybrid, body.v-partial .tag.hybrid, body.v-migrate .tag.hybrid { color: var(--teal); }
+  .tag.moved { background: var(--rust-tint); color: var(--rust); }
+  .tag.failed { background: var(--amber-tint); color: var(--amber); }
+  .prec .p p { color: var(--ink-2); font-size: .8rem; margin-top: 6px; }
+  .prec .p .src { font-size: .7rem; color: var(--ink-3); margin-top: 6px; word-break: break-all; }
+
+  .path { margin-top: 16px; counter-reset: step; }
+  .step { display: grid; grid-template-columns: 34px 1fr auto; gap: 14px; padding: 12px 0; border-top: 1px solid var(--hairline); align-items: start; }
+  .step:first-child { border-top: 0; }
+  .step .n { counter-increment: step; width: 26px; height: 26px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--hairline);
+    display: grid; place-items: center; font-size: .8rem; color: var(--ink-2); font-weight: 600; }
+  .step .n::before { content: counter(step); }
+  .step .b h3 { font-size: .9rem; font-weight: 650; } .step .b p { color: var(--ink-2); font-size: .83rem; margin-top: 3px; }
+  .step .cost { font-size: .75rem; color: var(--ink-3); white-space: nowrap; padding-top: 3px; }
+
+  .traps { margin-top: 16px; display: grid; gap: 8px; }
+  .trap { display: flex; gap: 10px; align-items: baseline; font-size: .85rem; color: var(--ink-2); background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px; padding: 10px 14px; }
+  .trap .st { font-size: .7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+  .st.hit { background: var(--amber-tint); color: var(--amber); }
+  .st.ok { background: var(--stay-tint); color: var(--stay); }
+  .trap b { color: var(--ink); }
+
+  .appendix { margin-top: 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; font-size: .8rem; color: var(--ink-2); }
+  .appendix h3 { font-size: .82rem; color: var(--ink); margin-bottom: 8px; }
+  .appendix table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .appendix th, .appendix td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--hairline); font-weight: 400; }
+  .appendix th { color: var(--ink-3); font-size: .72rem; }
+  footer { margin-top: 44px; color: var(--ink-3); font-size: .75rem; border-top: 1px solid var(--hairline); padding-top: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .cards, .duo, .prec { grid-template-columns: 1fr; } .dim { grid-template-columns: 150px 1fr 60px; } }
+  @media print { body { padding: 0 8mm; } .theme-btn { display: none; } .verdict-word { font-size: 2.6rem; } }
+</style>
+</head>
+<!-- verdict class: v-stay | v-extract | v-partial | v-migrate -->
+<body class="v-extract">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta"><span>acme-desk</span><span>2026-08-01</span><span class="mono">skill v0.1</span>
+    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'light':'dark'">light / dark</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker">RUST MIGRATION ASSESSMENT · <span class="proj">acme-desk — Electron + TypeScript desktop code-review app · 214k LOC</span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="verdict-row">
+        <div class="verdict-word">EXTRACT</div>
+        <div class="verdict-zh">extract the hot kernel — don&rsquo;t migrate</div>
+      </div>
+      <p class="why">The only measured owned-CPU hotspot is the diff kernel (31% of the interactive frame budget on large diffs), and it sits behind a clean seam reachable via wasm/napi. Every other bottleneck is DOM layout or serialization tax — a language swap does not touch them. TypeScript is already memory-safe, so Rust&rsquo;s safety argument is worth ≈0 here.</p>
+      <div class="chips">
+        <span class="chip acc">Verdict: EXTRACT (2nd most conservative of 4)</span>
+        <span class="chip warnc">Confidence: Medium — only 1 of 3 paths profiled</span>
+        <span class="chip">Scope: whole repo (no user narrowing)</span>
+        <span class="chip">Archetype: electron-desktop + embedded server</span>
+      </div>
+    </div>
+    <div class="gauge">
+      <div class="glb"><span>Rust Case Index</span><span class="val mono">−9</span></div>
+      <div class="gtrack">
+        <span class="zero"></span>
+        <span class="tick" style="left:45%"></span><span class="tick" style="left:57.5%"></span><span class="tick" style="left:70%"></span>
+        <!-- needle position: INDEX_PCT = (index + 100) / 2, as a percentage -->
+        <span class="needle" style="left: calc(45.5% - 5px)"></span>
+      </div>
+      <div class="gbands"><span>STAY</span><span>MIGRATE</span></div>
+      <div class="gnote">Index = 100 × Σ(score×weight) ÷ (2×Σweight) = −9. Bands: &lt;−10 STAY · −10…+15 EXTRACT (clean seam exists) · +15…+40 PARTIAL · ≥+40 MIGRATE.</div>
+    </div>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="lb">Rust Case Index (−100…+100)</div><div class="v mono">−9<span class="unit"></span></div><div class="s">weighted score ÷ full scale; negative leans stay</div></div>
+  <div class="tile"><div class="lb">Evidence tier</div><div class="v mono">Measured<span class="unit"></span></div><div class="s">paths with a CPU profile: 1 / 3</div></div>
+  <div class="tile"><div class="lb">Measured hotspot share</div><div class="v mono">31<span class="unit">%</span></div><div class="s">diff kernel ÷ large-diff frame budget (profiled)</div></div>
+  <div class="tile"><div class="lb">Memory-safety delta</div><div class="v mono">≈0<span class="unit"></span></div><div class="s">TS is already memory-safe; 2 native deps at the edge</div></div>
+  <div class="tile"><div class="lb">Expected kernel gain</div><div class="v mono">6–20<span class="unit">×</span></div><div class="s">precedent range (pydantic-core / tokenizers)</div></div>
+  <div class="tile"><div class="lb">Full-migration cost</div><div class="v mono">12–18<span class="unit"></span></div><div class="s">person-months — 214k LOC × industry rewrite rates (estimated)</div></div>
+</div>
+
+<section>
+  <h2><span class="no">01</span>The 12-dimension scorecard</h2>
+  <div class="sec-sub">score −2…+2 (positive favors migration) × weight 0…3 (archetype + user constraints); bar length = score × weight</div>
+  <div class="legend">
+    <span class="key"><i style="background:var(--stay)"></i>favors staying / solvable in current stack</span>
+    <span class="key"><i style="background:var(--rust)"></i>favors migration / real Rust gain</span>
+  </div>
+  <div class="dims">
+    <div class="dim"><div class="name">Seam quality · incremental path<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:100%"></span></div><div class="impact mono">+6</div></div>
+    <div class="dim"><div class="name">Amdahl ceiling (hotspot share)<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:66.7%"></span></div><div class="impact mono">+4</div></div>
+    <div class="dim"><div class="name">Concurrency / data-parallel upside<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:33.3%"></span></div><div class="impact mono">+2</div></div>
+    <div class="dim"><div class="name">Memory / density economics<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill " style="width:0%"></span></div><div class="impact mono">0</div></div>
+    <div class="dim"><div class="name">Ecosystem fit<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill " style="width:0%"></span></div><div class="impact mono">0</div></div>
+    <div class="dim"><div class="name">Tail latency / GC sensitivity<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−1</div></div>
+    <div class="dim"><div class="name">Startup / invocation shape<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−1</div></div>
+    <div class="dim"><div class="name">Team readiness<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:33.3%"></span></div><div class="impact mono">−2</div></div>
+    <div class="dim"><div class="name">Distribution / deployment constraints<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:33.3%"></span></div><div class="impact mono">−2</div></div>
+    <div class="dim"><div class="name">Bottleneck locus (where time goes)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:50%"></span></div><div class="impact mono">−3</div></div>
+    <div class="dim"><div class="name">Counterfactual strength (stay-stack moves)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:50%"></span></div><div class="impact mono">−3</div></div>
+    <div class="dim"><div class="name">Memory-safety delta<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:66.7%"></span></div><div class="impact mono">−4</div></div>
+  </div>
+  <div class="dims-note">Index = 100 × Σ(score×weight) ÷ (2×Σweight) = 100 × (−4) ÷ 46 = −9 → band −10…+15 → EXTRACT (a clean seam exists). Bands and override rules: see methodology.</div>
+</section>
+
+<section>
+  <h2><span class="no">02</span>Key evidence</h2>
+  <div class="cards">
+    <div class="card pro"><h3>The diff kernel is a real owned-CPU hotspot behind a clean seam</h3><p>CPU profile of the large-diff (&gt;8k lines) path: 31% of the frame budget lands in the Myers main loop of <span class="mono">src/diff/engine.ts</span>; pure struct-in/struct-out, no DOM dependency — an ideal extraction candidate.</p><span class="ref mono">src/diff/engine.ts:214 · profiles/big-diff.cpuprofile</span></div>
+    <div class="card pro"><h3>The worker-pool attempt lost 41% to serialization tax</h3><p>worker_threads parallelism sped compute up 2.6×, but structuredClone boundary overhead gave 41% back. Shared-memory / zero-copy layouts are exactly the Rust(wasm) side&rsquo;s strength.</p><span class="ref mono">bench/diff-workers.md</span></div>
+    <div class="card con"><h3>Interactive jank is layout thrash, not compute</h3><p>Scroll/expand profiles: 58% of time in style/layout/paint, JS compute only 17%. No language change touches this — it needs virtualization and batched DOM writes.</p><span class="ref mono">profiles/scroll-jank.cpuprofile</span></div>
+    <div class="card con"><h3>The distribution chain requires the single-file binary; native deps are off-limits</h3><p>The CLI ships as a Node SEA single binary and the core package allows Node built-ins only. A napi route can live only in the server layer; wasm is the one shape that leaves the distribution chain intact.</p><span class="ref mono">core/package.json · scripts/build-sea.sh</span></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">03</span>What Rust buys / doesn&rsquo;t buy here</h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i>Buys</h3><ul>
+      <li><b>6–20× on the diff kernel</b>: zero-copy + SIMD + rayon data-parallelism (precedent range: pydantic-core 5–50×, HF tokenizers).</li>
+      <li><b>Kills the serialization tax</b>: wasm linear-memory sharing replaces the structuredClone boundary.</li>
+      <li><b>Deterministic latency in the kernel</b>: no GC jitter inside the diff (incidental — GC is not the observed bottleneck today).</li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--stay)"></i>Doesn&rsquo;t buy</h3><ul>
+      <li><b>Scroll / interaction smoothness</b>: 58% of time is in the browser layout pipeline; the language is not in the room.</li>
+      <li><b>Memory safety</b>: TS is already memory-safe; residual risk sits in 2 native deps, not app code.</li>
+      <li><b>Startup &amp; distribution</b>: the SEA single binary already satisfies it; Rust would break the working esbuild chain instead.</li>
+      <li><b>A smaller Electron baseline</b>: that is a shell decision (the Tauri question), independent of app-code language.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">04</span>Matched precedents</h2>
+  <div class="prec">
+    <div class="p"><div class="t"><span class="nm">VS Code</span><span class="tag stayed">stayed &amp; won</span></div><p>The giant Electron+TS app got fast via process isolation, virtualization and incremental layout — the existence proof that interaction-layer speed is an architecture problem. Its C++ text-buffer experiment was abandoned: &ldquo;We tried. It didn&rsquo;t work out for us.&rdquo;</p><div class="src mono">code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation</div></div>
+    <div class="p"><div class="t"><span class="nm">pydantic-core</span><span class="tag hybrid">hybrid win</span></div><p>Kept the Python API, sank only the validation core into Rust: large gains, zero ecosystem migration cost — the same shape as this project&rsquo;s diff kernel.</p><div class="src mono">docs.pydantic.dev/latest/blog/pydantic-v2-final/</div></div>
+    <div class="p"><div class="t"><span class="nm">Prisma</span><span class="tag failed">failed / reverted</span></div><p>Deleted its Rust query engine in 2025 and got 3.4× faster in TypeScript — the JS↔Rust boundary serialization was the bottleneck. The cautionary bound on any chatty-boundary design.</p><div class="src mono">prisma.io/blog — Rust-to-TypeScript engine posts (2025)</div></div>
+    <div class="p"><div class="t"><span class="nm">fish shell 4.0</span><span class="tag moved">migrated (honest)</span></div><p>Full Rust rewrite motivated by thread-safety and contributor experience; the team states performance is roughly at parity — the honest cost baseline for whole-rewrites: years, everyone, no perf story.</p><div class="src mono">fishshell.com/blog/rustport/</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">05</span>Recommended path (smallest sufficient step)</h2>
+  <div class="path">
+    <div class="step"><span class="n"></span><div class="b"><h3>Exhaust the current stack first: histogram diff + batched DOM writes</h3><p>One-week benchmarks each for the Myers→histogram algorithm swap and the layout-thrash fix; these are the two biggest negative-index sources and the control group for any migration decision.</p></div><span class="cost">~2 wks · zero risk</span></div>
+    <div class="step"><span class="n"></span><div class="b"><h3>wasm diff-kernel PoC with a boundary budget</h3><p>Compile the diff kernel rust→wasm. Acceptance threshold written down in advance: end-to-end (including boundary serialization) ≥4× or it does not count — this prevents a 10× kernel from being eaten by the boundary tax.</p></div><span class="cost">~2 wks · disposable</span></div>
+    <div class="step"><span class="n"></span><div class="b"><h3>Only if that falls short: napi-rs, server layer only</h3><p>If wasm is limited by linear-memory copies, the server layer allows native deps; napi-rs zero-copy Buffers pass straight through. The CLI&rsquo;s SEA chain stays untouched.</p></div><span class="cost">~2 wks · local</span></div>
+    <div class="step"><span class="n"></span><div class="b"><h3>Re-assess; full migration enters only if ②③ both miss and a new hard constraint appears</h3><p>E.g. a no-runtime embedding requirement or fleet-scale density economics. Otherwise the EXTRACT boundary stands.</p></div><span class="cost">triggered</span></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">06</span>Trap audit</h2>
+  <div class="traps">
+    <div class="trap"><span class="st hit">HIT</span><div><b>Safety conflation</b> — The internal proposal cites &ldquo;70% of CVEs are memory-safety&rdquo; to argue for migration; that figure is about C/C++ codebases. TypeScript is already memory-safe — the argument is void here.</div></div>
+    <div class="trap"><span class="st hit">HIT</span><div><b>Attribution-error risk</b> — Internal benchmarks compare a rewritten-with-new-algorithm kernel against the legacy implementation; any migration win must first subtract what the histogram algorithm gains in TS.</div></div>
+    <div class="trap"><span class="st ok">PASS</span><div><b>Amdahl blindness</b> — Hotspot share is measured (31%); nobody is optimizing off the critical path.</div></div>
+    <div class="trap"><span class="st ok">PASS</span><div><b>GC-phobia</b> — Nobody argued from GC pauses; profiles show V8 GC is not an observable bottleneck.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="no">07</span>Methodology &amp; weight adjustments</h2>
+  <div class="appendix">
+    <h3>Reproducible parameters of this assessment</h3>
+    <p>Archetype electron-desktop + embedded-server → default weights; user constraint &ldquo;assume the team is willing to learn Rust&rdquo; → team-readiness weight 2→1 (already applied). Bands: ≥+40 MIGRATE / +15…+40 PARTIAL / −10…+15 EXTRACT (requires a clean seam, else STAY) / &lt;−10 STAY. Overrides: no profile evidence → cap at EXTRACT; DOM/DB-dominated → cap at PARTIAL; memory-safe source language → safety dimension ≤0.</p>
+    <table>
+      <tr><th>Evidence gap</th><th>Effect</th></tr>
+      <tr><td>No profile for the 3rd interactive path (beyond diff &amp; scroll)</td><td>Confidence held at Medium; a second owned-CPU hotspot there could revise the index into the PARTIAL band</td></tr>
+      <tr><td>wasm boundary cost not yet measured (precedent range cited)</td><td>Step 2&rsquo;s acceptance threshold (≥4×) is set as a conservative floor</td></tr>
+    </table>
+  </div>
+</section>
+
+<footer>
+  <span>why-not-rust v0.1 · assessment based on static repo probes + existing profiles; project code was not executed</span>
+  <span>github.com/xiaotonng/why-not-rust</span>
+</footer>
+
+</div>
+</body>
+</html>
