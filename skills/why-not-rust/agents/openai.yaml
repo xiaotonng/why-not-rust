@@ -1,0 +1,4 @@
+interface:
+  display_name: "Why Not Rust"
+  short_description: "Evidence-gated Rust migration decisions"
+  default_prompt: "Use $why-not-rust to assess this repository and recommend the smallest justified option, including staying in the current stack."

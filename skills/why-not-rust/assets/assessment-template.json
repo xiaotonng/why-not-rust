@@ -1,0 +1,104 @@
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "",
+  "repository": {
+    "path": "",
+    "commit": "",
+    "scope": "",
+    "sampling": ""
+  },
+  "analysis": {
+    "mode": "quick|default|deep|synthetic-golden",
+    "user_supplied_facts": [],
+    "evidence_gaps": []
+  },
+  "objective": {
+    "driver": "performance|security|cost|distribution|correctness|mixed",
+    "requirement": "",
+    "baseline": "",
+    "target": ""
+  },
+  "decision": {
+    "authorization": "APPROVE|REJECT|DEFER–MEASURE",
+    "scope": "STAY|EXTRACT|PARTIAL|MIGRATE",
+    "selected_option_id": "",
+    "confidence": "HIGH|MEDIUM|LOW",
+    "robustness": "STABLE|CONDITIONAL|INDETERMINATE",
+    "because": "",
+    "change_trigger": ""
+  },
+  "gates": [
+    {"id": "G1", "option_id": "", "name": "requirement", "state": "PASS|FAIL|UNKNOWN", "evidence": ""},
+    {"id": "G2", "option_id": "", "name": "rust-specific causality", "state": "PASS|FAIL|UNKNOWN", "evidence": ""},
+    {"id": "G3", "option_id": "", "name": "economics and smallest option", "state": "PASS|FAIL|UNKNOWN", "evidence": ""},
+    {"id": "G4", "option_id": "", "name": "delivery and reversibility", "state": "PASS|FAIL|UNKNOWN", "evidence": ""}
+  ],
+  "options": [
+    {
+      "id": "",
+      "name": "",
+      "implementation": "current|rust|non-rust-native|mixed|external",
+      "scope": "stay|adopt|extract|component|full",
+      "target": "",
+      "benefit_interval": "",
+      "one_time_cost": "",
+      "recurring_cost": "",
+      "time_to_value": "",
+      "compatibility": "",
+      "reversibility": "",
+      "evidence_strength": "STRONG|MODERATE|WEAK|UNKNOWN",
+      "disposition": "selected|retain|exclude",
+      "reason": ""
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "requirement and bottleneck ownership",
+      "option_ids": [],
+      "state": "SUPPORTS|DISFAVORS|NEUTRAL|UNKNOWN|N/A",
+      "strength": "STRONG|MODERATE|WEAK|UNKNOWN",
+      "claim": "",
+      "source": "",
+      "baseline_regime": "",
+      "caveat": "",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "",
+      "outcome": "",
+      "match": "",
+      "mismatch": "",
+      "workload_regime": "",
+      "source_class": "",
+      "url": ""
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "",
+      "owner": "",
+      "cost_range": "",
+      "artifact": "",
+      "acceptance": "",
+      "deadline_or_stop": "",
+      "rollback": ""
+    }
+  ],
+  "assumptions": [],
+  "challenge_audit": {
+    "migration_case": [
+      {"id": "M1", "name": "", "state": "HIT|PASS|UNKNOWN", "claim": "", "evidence": ""}
+    ],
+    "staying_case": [
+      {"id": "S1", "name": "", "state": "HIT|PASS|UNKNOWN", "claim": "", "evidence": ""}
+    ]
+  }
+}

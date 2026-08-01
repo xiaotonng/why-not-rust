@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="{{LANG}}" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · {{PROJECT_NAME}}</title>
+<!--
+  Fill this template according to references/report-style.md, then delete this block.
+  Duplicate BEGIN/END blocks, remove unused OPTIONAL blocks, and replace every token.
+  Body classes: v-stay|v-extract|v-partial|v-migrate plus a-approve|a-reject|a-defer.
+  Embed the complete assessment JSON in the inert block at the end.
+  SECURITY: never substitute raw data. Use scripts/report_safety.py for every text,
+  href, and JSON value, including mixed-case script-closer attacks.
+-->
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0c0d10; --surface:#14161b; --surface-2:#1a1d24; --line:#292d36;
+    --ink:#f2f3f5; --ink-2:#b6bac4; --ink-3:#808694;
+    --blue:#438fe8; --blue-tint:rgba(67,143,232,.14);
+    --rust:#e06b33; --rust-tint:rgba(224,107,51,.14);
+    --teal:#3cc795; --teal-tint:rgba(60,199,149,.14);
+    --amber:#efaa22; --amber-tint:rgba(239,170,34,.14);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#f7f7f5; --surface:#fff; --surface-2:#f0f0ec; --line:#deded8;
+    --ink:#111215; --ink-2:#4f535b; --ink-3:#7e838c;
+    --blue:#2878d4; --blue-tint:rgba(40,120,212,.10);
+    --rust:#c54a16; --rust-tint:rgba(197,74,22,.10);
+    --teal:#087b58; --teal-tint:rgba(8,123,88,.10);
+    --amber:#986200; --amber-tint:rgba(152,98,0,.11);
+  }
+  body.v-stay { --scope:var(--blue); --scope-tint:var(--blue-tint); }
+  body.v-extract { --scope:var(--teal); --scope-tint:var(--teal-tint); }
+  body.v-partial { --scope:var(--amber); --scope-tint:var(--amber-tint); }
+  body.v-migrate { --scope:var(--rust); --scope-tint:var(--rust-tint); }
+
+  * { box-sizing:border-box; margin:0; }
+  html { background:var(--page); font-size:16px; }
+  body { background:var(--page); color:var(--ink); padding:0 24px 96px;
+    font:400 .9375rem/1.6 system-ui,-apple-system,"Segoe UI","PingFang SC","Noto Sans CJK SC",sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  .mono { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+
+  .mast { display:flex; align-items:center; gap:12px; padding:20px 0; border-bottom:1px solid var(--line); }
+  .logo { font-weight:750; letter-spacing:.015em; } .logo .q { color:var(--rust); }
+  .meta { margin-left:auto; display:flex; gap:15px; align-items:center; color:var(--ink-3); font-size:.76rem; }
+  .theme { border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2); border-radius:7px; padding:4px 10px; cursor:pointer; }
+
+  .hero { padding:40px 0 32px; border-bottom:1px solid var(--line); }
+  .kicker { color:var(--ink-3); font-size:.76rem; letter-spacing:.14em; text-transform:uppercase; }
+  .kicker .project { color:var(--ink-2); }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:36px; margin-top:14px; align-items:start; }
+  .decision-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .scope-word { color:var(--scope); font-size:3.55rem; line-height:.95; font-weight:820; letter-spacing:-.035em; }
+  .scope-sub { color:var(--ink-2); font-size:1.1rem; font-weight:600; }
+  .auth { display:inline-flex; align-items:center; gap:7px; margin-top:15px; padding:5px 11px; border-radius:999px; font-size:.74rem; font-weight:750; letter-spacing:.04em; }
+  .a-approve .auth { background:var(--teal-tint); color:var(--teal); }
+  .a-reject .auth { background:var(--blue-tint); color:var(--blue); }
+  .a-defer .auth { background:var(--amber-tint); color:var(--amber); }
+  .auth i { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .why { margin-top:14px; max-width:690px; color:var(--ink-2); font-size:1rem; }
+  .trigger { margin-top:8px; color:var(--ink-3); font-size:.8rem; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .chip { border:1px solid var(--line); background:var(--surface); color:var(--ink-2); border-radius:999px; padding:3px 10px; font-size:.72rem; }
+  .chip.scope { background:var(--scope-tint); color:var(--scope); border-color:transparent; font-weight:650; }
+
+  .gatebox { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .gatebox h2 { font-size:.8rem; color:var(--ink-3); text-transform:uppercase; letter-spacing:.1em; }
+  .gates { display:grid; gap:8px; margin-top:11px; }
+  .gate { display:grid; grid-template-columns:34px 74px 1fr; gap:9px; align-items:start; padding:9px 0; border-top:1px solid var(--line); }
+  .gate:first-child { border-top:0; }
+  .gate .id { color:var(--ink-3); font-size:.74rem; padding-top:1px; }
+  .state { display:inline-block; width:max-content; padding:1px 7px; border-radius:999px; font-size:.64rem; font-weight:750; letter-spacing:.04em; }
+  .state.pass { background:var(--teal-tint); color:var(--teal); }
+  .state.fail { background:var(--blue-tint); color:var(--blue); }
+  .state.unknown { background:var(--amber-tint); color:var(--amber); }
+  .gate .name { font-size:.8rem; font-weight:650; }
+  .gate .ev { color:var(--ink-3); font-size:.72rem; margin-top:2px; line-height:1.4; }
+
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:12px; padding:25px 0; border-bottom:1px solid var(--line); }
+  .tile { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
+  .tile .label { color:var(--ink-3); font-size:.72rem; }
+  .tile .value { margin-top:3px; font-size:1.45rem; font-weight:680; letter-spacing:-.015em; }
+  .tile .unit { color:var(--ink-2); font-size:.78rem; font-weight:500; margin-left:3px; }
+  .tile .note { color:var(--ink-3); font-size:.7rem; margin-top:2px; }
+
+  section { padding:32px 0 5px; }
+  .section-title { display:flex; align-items:baseline; gap:10px; font-size:1.05rem; }
+  .section-title .no { color:var(--ink-3); font-size:.8rem; font-weight:500; }
+  .sub { color:var(--ink-3); font-size:.8rem; margin-top:4px; }
+
+  .table-wrap { overflow-x:auto; margin-top:15px; border:1px solid var(--line); border-radius:11px; }
+  table { width:100%; border-collapse:collapse; background:var(--surface); }
+  th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); }
+  th { color:var(--ink-3); font-size:.68rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; background:var(--surface-2); }
+  td { color:var(--ink-2); font-size:.77rem; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td:first-child { box-shadow:inset 3px 0 var(--teal); }
+  tr.excluded { opacity:.62; }
+  .option-name { color:var(--ink); font-weight:680; white-space:nowrap; }
+  .scope-tag,.ev-tag,.dir-tag { display:inline-block; padding:1px 7px; border-radius:999px; font-size:.65rem; white-space:nowrap; }
+  .scope-tag { background:var(--surface-2); color:var(--ink-2); }
+  .ev-tag.strong { background:var(--teal-tint); color:var(--teal); }
+  .ev-tag.moderate { background:var(--blue-tint); color:var(--blue); }
+  .ev-tag.weak,.ev-tag.unknown { background:var(--amber-tint); color:var(--amber); }
+
+  .ledger { display:grid; gap:8px; margin-top:15px; }
+  .lens { display:grid; grid-template-columns:205px 190px 92px minmax(0,1fr); gap:12px; padding:11px 13px; background:var(--surface); border:1px solid var(--line); border-radius:9px; align-items:start; }
+  .lens .name { color:var(--ink); font-size:.8rem; font-weight:650; }
+  .dir-tag.rust { background:var(--rust-tint); color:var(--rust); }
+  .dir-tag.current { background:var(--blue-tint); color:var(--blue); }
+  .dir-tag.neutral { background:var(--surface-2); color:var(--ink-2); }
+  .dir-tag.unknown { background:var(--amber-tint); color:var(--amber); }
+  .lens .claim { color:var(--ink-2); font-size:.77rem; }
+  .lens .source { color:var(--ink-3); font-size:.68rem; margin-top:3px; word-break:break-word; }
+
+  .cards,.duo,.precedents,.challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px; }
+  .card,.col,.precedent,.challenge-col { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
+  .card { border-left:3px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); } .card.current { border-left-color:var(--blue); } .card.unknown { border-left-color:var(--amber); }
+  .card h3,.col h3,.precedent h3,.challenge-col h3 { font-size:.86rem; }
+  .card p,.precedent p { color:var(--ink-2); font-size:.79rem; margin-top:5px; }
+  .ref { display:inline-block; color:var(--ink-3); background:var(--surface-2); border-radius:5px; padding:2px 7px; font-size:.67rem; margin-top:7px; word-break:break-all; }
+  .col h3 { display:flex; align-items:center; gap:8px; }
+  .col h3 i { width:10px; height:10px; border-radius:3px; }
+  .col ul { padding-left:18px; margin-top:9px; color:var(--ink-2); font-size:.79rem; }
+  .col li { margin:6px 0; }
+  .precedent .top { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .precedent .outcome { font-size:.64rem; border-radius:999px; padding:1px 7px; background:var(--surface-2); color:var(--ink-2); }
+  .precedent .match { color:var(--ink-3); font-size:.7rem; margin-top:6px; }
+
+  .path { margin-top:15px; counter-reset:step; }
+  .step { display:grid; grid-template-columns:32px 1fr auto; gap:13px; padding:12px 0; border-top:1px solid var(--line); }
+  .step:first-child { border-top:0; }
+  .step .number { counter-increment:step; width:25px; height:25px; display:grid; place-items:center; border-radius:7px; background:var(--surface-2); border:1px solid var(--line); color:var(--ink-2); font-size:.75rem; }
+  .step .number::before { content:counter(step); }
+  .step h3 { font-size:.86rem; }
+  .step p { color:var(--ink-2); font-size:.78rem; margin-top:3px; }
+  .step .cost { color:var(--ink-3); font-size:.7rem; white-space:nowrap; }
+
+  .checks { display:grid; gap:7px; margin-top:10px; }
+  .check { display:grid; grid-template-columns:70px 1fr; gap:8px; color:var(--ink-2); font-size:.76rem; padding-top:7px; border-top:1px solid var(--line); }
+  .check:first-child { border-top:0; }
+  .check b { color:var(--ink); }
+
+  .method { margin-top:15px; background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:16px 18px; color:var(--ink-2); font-size:.78rem; }
+  .method h3 { color:var(--ink); font-size:.82rem; margin-bottom:7px; }
+  .method table { margin-top:10px; }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-3); font-size:.72rem; display:flex; gap:16px; flex-wrap:wrap; }
+
+  @media (max-width:940px) { .hero-grid { grid-template-columns:1fr; } }
+  @media (max-width:780px) {
+    body { padding-inline:16px; }
+    .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.precedents,.challenge-grid { grid-template-columns:1fr; }
+    .lens { grid-template-columns:1fr 1fr; }
+    .lens .claim { grid-column:1/-1; }
+    .scope-word { font-size:2.8rem; }
+  }
+  @media print { body { padding:0 8mm; } .theme { display:none; } .scope-word { font-size:2.7rem; } }
+</style>
+</head>
+<body class="{{VERDICT_CLASS}} {{AUTH_CLASS}}">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta"><span>{{PROJECT_NAME}}</span><span>{{DATE}}</span><span class="mono">method 2.0</span>
+    <button class="theme" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">{{L_THEME}}</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker">{{L_KICKER}} · <span class="project">{{PROJECT_DESC}}</span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="decision-row"><div class="scope-word">{{SCOPE_WORD}}</div><div class="scope-sub">{{SCOPE_SUB}}</div></div>
+      <div class="auth"><i></i>{{L_AUTH}} · {{AUTH_WORD}}</div>
+      <p class="why">{{DECISION_WHY}}</p>
+      <p class="trigger">{{CHANGE_TRIGGER}}</p>
+      <div class="chips">
+        <span class="chip scope">{{L_SCOPE}}: {{SCOPE}}</span>
+        <span class="chip">{{L_CONFIDENCE}}: {{CONFIDENCE}}</span>
+        <span class="chip">{{L_ROBUSTNESS}}: {{ROBUSTNESS}}</span>
+        <span class="chip">{{TARGET_ARCHETYPE}}</span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2>{{L_GATES}}</h2>
+      <div class="gates">
+        <!-- BEGIN REPEAT gate (exactly G1–G4; state class pass|fail|unknown) -->
+        <div class="gate"><span class="id mono">{{GATE_ID}}</span><span class="state {{GATE_STATE_CLASS}}">{{GATE_STATE}}</span><div><div class="name">{{GATE_NAME}}</div><div class="ev">{{GATE_EVIDENCE}}</div></div></div>
+        <!-- END REPEAT gate -->
+      </div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <!-- BEGIN REPEAT tile (4–6) -->
+  <div class="tile"><div class="label">{{TILE_LABEL}}</div><div class="value mono">{{TILE_VALUE}}<span class="unit">{{TILE_UNIT}}</span></div><div class="note">{{TILE_NOTE}}</div></div>
+  <!-- END REPEAT tile -->
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">{{N_OPTIONS}}</span>{{L_OPTIONS}}</h2>
+  <p class="sub">{{OPTIONS_SUB}}</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{{H_OPTION}}</th><th>{{H_SCOPE}}</th><th>{{H_BENEFIT}}</th><th>{{H_COST}}</th><th>{{H_TIME}}</th><th>{{H_COMPAT}}</th><th>{{H_EVIDENCE}}</th></tr></thead>
+    <tbody>
+      <!-- BEGIN REPEAT option (row class selected|excluded|empty) -->
+      <tr class="{{OPTION_ROW_CLASS}}"><td><span class="option-name">{{OPTION_NAME}}</span><div class="source">{{OPTION_DISPOSITION}}</div></td><td><span class="scope-tag">{{OPTION_SCOPE}}</span></td><td>{{OPTION_BENEFIT}}</td><td>{{OPTION_COST}}</td><td>{{OPTION_TIME}}</td><td>{{OPTION_COMPAT}}</td><td><span class="ev-tag {{OPTION_EVIDENCE_CLASS}}">{{OPTION_EVIDENCE}}</span></td></tr>
+      <!-- END REPEAT option -->
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">{{N_LENSES}}</span>{{L_LENSES}}</h2>
+  <p class="sub">{{LENSES_SUB}}</p>
+  <div class="ledger">
+    <!-- BEGIN REPEAT lens (applicable + decision-relevant unknowns; state class rust|current|neutral|unknown) -->
+    <div class="lens"><div class="name">{{LENS_ID}} · {{LENS_NAME}}</div><div><span class="dir-tag {{LENS_STATE_CLASS}}">{{LENS_STATE}}</span></div><div><span class="ev-tag {{LENS_EVIDENCE_CLASS}}">{{LENS_EVIDENCE}}</span></div><div class="claim">{{LENS_CLAIM}}<div class="source mono">{{LENS_SOURCE}}</div></div></div>
+    <!-- END REPEAT lens -->
+  </div>
+  <p class="sub">{{NA_LENSES_NOTE}}</p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">{{N_EVIDENCE}}</span>{{L_EVIDENCE}}</h2>
+  <div class="cards">
+    <!-- BEGIN REPEAT finding (class rust|current|unknown) -->
+    <div class="card {{FINDING_CLASS}}"><h3>{{FINDING_TITLE}}</h3><p>{{FINDING_BODY}}</p><span class="ref mono">{{FINDING_REF}}</span></div>
+    <!-- END REPEAT finding -->
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">{{N_BUYS}}</span>{{L_BUYS}}</h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i>{{BUYS_YES_LABEL}}</h3><ul>
+      <!-- BEGIN REPEAT buy --><li><b>{{BUY_HEAD}}</b> — {{BUY_BODY}}</li><!-- END REPEAT buy -->
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i>{{BUYS_NO_LABEL}}</h3><ul>
+      <!-- BEGIN REPEAT nobuy --><li><b>{{NOBUY_HEAD}}</b> — {{NOBUY_BODY}}</li><!-- END REPEAT nobuy -->
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">{{N_PRECEDENTS}}</span>{{L_PRECEDENTS}}</h2>
+  <div class="precedents">
+    <!-- BEGIN REPEAT precedent -->
+    <article class="precedent"><div class="top"><h3>{{PREC_NAME}}</h3><span class="outcome">{{PREC_OUTCOME}}</span></div><p>{{PREC_BODY}}</p><div class="match">{{L_MATCH}}: {{PREC_MATCH}} · {{L_MISMATCH}}: {{PREC_MISMATCH}}</div><a class="ref mono" href="{{PREC_URL}}">{{PREC_SOURCE_LABEL}}</a></article>
+    <!-- END REPEAT precedent -->
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">{{N_PATH}}</span>{{L_PATH}}</h2>
+  <div class="path">
+    <!-- BEGIN REPEAT step -->
+    <div class="step"><span class="number"></span><div><h3>{{STEP_TITLE}}</h3><p>{{STEP_BODY}}</p></div><span class="cost">{{STEP_COST}}</span></div>
+    <!-- END REPEAT step -->
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">{{N_CHALLENGES}}</span>{{L_CHALLENGES}}</h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3>{{CHALLENGE_MIGRATION_LABEL}}</h3><div class="checks">
+      <!-- BEGIN REPEAT migration check --><div class="check"><span class="state {{CHECK_STATE_CLASS}}">{{CHECK_STATE}}</span><div><b>{{CHECK_NAME}}</b> — {{CHECK_BODY}}</div></div><!-- END REPEAT migration check -->
+    </div></div>
+    <div class="challenge-col"><h3>{{CHALLENGE_STAY_LABEL}}</h3><div class="checks">
+      <!-- BEGIN REPEAT staying check --><div class="check"><span class="state {{CHECK_STATE_CLASS}}">{{CHECK_STATE}}</span><div><b>{{CHECK_NAME}}</b> — {{CHECK_BODY}}</div></div><!-- END REPEAT staying check -->
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">{{N_METHOD}}</span>{{L_METHOD}}</h2>
+  <div class="method"><h3>{{METHOD_TITLE}}</h3><p>{{METHOD_BODY}}</p><table>
+    <thead><tr><th>{{GAP_LABEL}}</th><th>{{GAP_EFFECT_LABEL}}</th></tr></thead>
+    <tbody><!-- BEGIN REPEAT gap --><tr><td>{{GAP_WHAT}}</td><td>{{GAP_EFFECT}}</td></tr><!-- END REPEAT gap --></tbody>
+  </table></div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · {{FOOTER_DISCLOSURE}}</span><span>github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{{ASSESSMENT_JSON}}
+</script>
+</body>
+</html>

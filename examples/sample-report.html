@@ -4,313 +4,800 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>why-not-rust · acme-desk</title>
+
 <style>
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page: #0c0d10; --surface: #14161b; --surface-2: #1a1d24; --hairline: #262a33;
-    --ink: #f2f3f5; --ink-2: #b6bac4; --ink-3: #7d8290;
-    --stay: #3987e5; --stay-tint: rgba(57,135,229,.14);
-    --rust: #e0672f; --rust-tint: rgba(224,103,47,.14);
-    --teal: #1baf7a; --teal-tint: rgba(27,175,122,.16);
-    --amber: #eda100; --amber-tint: rgba(237,161,0,.14);
-    --track: #21242c;
+    --page:#0c0d10; --surface:#14161b; --surface-2:#1a1d24; --line:#292d36;
+    --ink:#f2f3f5; --ink-2:#b6bac4; --ink-3:#808694;
+    --blue:#438fe8; --blue-tint:rgba(67,143,232,.14);
+    --rust:#e06b33; --rust-tint:rgba(224,107,51,.14);
+    --teal:#3cc795; --teal-tint:rgba(60,199,149,.14);
+    --amber:#efaa22; --amber-tint:rgba(239,170,34,.14);
   }
   :root[data-theme="light"] {
     color-scheme: light;
-    --page: #f7f7f5; --surface: #fbfbfa; --surface-2: #f1f1ee; --hairline: #e3e2dc;
-    --ink: #101113; --ink-2: #4c4f56; --ink-3: #85888f;
-    --stay: #2a78d6; --stay-tint: rgba(42,120,214,.10);
-    --rust: #c2410c; --rust-tint: rgba(194,65,12,.10);
-    --teal: #0e7d57; --teal-tint: rgba(14,125,87,.10);
-    --amber: #a06a00; --amber-tint: rgba(160,106,0,.12);
-    --track: #efeeea;
+    --page:#f7f7f5; --surface:#fff; --surface-2:#f0f0ec; --line:#deded8;
+    --ink:#111215; --ink-2:#4f535b; --ink-3:#7e838c;
+    --blue:#2878d4; --blue-tint:rgba(40,120,212,.10);
+    --rust:#c54a16; --rust-tint:rgba(197,74,22,.10);
+    --teal:#087b58; --teal-tint:rgba(8,123,88,.10);
+    --amber:#986200; --amber-tint:rgba(152,98,0,.11);
   }
-  /* verdict theming — set ONE of these classes on the body element */
-  body.v-stay     { --verdict-ink: var(--stay);  --verdict-tint: var(--stay-tint); }
-  body.v-extract  { --verdict-ink: var(--teal);  --verdict-tint: var(--teal-tint); }
-  body.v-partial  { --verdict-ink: var(--amber); --verdict-tint: var(--amber-tint); }
-  body.v-migrate  { --verdict-ink: var(--rust);  --verdict-tint: var(--rust-tint); }
-  :root[data-theme="dark"] body.v-extract { --verdict-ink: #4cd29e; }
+  body.v-stay { --scope:var(--blue); --scope-tint:var(--blue-tint); }
+  body.v-extract { --scope:var(--teal); --scope-tint:var(--teal-tint); }
+  body.v-partial { --scope:var(--amber); --scope-tint:var(--amber-tint); }
+  body.v-migrate { --scope:var(--rust); --scope-tint:var(--rust-tint); }
 
-  * { box-sizing: border-box; margin: 0; }
-  html { font-size: 16px; background: var(--page); }
-  body {
-    background: var(--page); color: var(--ink);
-    font: 400 0.9375rem/1.6 system-ui, -apple-system, "Segoe UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
-    padding: 0 24px 96px;
+  * { box-sizing:border-box; margin:0; }
+  html { background:var(--page); font-size:16px; }
+  body { background:var(--page); color:var(--ink); padding:0 24px 96px;
+    font:400 .9375rem/1.6 system-ui,-apple-system,"Segoe UI","PingFang SC","Noto Sans CJK SC",sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; }
+  .mono { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+
+  .mast { display:flex; align-items:center; gap:12px; padding:20px 0; border-bottom:1px solid var(--line); }
+  .logo { font-weight:750; letter-spacing:.015em; } .logo .q { color:var(--rust); }
+  .meta { margin-left:auto; display:flex; gap:15px; align-items:center; color:var(--ink-3); font-size:.76rem; }
+  .theme { border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2); border-radius:7px; padding:4px 10px; cursor:pointer; }
+
+  .hero { padding:40px 0 32px; border-bottom:1px solid var(--line); }
+  .kicker { color:var(--ink-3); font-size:.76rem; letter-spacing:.14em; text-transform:uppercase; }
+  .kicker .project { color:var(--ink-2); }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:36px; margin-top:14px; align-items:start; }
+  .decision-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .scope-word { color:var(--scope); font-size:3.55rem; line-height:.95; font-weight:820; letter-spacing:-.035em; }
+  .scope-sub { color:var(--ink-2); font-size:1.1rem; font-weight:600; }
+  .auth { display:inline-flex; align-items:center; gap:7px; margin-top:15px; padding:5px 11px; border-radius:999px; font-size:.74rem; font-weight:750; letter-spacing:.04em; }
+  .a-approve .auth { background:var(--teal-tint); color:var(--teal); }
+  .a-reject .auth { background:var(--blue-tint); color:var(--blue); }
+  .a-defer .auth { background:var(--amber-tint); color:var(--amber); }
+  .auth i { width:7px; height:7px; border-radius:50%; background:currentColor; }
+  .why { margin-top:14px; max-width:690px; color:var(--ink-2); font-size:1rem; }
+  .trigger { margin-top:8px; color:var(--ink-3); font-size:.8rem; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+  .chip { border:1px solid var(--line); background:var(--surface); color:var(--ink-2); border-radius:999px; padding:3px 10px; font-size:.72rem; }
+  .chip.scope { background:var(--scope-tint); color:var(--scope); border-color:transparent; font-weight:650; }
+
+  .gatebox { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
+  .gatebox h2 { font-size:.8rem; color:var(--ink-3); text-transform:uppercase; letter-spacing:.1em; }
+  .gates { display:grid; gap:8px; margin-top:11px; }
+  .gate { display:grid; grid-template-columns:34px 74px 1fr; gap:9px; align-items:start; padding:9px 0; border-top:1px solid var(--line); }
+  .gate:first-child { border-top:0; }
+  .gate .id { color:var(--ink-3); font-size:.74rem; padding-top:1px; }
+  .state { display:inline-block; width:max-content; padding:1px 7px; border-radius:999px; font-size:.64rem; font-weight:750; letter-spacing:.04em; }
+  .state.pass { background:var(--teal-tint); color:var(--teal); }
+  .state.fail { background:var(--blue-tint); color:var(--blue); }
+  .state.unknown { background:var(--amber-tint); color:var(--amber); }
+  .gate .name { font-size:.8rem; font-weight:650; }
+  .gate .ev { color:var(--ink-3); font-size:.72rem; margin-top:2px; line-height:1.4; }
+
+  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:12px; padding:25px 0; border-bottom:1px solid var(--line); }
+  .tile { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
+  .tile .label { color:var(--ink-3); font-size:.72rem; }
+  .tile .value { margin-top:3px; font-size:1.45rem; font-weight:680; letter-spacing:-.015em; }
+  .tile .unit { color:var(--ink-2); font-size:.78rem; font-weight:500; margin-left:3px; }
+  .tile .note { color:var(--ink-3); font-size:.7rem; margin-top:2px; }
+
+  section { padding:32px 0 5px; }
+  .section-title { display:flex; align-items:baseline; gap:10px; font-size:1.05rem; }
+  .section-title .no { color:var(--ink-3); font-size:.8rem; font-weight:500; }
+  .sub { color:var(--ink-3); font-size:.8rem; margin-top:4px; }
+
+  .table-wrap { overflow-x:auto; margin-top:15px; border:1px solid var(--line); border-radius:11px; }
+  table { width:100%; border-collapse:collapse; background:var(--surface); }
+  th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); }
+  th { color:var(--ink-3); font-size:.68rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; background:var(--surface-2); }
+  td { color:var(--ink-2); font-size:.77rem; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td:first-child { box-shadow:inset 3px 0 var(--teal); }
+  tr.excluded { opacity:.62; }
+  .option-name { color:var(--ink); font-weight:680; white-space:nowrap; }
+  .scope-tag,.ev-tag,.dir-tag { display:inline-block; padding:1px 7px; border-radius:999px; font-size:.65rem; white-space:nowrap; }
+  .scope-tag { background:var(--surface-2); color:var(--ink-2); }
+  .ev-tag.strong { background:var(--teal-tint); color:var(--teal); }
+  .ev-tag.moderate { background:var(--blue-tint); color:var(--blue); }
+  .ev-tag.weak,.ev-tag.unknown { background:var(--amber-tint); color:var(--amber); }
+
+  .ledger { display:grid; gap:8px; margin-top:15px; }
+  .lens { display:grid; grid-template-columns:205px 190px 92px minmax(0,1fr); gap:12px; padding:11px 13px; background:var(--surface); border:1px solid var(--line); border-radius:9px; align-items:start; }
+  .lens .name { color:var(--ink); font-size:.8rem; font-weight:650; }
+  .dir-tag.rust { background:var(--rust-tint); color:var(--rust); }
+  .dir-tag.current { background:var(--blue-tint); color:var(--blue); }
+  .dir-tag.neutral { background:var(--surface-2); color:var(--ink-2); }
+  .dir-tag.unknown { background:var(--amber-tint); color:var(--amber); }
+  .lens .claim { color:var(--ink-2); font-size:.77rem; }
+  .lens .source { color:var(--ink-3); font-size:.68rem; margin-top:3px; word-break:break-word; }
+
+  .cards,.duo,.precedents,.challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px; }
+  .card,.col,.precedent,.challenge-col { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
+  .card { border-left:3px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); } .card.current { border-left-color:var(--blue); } .card.unknown { border-left-color:var(--amber); }
+  .card h3,.col h3,.precedent h3,.challenge-col h3 { font-size:.86rem; }
+  .card p,.precedent p { color:var(--ink-2); font-size:.79rem; margin-top:5px; }
+  .ref { display:inline-block; color:var(--ink-3); background:var(--surface-2); border-radius:5px; padding:2px 7px; font-size:.67rem; margin-top:7px; word-break:break-all; }
+  .col h3 { display:flex; align-items:center; gap:8px; }
+  .col h3 i { width:10px; height:10px; border-radius:3px; }
+  .col ul { padding-left:18px; margin-top:9px; color:var(--ink-2); font-size:.79rem; }
+  .col li { margin:6px 0; }
+  .precedent .top { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .precedent .outcome { font-size:.64rem; border-radius:999px; padding:1px 7px; background:var(--surface-2); color:var(--ink-2); }
+  .precedent .match { color:var(--ink-3); font-size:.7rem; margin-top:6px; }
+
+  .path { margin-top:15px; counter-reset:step; }
+  .step { display:grid; grid-template-columns:32px 1fr auto; gap:13px; padding:12px 0; border-top:1px solid var(--line); }
+  .step:first-child { border-top:0; }
+  .step .number { counter-increment:step; width:25px; height:25px; display:grid; place-items:center; border-radius:7px; background:var(--surface-2); border:1px solid var(--line); color:var(--ink-2); font-size:.75rem; }
+  .step .number::before { content:counter(step); }
+  .step h3 { font-size:.86rem; }
+  .step p { color:var(--ink-2); font-size:.78rem; margin-top:3px; }
+  .step .cost { color:var(--ink-3); font-size:.7rem; white-space:nowrap; }
+
+  .checks { display:grid; gap:7px; margin-top:10px; }
+  .check { display:grid; grid-template-columns:70px 1fr; gap:8px; color:var(--ink-2); font-size:.76rem; padding-top:7px; border-top:1px solid var(--line); }
+  .check:first-child { border-top:0; }
+  .check b { color:var(--ink); }
+
+  .method { margin-top:15px; background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:16px 18px; color:var(--ink-2); font-size:.78rem; }
+  .method h3 { color:var(--ink); font-size:.82rem; margin-bottom:7px; }
+  .method table { margin-top:10px; }
+  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-3); font-size:.72rem; display:flex; gap:16px; flex-wrap:wrap; }
+
+  @media (max-width:940px) { .hero-grid { grid-template-columns:1fr; } }
+  @media (max-width:780px) {
+    body { padding-inline:16px; }
+    .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.precedents,.challenge-grid { grid-template-columns:1fr; }
+    .lens { grid-template-columns:1fr 1fr; }
+    .lens .claim { grid-column:1/-1; }
+    .scope-word { font-size:2.8rem; }
   }
-  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  a { color: var(--stay); text-decoration: none; } a:hover { text-decoration: underline; }
-
-  header.mast { display: flex; align-items: center; gap: 12px; padding: 20px 0; border-bottom: 1px solid var(--hairline); }
-  .mast .logo { font-weight: 700; letter-spacing: .02em; font-size: .95rem; }
-  .mast .logo .q { color: var(--rust); }
-  .mast .meta { margin-left: auto; color: var(--ink-3); font-size: .8rem; display: flex; gap: 16px; align-items: center; }
-  .theme-btn { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--hairline); border-radius: 6px; padding: 4px 10px; font-size: .75rem; cursor: pointer; }
-
-  .hero { padding: 40px 0 34px; border-bottom: 1px solid var(--hairline); }
-  .hero .kicker { color: var(--ink-3); font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; }
-  .hero .kicker .proj { color: var(--ink-2); }
-  .hero-grid { display: grid; grid-template-columns: 1fr 320px; gap: 36px; align-items: start; margin-top: 14px; }
-  .verdict-row { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
-  .verdict-word { font-size: 3.4rem; font-weight: 800; letter-spacing: -.02em; line-height: 1; color: var(--verdict-ink); }
-  .verdict-zh { font-size: 1.3rem; font-weight: 600; }
-  .hero .why { margin-top: 14px; max-width: 700px; color: var(--ink-2); font-size: 1rem; }
-  .hero .chips { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
-  .chip { font-size: .75rem; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--hairline); color: var(--ink-2); background: var(--surface); }
-  .chip.acc { border-color: transparent; background: var(--verdict-tint); color: var(--verdict-ink); font-weight: 600; }
-  .chip.warnc { background: var(--amber-tint); color: var(--amber); border-color: transparent; font-weight: 600; }
-
-  .gauge { background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px; padding: 16px 18px; }
-  .gauge .glb { display: flex; justify-content: space-between; font-size: .75rem; color: var(--ink-3); }
-  .gauge .glb .val { color: var(--ink); font-weight: 650; font-size: .95rem; }
-  .gauge .gtrack { position: relative; height: 12px; border-radius: 999px; margin-top: 12px;
-    background: linear-gradient(90deg, var(--stay-tint) 0 45%, var(--teal-tint) 45% 57.5%, var(--amber-tint) 57.5% 70%, var(--rust-tint) 70% 100%); }
-  .gauge .gtrack .zero { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--ink-3); opacity: .55; }
-  .gauge .gtrack .tick { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--ink-3); opacity: .35; }
-  .gauge .needle { position: absolute; top: -3px; bottom: -3px; width: 10px; border-radius: 999px; background: var(--verdict-ink); box-shadow: 0 0 0 2px var(--page); }
-  .gauge .gbands { display: flex; justify-content: space-between; font-size: .66rem; color: var(--ink-3); margin-top: 8px; letter-spacing: .06em; }
-  .gauge .gnote { margin-top: 10px; font-size: .7rem; color: var(--ink-3); line-height: 1.5; }
-
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; padding: 26px 0; border-bottom: 1px solid var(--hairline); }
-  .tile { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 14px 16px; }
-  .tile .lb { font-size: .75rem; color: var(--ink-3); }
-  .tile .v { font-size: 1.55rem; font-weight: 650; margin-top: 4px; letter-spacing: -.01em; }
-  .tile .v .unit { font-size: .85rem; color: var(--ink-2); font-weight: 500; }
-  .tile .s { font-size: .72rem; color: var(--ink-3); margin-top: 2px; }
-
-  section { padding: 32px 0 6px; }
-  h2 { font-size: 1.05rem; font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
-  h2 .no { color: var(--ink-3); font-weight: 500; font-size: .85rem; }
-  .sec-sub { color: var(--ink-3); font-size: .82rem; margin-top: 4px; }
-
-  .target-head { margin: 16px 0 2px; font-size: .84rem; font-weight: 650; color: var(--ink-2); }
-  .target-head:first-child { margin-top: 2px; }
-  .target-head .mono { color: var(--ink-3); font-weight: 500; font-size: .74rem; }
-  .gauge .needle.alt { opacity: .45; width: 6px; }
-  .legend { display: flex; gap: 18px; margin: 16px 0 8px; font-size: .78rem; color: var(--ink-2); }
-  .key { display: inline-flex; align-items: center; gap: 6px; }
-  .key i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
-  .dim { display: grid; grid-template-columns: 240px 1fr 74px; gap: 14px; align-items: center; padding: 7px 0; }
-  .dim + .dim { border-top: 1px solid color-mix(in oklab, var(--hairline) 55%, transparent); }
-  .dim .name { font-size: .86rem; }
-  .dim .name .w { color: var(--ink-3); font-size: .72rem; margin-left: 6px; }
-  .dim .impact { text-align: right; font-size: .84rem; color: var(--ink-2); }
-  .barbox { position: relative; height: 22px; background: var(--track); border-radius: 6px; overflow: hidden; }
-  .barbox .axis { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--ink-3); opacity: .5; }
-  .barbox .fill { position: absolute; top: 4px; bottom: 4px; }
-  .fill.pro { left: 50%; background: var(--rust); border-radius: 0 4px 4px 0; }
-  .fill.con { right: 50%; background: var(--stay); border-radius: 4px 0 0 4px; }
-  .fill.zerodot { left: calc(50% - 3px); top: 50%; bottom: auto; width: 6px !important; height: 6px; margin-top: -3px; border-radius: 999px; background: var(--ink-3); }
-  .dims-note { color: var(--ink-3); font-size: .74rem; margin-top: 12px; }
-
-  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-  .card { background: var(--surface); border: 1px solid var(--hairline); border-left: 3px solid var(--hairline); border-radius: 10px; padding: 14px 16px; }
-  .card.pro { border-left-color: var(--rust); } .card.con { border-left-color: var(--stay); }
-  .card h3 { font-size: .9rem; font-weight: 650; }
-  .card p { color: var(--ink-2); font-size: .84rem; margin-top: 6px; }
-  .card .ref { display: inline-block; margin-top: 8px; font-size: .74rem; color: var(--ink-3); background: var(--surface-2); padding: 2px 8px; border-radius: 5px; }
-
-  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-  .duo .col { border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; background: var(--surface); }
-  .duo h3 { font-size: .88rem; display: flex; align-items: center; gap: 8px; }
-  .duo h3 i { width: 12px; height: 12px; border-radius: 3px; }
-  .duo ul { margin: 10px 0 0; padding-left: 18px; color: var(--ink-2); font-size: .85rem; }
-  .duo li { margin: 6px 0; } .duo li b { color: var(--ink); font-weight: 600; }
-
-  .prec { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
-  .prec .p { background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 13px 16px; }
-  .prec .p .t { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-  .prec .p .nm { font-weight: 650; font-size: .88rem; }
-  .prec .p .tag { font-size: .68rem; padding: 1px 8px; border-radius: 999px; }
-  .tag.stayed { background: var(--stay-tint); color: var(--stay); }
-  .tag.hybrid { background: var(--teal-tint); color: var(--verdict-ink); }
-  body.v-stay .tag.hybrid, body.v-partial .tag.hybrid, body.v-migrate .tag.hybrid { color: var(--teal); }
-  .tag.moved { background: var(--rust-tint); color: var(--rust); }
-  .tag.failed { background: var(--amber-tint); color: var(--amber); }
-  .prec .p p { color: var(--ink-2); font-size: .8rem; margin-top: 6px; }
-  .prec .p .src { font-size: .7rem; color: var(--ink-3); margin-top: 6px; word-break: break-all; }
-
-  .path { margin-top: 16px; counter-reset: step; }
-  .step { display: grid; grid-template-columns: 34px 1fr auto; gap: 14px; padding: 12px 0; border-top: 1px solid var(--hairline); align-items: start; }
-  .step:first-child { border-top: 0; }
-  .step .n { counter-increment: step; width: 26px; height: 26px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--hairline);
-    display: grid; place-items: center; font-size: .8rem; color: var(--ink-2); font-weight: 600; }
-  .step .n::before { content: counter(step); }
-  .step .b h3 { font-size: .9rem; font-weight: 650; } .step .b p { color: var(--ink-2); font-size: .83rem; margin-top: 3px; }
-  .step .cost { font-size: .75rem; color: var(--ink-3); white-space: nowrap; padding-top: 3px; }
-
-  .traps { margin-top: 16px; display: grid; gap: 8px; }
-  .trap { display: flex; gap: 10px; align-items: baseline; font-size: .85rem; color: var(--ink-2); background: var(--surface); border: 1px solid var(--hairline); border-radius: 8px; padding: 10px 14px; }
-  .trap .st { font-size: .7rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
-  .st.hit { background: var(--amber-tint); color: var(--amber); }
-  .st.ok { background: var(--surface-2); color: var(--ink-2); }
-  .trap b { color: var(--ink); }
-
-  .appendix { margin-top: 16px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 10px; padding: 16px 18px; font-size: .8rem; color: var(--ink-2); }
-  .appendix h3 { font-size: .82rem; color: var(--ink); margin-bottom: 8px; }
-  .appendix table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-  .appendix th, .appendix td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--hairline); font-weight: 400; }
-  .appendix th { color: var(--ink-3); font-size: .72rem; }
-  footer { margin-top: 44px; color: var(--ink-3); font-size: .75rem; border-top: 1px solid var(--hairline); padding-top: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
-
-  @media (max-width: 900px) { .hero-grid { grid-template-columns: 1fr; } }
-  @media (max-width: 760px) { .cards, .duo, .prec { grid-template-columns: 1fr; } .dim { grid-template-columns: 150px 1fr 60px; } }
-  @media print { body { padding: 0 8mm; } .theme-btn { display: none; } .verdict-word { font-size: 2.6rem; } }
+  @media print { body { padding:0 8mm; } .theme { display:none; } .scope-word { font-size:2.7rem; } }
 </style>
 </head>
-<!-- verdict class: v-stay | v-extract | v-partial | v-migrate -->
-<body class="v-extract">
+<body class="v-extract a-approve">
 <div class="wrap">
 
 <header class="mast">
   <div class="logo mono">why<span class="q">-not-</span>rust</div>
-  <div class="meta"><span>acme-desk</span><span>2026-08-01</span><span class="mono">skill v0.1</span>
-    <button class="theme-btn" onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'light':'dark'">light / dark</button>
+  <div class="meta"><span>acme-desk</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="theme" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">light / dark</button>
   </div>
 </header>
 
 <section class="hero">
-  <div class="kicker">RUST MIGRATION ASSESSMENT · <span class="proj">acme-desk — Electron + TypeScript desktop code-review app · 214k LOC</span></div>
+  <div class="kicker">RUST ADOPTION DECISION · <span class="project">ILLUSTRATIVE SYNTHETIC EXAMPLE · no real repository was analyzed</span></div>
   <div class="hero-grid">
     <div>
-      <div class="verdict-row">
-        <div class="verdict-word">EXTRACT</div>
-        <div class="verdict-zh">extract the hot kernel — don&rsquo;t migrate</div>
-      </div>
-      <p class="why">The only measured owned-CPU hotspot is the diff kernel (31% of the interactive frame budget on large diffs), and it sits behind a clean seam reachable via wasm/napi. Every other bottleneck is DOM layout or serialization tax — a language swap does not touch them. TypeScript is already memory-safe, so Rust&rsquo;s safety argument is worth ≈0 here.</p>
+      <div class="decision-row"><div class="scope-word">EXTRACT</div><div class="scope-sub">isolate one measured export kernel</div></div>
+      <div class="auth"><i></i>Authorization · APPROVE</div>
+      <p class="why">The synthetic profile puts 62% of export time in an owned parser/diff kernel, and a coarse extraction clears the 1.59× target without replacing the TypeScript application.</p>
+      <p class="trigger">Conditional: re-open the decision if measured boundary cost exceeds 7%, parity is below 100%, or the funded second owner disappears.</p>
       <div class="chips">
-        <span class="chip acc">Verdict: EXTRACT (2nd most conservative of 4)</span>
-        <span class="chip warnc">Confidence: Medium — only 1 of 3 paths profiled</span>
-        <span class="chip">Scope: whole repo (no user narrowing)</span>
-        <span class="chip">Archetype: electron-desktop + embedded server</span>
+        <span class="chip scope">Scope: export kernel only</span>
+        <span class="chip">Confidence: MEDIUM</span>
+        <span class="chip">Robustness: CONDITIONAL</span>
+        <span class="chip">Electron desktop · CPU export path</span>
       </div>
     </div>
-    <div class="gauge">
-      <div class="glb"><span>Rust Case Index</span><span class="val mono">−9</span></div>
-      <div class="gtrack">
-        <span class="zero"></span>
-        <span class="tick" style="left:45%"></span><span class="tick" style="left:57.5%"></span><span class="tick" style="left:70%"></span>
-        <!-- needle position: INDEX_PCT = (index + 100) / 2, as a percentage.
-             Multi-target: the solid needle is the HIGHEST target index (most
-             decision-relevant); add one <span class="needle alt" style="left:calc(P% - 3px)"></span>
-             per remaining target and name each in GAUGE_NOTE. -->
-        <span class="needle" style="left: calc(45.5% - 5px)"></span>
+    <aside class="gatebox">
+      <h2>Four proof gates</h2>
+      <div class="gates">
+        <div class="gate"><span class="id mono">G1</span><span class="state pass">PASS</span><div><div class="name">Requirement</div><div class="ev">3.8 s baseline misses the 2.4 s export target.</div></div></div>
+<div class="gate"><span class="id mono">G2</span><span class="state pass">PASS</span><div><div class="name">Causality</div><div class="ev">62% owned CPU kernel; bounded 5× kernel result.</div></div></div>
+<div class="gate"><span class="id mono">G3</span><span class="state pass">PASS</span><div><div class="name">Economics</div><div class="ev">Funded TypeScript, WASM, and Go trials miss the target.</div></div></div>
+<div class="gate"><span class="id mono">G4</span><span class="state pass">PASS</span><div><div class="name">Delivery</div><div class="ev">Batch boundary, parity corpus, flag, and rollback owner.</div></div></div>
       </div>
-      <div class="gbands"><span>STAY</span><span>MIGRATE</span></div>
-      <div class="gnote">Index = 100 × Σ(score×weight) ÷ (2×Σweight) = −9. Bands: &lt;−10 STAY · −10…+15 EXTRACT (clean seam exists) · +15…+40 PARTIAL · ≥+40 MIGRATE.</div>
-    </div>
+    </aside>
   </div>
 </section>
 
 <div class="tiles">
-  <div class="tile"><div class="lb">Rust Case Index (−100…+100)</div><div class="v mono">−9<span class="unit"></span></div><div class="s">weighted score ÷ full scale; negative leans stay</div></div>
-  <div class="tile"><div class="lb">Measured hotspot share</div><div class="v mono">31<span class="unit">%</span></div><div class="s">diff kernel ÷ large-diff frame budget (profiled)</div></div>
-  <div class="tile"><div class="lb">Memory-safety delta</div><div class="v mono">≈0<span class="unit"></span></div><div class="s">TS is already memory-safe; 2 native deps at the edge</div></div>
-  <div class="tile"><div class="lb">Expected kernel gain</div><div class="v mono">6–20<span class="unit">×</span></div><div class="s">precedent range (pydantic-core / tokenizers)</div></div>
-  <div class="tile"><div class="lb">Full-migration cost</div><div class="v mono">12–18<span class="unit"></span></div><div class="s">person-months — 214k LOC × industry rewrite rates (estimated)</div></div>
+  <div class="tile"><div class="label">Baseline → target</div><div class="value mono">3.8 → 2.4<span class="unit">s</span></div><div class="note">synthetic 2 GB export fixture</div></div>
+<div class="tile"><div class="label">Owned hot path</div><div class="value mono">62<span class="unit">%</span></div><div class="note">synthetic CPU profile</div></div>
+<div class="tile"><div class="label">Predicted product gain</div><div class="value mono">1.87<span class="unit">×</span></div><div class="note">f=.62 · S=5 · b=.03</div></div>
+<div class="tile"><div class="label">Physical ceiling</div><div class="value mono">2.44<span class="unit">×</span></div><div class="note">infinite kernel · same boundary</div></div>
+<div class="tile"><div class="label">Pilot</div><div class="value mono">2–3<span class="unit">weeks</span></div><div class="note">range from synthetic work breakdown</div></div>
 </div>
 
 <section>
-  <h2><span class="no">01</span>The 12-dimension scorecard</h2>
-  <div class="sec-sub">score −2…+2 (positive favors migration) × weight 0…3 (archetype + user constraints); bar length = score × weight</div>
-  <div class="legend">
-    <span class="key"><i style="background:var(--stay)"></i>favors staying / solvable in current stack</span>
-    <span class="key"><i style="background:var(--rust)"></i>favors migration / real Rust gain</span>
-  </div>
-  <div class="dims">
-    <div class="dim"><div class="name">Seam quality · incremental path<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:50%"></span></div><div class="impact mono">+6</div></div>
-    <div class="dim"><div class="name">Amdahl ceiling (hotspot share)<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:33.3%"></span></div><div class="impact mono">+4</div></div>
-    <div class="dim"><div class="name">Concurrency / data-parallel upside<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill pro" style="width:16.7%"></span></div><div class="impact mono">+2</div></div>
-    <div class="dim"><div class="name">Memory / density economics<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill zerodot" style="width:0%"></span></div><div class="impact mono">0</div></div>
-    <div class="dim"><div class="name">Ecosystem fit<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill zerodot" style="width:0%"></span></div><div class="impact mono">0</div></div>
-    <div class="dim"><div class="name">Tail latency / GC sensitivity<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:8.3%"></span></div><div class="impact mono">−1</div></div>
-    <div class="dim"><div class="name">Startup / invocation shape<span class="w">w1</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:8.3%"></span></div><div class="impact mono">−1</div></div>
-    <div class="dim"><div class="name">Team readiness<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−2</div></div>
-    <div class="dim"><div class="name">Distribution / deployment constraints<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:16.7%"></span></div><div class="impact mono">−2</div></div>
-    <div class="dim"><div class="name">Bottleneck locus (where time goes)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:25%"></span></div><div class="impact mono">−3</div></div>
-    <div class="dim"><div class="name">Counterfactual strength (stay-stack moves)<span class="w">w3</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:25%"></span></div><div class="impact mono">−3</div></div>
-    <div class="dim"><div class="name">Memory-safety delta<span class="w">w2</span></div><div class="barbox"><span class="axis"></span><span class="fill con" style="width:33.3%"></span></div><div class="impact mono">−4</div></div>
-  </div>
-  <div class="dims-note">Index = 100 × Σ(score×weight) ÷ (2×Σweight) = 100 × (−4) ÷ 46 = −9 → band −10…+15 → EXTRACT (a clean seam exists). Bands and override rules: see methodology.</div>
+  <h2 class="section-title"><span class="no">01</span>Option comparison</h2>
+  <p class="sub">Same target: reduce the synthetic 2 GB export from 3.8 s to ≤2.4 s.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Option</th><th>Scope</th><th>Benefit / risk reduction</th><th>Cost</th><th>Time to value</th><th>Compatibility / rollback</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class=""><td><span class="option-name">TypeScript optimize</span><div class="source">retain · useful but insufficient</div></td><td><span class="scope-tag">STAY</span></td><td>1.25–1.40×</td><td>2–4 days; low recurring</td><td>days</td><td>native · git revert</td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name">Existing WASM parser</span><div class="source">retain · measured below target</div></td><td><span class="scope-tag">ADOPT</span></td><td>1.38–1.52×</td><td>1–2 weeks; dependency</td><td>1 week</td><td>adapter flag · format adapter</td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="selected"><td><span class="option-name">Rust kernel extraction</span><div class="source">recommended smallest sufficient option</div></td><td><span class="scope-tag">EXTRACT</span></td><td>1.70–1.90×</td><td>2–3 weeks; second owner</td><td>1 week pilot</td><td>batch API · feature flag</td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name">Go sidecar</span><div class="source">retain · measured below target · Go</div></td><td><span class="scope-tag">EXTRACT</span></td><td>1.44–1.55×</td><td>2–3 weeks; second stack</td><td>1 week pilot</td><td>process API · feature flag</td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name">Full Rust/Tauri app</span><div class="source">exclude · no incremental export benefit</div></td><td><span class="scope-tag">MIGRATE</span></td><td>no extra export gain</td><td>9–14 months; full dual stack</td><td>months</td><td>whole UI · poor rollback</td><td><span class="ev-tag weak">WEAK</span></td></tr>
+    </tbody>
+  </table></div>
 </section>
 
+<!-- OPTIONAL: drop this section in quick mode -->
 <section>
-  <h2><span class="no">02</span>Key evidence</h2>
+  <h2 class="section-title"><span class="no">02</span>Twelve-lens evidence ledger</h2>
+  <p class="sub">States are option-scoped evidence, not additive scores.</p>
+  <div class="ledger">
+    <div class="lens"><div class="name">D1 · Requirement &amp; ownership</div><div><span class="dir-tag neutral">SUPPORTS · native options</span></div><div><span class="ev-tag strong">STRONG</span></div><div class="claim">Synthetic CPU profile assigns 62% of export wall-clock to the owned parser/diff kernel.<div class="source mono">synthetic/export.cpuprofile · representative 2 GB fixture</div></div></div>
+<div class="lens"><div class="name">D2 · End-to-end reach</div><div><span class="dir-tag rust">SUPPORTS · rust-extract</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">A 5× kernel with 3% boundary cost predicts 1.87× product speed; the target is 1.59×.<div class="source mono">decision_math.py · f=.62, S=5, b=.03</div></div></div>
+<div class="lens"><div class="name">D3 · Tail &amp; runtime</div><div><span class="dir-tag neutral">NEUTRAL · all</span></div><div><span class="ev-tag strong">STRONG</span></div><div class="claim">No GC-correlated p99 violation appears in the synthetic trace; GC is not part of the case.<div class="source mono">synthetic/export-trace.json</div></div></div>
+<div class="lens"><div class="name">D4 · Fleet footprint</div><div><span class="dir-tag neutral">N/A</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">Single desktop instances create no fleet-density objective for this decision.<div class="source mono">synthetic deployment inventory</div></div></div>
+<div class="lens"><div class="name">D5 · Startup shape</div><div><span class="dir-tag neutral">N/A</span></div><div><span class="ev-tag strong">STRONG</span></div><div class="claim">The long-lived application starts export after warm initialization; startup is outside the objective.<div class="source mono">synthetic lifecycle trace</div></div></div>
+<div class="lens"><div class="name">D6 · Safety &amp; correctness</div><div><span class="dir-tag neutral">N/A</span></div><div><span class="ev-tag strong">STRONG</span></div><div class="claim">TypeScript app code has no native/FFI surface; this proposal makes no safety claim.<div class="source mono">synthetic package manifests</div></div></div>
+<div class="lens"><div class="name">D7 · Concurrency &amp; invariants</div><div><span class="dir-tag neutral">NEUTRAL · native options</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">Chunk parallelism is available in Go, workers, and Rust; it is not Rust-specific in this design.<div class="source mono">synthetic worker PoC</div></div></div>
+<div class="lens"><div class="name">D8 · Distribution</div><div><span class="dir-tag current">SUPPORTS · ts-opt</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">The current signed Electron packaging chain already meets distribution requirements.<div class="source mono">synthetic build config</div></div></div>
+<div class="lens"><div class="name">D9 · Ecosystem &amp; alternatives</div><div><span class="dir-tag neutral">NEUTRAL · native options</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">Rust, Go, and the existing WASM parser are all technically viable candidates.<div class="source mono">synthetic dependency spike</div></div></div>
+<div class="lens"><div class="name">D10 · Boundary &amp; compatibility</div><div><span class="dir-tag rust">SUPPORTS · rust-extract</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">One immutable batch enters and one result batch returns; measured boundary estimate is 3%.<div class="source mono">synthetic boundary bench</div></div></div>
+<div class="lens"><div class="name">D11 · Delivery economics</div><div><span class="dir-tag rust">DISFAVORS · rust-extract</span></div><div><span class="ev-tag weak">WEAK</span></div><div class="claim">One Rust maintainer creates bus-factor risk; the bounded extraction plan prices a second owner.<div class="source mono">synthetic staffing plan</div></div></div>
+<div class="lens"><div class="name">D12 · Counterfactual</div><div><span class="dir-tag current">DISFAVORS · non-Rust options</span></div><div><span class="ev-tag moderate">MODERATE</span></div><div class="claim">Funded TypeScript, WASM, and Go trials stay below the 1.59× target on the same fixture.<div class="source mono">synthetic counterfactual benchmarks</div></div></div>
+  </div>
+  <p class="sub">N/A lenses: D4 fleet footprint, D5 startup, and D6 safety do not bear on this synthetic performance objective.</p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span>Decisive evidence</h2>
   <div class="cards">
-    <div class="card pro"><h3>The diff kernel is a real owned-CPU hotspot behind a clean seam</h3><p>CPU profile of the large-diff (&gt;8k lines) path: 31% of the frame budget lands in the Myers main loop of <span class="mono">src/diff/engine.ts</span>; pure struct-in/struct-out, no DOM dependency — an ideal extraction candidate.</p><span class="ref mono">src/diff/engine.ts:214 · profiles/big-diff.cpuprofile</span></div>
-    <div class="card pro"><h3>The worker-pool attempt lost 41% to serialization tax</h3><p>worker_threads parallelism sped compute up 2.6×, but structuredClone boundary overhead gave 41% back. Shared-memory / zero-copy layouts are exactly the Rust(wasm) side&rsquo;s strength.</p><span class="ref mono">bench/diff-workers.md</span></div>
-    <div class="card con"><h3>Interactive jank is layout thrash, not compute</h3><p>Scroll/expand profiles: 58% of time in style/layout/paint, JS compute only 17%. No language change touches this — it needs virtualization and batched DOM writes.</p><span class="ref mono">profiles/scroll-jank.cpuprofile</span></div>
-    <div class="card con"><h3>The distribution chain requires the single-file binary; native deps are off-limits</h3><p>The CLI ships as a Node SEA single binary and the core package allows Node built-ins only. A napi route can live only in the server layer; wasm is the one shape that leaves the distribution chain intact.</p><span class="ref mono">core/package.json · scripts/build-sea.sh</span></div>
+    <div class="card rust"><h3>The kernel is large enough to matter</h3><p>The synthetic profile assigns 62% of export time to owned parse/diff work; the 2.44× physical ceiling is above the 1.59× target.</p><span class="ref mono">synthetic/export.cpuprofile</span></div>
+<div class="card current"><h3>In-stack work is real but insufficient</h3><p>Buffer reuse and caching produce 1.25–1.40× on the same fixture. Fund them, but do not pretend they meet the target alone.</p><span class="ref mono">synthetic/ts-baseline.json</span></div>
+<div class="card unknown"><h3>Boundary cost controls the decision</h3><p>The 3% value is a bounded synthetic bench. At more than 7%, the lower benefit estimate no longer clears the target.</p><span class="ref mono">synthetic/boundary-bench.json</span></div>
+<div class="card current"><h3>The UI is outside the requirement</h3><p>DOM rendering and Electron startup do not participate in export time; replacing the shell would add cost without passing a new gate.</p><span class="ref mono">synthetic/trace.json</span></div>
   </div>
 </section>
 
+<!-- OPTIONAL: drop this section in quick mode -->
 <section>
-  <h2><span class="no">03</span>What Rust buys / doesn&rsquo;t buy here</h2>
+  <h2 class="section-title"><span class="no">04</span>What Rust buys / doesn&#x27;t buy here</h2>
   <div class="duo">
-    <div class="col"><h3><i style="background:var(--rust)"></i>Buys</h3><ul>
-      <li><b>6–20× on the diff kernel</b>: zero-copy + SIMD + rayon data-parallelism (precedent range: pydantic-core 5–50×, HF tokenizers).</li>
-      <li><b>Kills the serialization tax</b>: wasm linear-memory sharing replaces the structuredClone boundary.</li>
-      <li><b>Deterministic latency in the kernel</b>: no GC jitter inside the diff (incidental — GC is not the observed bottleneck today).</li>
+    <div class="col"><h3><i style="background:var(--rust)"></i>What it buys</h3><ul>
+      <li><b>Parser throughput</b> — native batch processing can close the measured export gap.</li><li><b>Kernel-local invariants</b> — ownership can simplify the extracted buffer lifecycle.</li><li><b>Reversible native option</b> — the unchanged TypeScript API keeps rollback cheap.</li>
     </ul></div>
-    <div class="col"><h3><i style="background:var(--stay)"></i>Doesn&rsquo;t buy</h3><ul>
-      <li><b>Scroll / interaction smoothness</b>: 58% of time is in the browser layout pipeline; the language is not in the room.</li>
-      <li><b>Memory safety</b>: TS is already memory-safe; residual risk sits in 2 native deps, not app code.</li>
-      <li><b>Startup &amp; distribution</b>: the SEA single binary already satisfies it; Rust would break the working esbuild chain instead.</li>
-      <li><b>A smaller Electron baseline</b>: that is a shell decision (the Tauri question), independent of app-code language.</li>
+    <div class="col"><h3><i style="background:var(--blue)"></i>What it doesn&#x27;t buy</h3><ul>
+      <li><b>Faster DOM or database work</b> — neither appears in the measured export kernel.</li><li><b>Application memory safety</b> — the TypeScript app has no unsafe native surface.</li><li><b>A reason to replace Electron</b> — shell migration adds no export benefit.</li>
     </ul></div>
   </div>
 </section>
 
+<!-- OPTIONAL: drop this section in quick mode -->
 <section>
-  <h2><span class="no">04</span>Matched precedents</h2>
-  <div class="prec">
-    <div class="p"><div class="t"><span class="nm">VS Code</span><span class="tag stayed">stayed &amp; won</span></div><p>The giant Electron+TS app got fast via process isolation, virtualization and incremental layout — the existence proof that interaction-layer speed is an architecture problem. Its C++ text-buffer experiment was abandoned: &ldquo;We tried. It didn&rsquo;t work out for us.&rdquo;</p><div class="src mono">code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation</div></div>
-    <div class="p"><div class="t"><span class="nm">pydantic-core</span><span class="tag hybrid">hybrid win</span></div><p>Kept the Python API, sank only the validation core into Rust: large gains, zero ecosystem migration cost — the same shape as this project&rsquo;s diff kernel.</p><div class="src mono">docs.pydantic.dev/latest/blog/pydantic-v2-final/</div></div>
-    <div class="p"><div class="t"><span class="nm">Prisma</span><span class="tag failed">failed / reverted</span></div><p>Deleted its Rust query engine in 2025 and got 3.4× faster in TypeScript — the JS↔Rust boundary serialization was the bottleneck. The cautionary bound on any chatty-boundary design.</p><div class="src mono">prisma.io/blog — Rust-to-TypeScript engine posts (2025)</div></div>
-    <div class="p"><div class="t"><span class="nm">fish shell 4.0</span><span class="tag moved">migrated (honest)</span></div><p>Full Rust rewrite motivated by thread-safety and contributor experience; the team states performance is roughly at parity — the honest cost baseline for whole-rewrites: years, everyone, no perf story.</p><div class="src mono">fishshell.com/blog/rustport/</div></div>
+  <h2 class="section-title"><span class="no">05</span>Matched precedents</h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>pydantic-core</h3><span class="outcome">EXTRACT</span></div><p>A Rust validation core kept the Python API and captured native value at a coarse seam.</p><div class="match">match: scripting API + hot pure kernel · mismatch: different data model and workload</div><a class="ref mono" href="https://pydantic.dev/articles/pydantic-v2">first-party · vendor benchmark</a></article>
+<article class="precedent"><div class="top"><h3>Prisma Rust-free</h3><span class="outcome">REVERSED</span></div><p>Moving execution out of a chatty Rust boundary improved Prisma&#x27;s own large-query benchmark.</p><div class="match">match: JS host + boundary cost · mismatch: database ORM calls are chattier</div><a class="ref mono" href="https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm">first-party · internal benchmark</a></article>
+<article class="precedent"><div class="top"><h3>TypeScript native port</h3><span class="outcome">NON-RUST</span></div><p>Go supplied native execution and shared-memory parallelism while preserving cyclic graph semantics.</p><div class="match">match: native-tool alternative · mismatch: whole compiler port, not one kernel</div><a class="ref mono" href="https://devblogs.microsoft.com/typescript/typescript-native-port/">first-party · preview benchmark</a></article>
   </div>
 </section>
 
 <section>
-  <h2><span class="no">05</span>Recommended path (smallest sufficient step)</h2>
+  <h2 class="section-title"><span class="no">06</span>Reversible path</h2>
   <div class="path">
-    <div class="step"><span class="n"></span><div class="b"><h3>Exhaust the current stack first: histogram diff + batched DOM writes</h3><p>One-week benchmarks each for the Myers→histogram algorithm swap and the layout-thrash fix; these are the two biggest negative-index sources and the control group for any migration decision.</p></div><span class="cost">~2 wks · zero risk</span></div>
-    <div class="step"><span class="n"></span><div class="b"><h3>wasm diff-kernel PoC with a boundary budget</h3><p>Compile the diff kernel rust→wasm. Acceptance threshold written down in advance: end-to-end (including boundary serialization) ≥4× or it does not count — this prevents a 10× kernel from being eaten by the boundary tax.</p></div><span class="cost">~2 wks · disposable</span></div>
-    <div class="step"><span class="n"></span><div class="b"><h3>Only if that falls short: napi-rs, server layer only</h3><p>If wasm is limited by linear-memory copies, the server layer allows native deps; napi-rs zero-copy Buffers pass straight through. The CLI&rsquo;s SEA chain stays untouched.</p></div><span class="cost">~2 wks · local</span></div>
-    <div class="step"><span class="n"></span><div class="b"><h3>Re-assess; full migration enters only if ②③ both miss and a new hard constraint appears</h3><p>E.g. a no-runtime embedding requirement or fleet-scale density economics. Otherwise the EXTRACT boundary stands.</p></div><span class="cost">triggered</span></div>
+    <div class="step"><span class="number"></span><div><h3>Freeze the decision fixture</h3><p>Owner: performance lead. Artifact: versioned 2 GB corpus, warm/cold protocol, and variance report. Acceptance: three baseline runs within ±3%. Deadline/stop: stop if the baseline no longer misses 2.4 s. Rollback: discard the fixture commit; production is untouched.</p></div><span class="cost">1 day</span></div>
+<div class="step"><span class="number"></span><div><h3>Confirm equal-boundary pilots</h3><p>Owner: two platform engineers. Artifact: Rust and Go candidates using the same batch API and copies. Acceptance: ≥1.59× end-to-end, 100% parity, and ≤7% boundary cost. Deadline/stop: stop after one week if neither clears every threshold. Rollback: delete pilot branches and keep the TypeScript path.</p></div><span class="cost">1 week</span></div>
+<div class="step"><span class="number"></span><div><h3>Shadow the selected kernel</h3><p>Owner: export team. Artifact: shadow diff log behind a disabled-by-default flag. Acceptance: 100% fixture parity and no p95 regression. Deadline/stop: stop on the first unexplained mismatch. Rollback: disable the flag and route all work to TypeScript.</p></div><span class="cost">1 week</span></div>
+<div class="step"><span class="number"></span><div><h3>Roll out with a kill switch</h3><p>Owner: on-call maintainer. Artifact: 5%→25%→100% rollout dashboard. Acceptance: the error budget stays green for one release. Deadline/stop: remove the old path only after that window. Rollback: activate the kill switch and restore the TypeScript route.</p></div><span class="cost">1 release</span></div>
   </div>
 </section>
 
 <section>
-  <h2><span class="no">06</span>Trap audit</h2>
-  <div class="traps">
-    <div class="trap"><span class="st hit">HIT</span><div><b>Safety conflation</b> — The internal proposal cites &ldquo;70% of CVEs are memory-safety&rdquo; to argue for migration; that figure is about C/C++ codebases. TypeScript is already memory-safe — the argument is void here.</div></div>
-    <div class="trap"><span class="st hit">HIT</span><div><b>Attribution-error risk</b> — Internal benchmarks compare a rewritten-with-new-algorithm kernel against the legacy implementation; any migration win must first subtract what the histogram algorithm gains in TS.</div></div>
-    <div class="trap"><span class="st ok">PASS</span><div><b>Amdahl blindness</b> — Hotspot share is measured (31%); nobody is optimizing off the critical path.</div></div>
-    <div class="trap"><span class="st ok">PASS</span><div><b>GC-phobia</b> — Nobody argued from GC pauses; profiles show V8 GC is not an observable bottleneck.</div></div>
+  <h2 class="section-title"><span class="no">07</span>Symmetric challenge audit</h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3>Challenge the migration case</h3><div class="checks">
+      <div class="check"><span class="state pass">PASS</span><div><b>End-to-end reach</b> — Amdahl share and boundary are included.</div></div>
+<div class="check"><span class="state pass">PASS</span><div><b>Attribution</b> — Rust, Go, and WASM use the same fixture and bounded interfaces.</div></div>
+<div class="check"><span class="state unknown">HIT</span><div><b>Boundary uncertainty</b> — 3% is not yet a production measurement.</div></div>
+<div class="check"><span class="state pass">PASS</span><div><b>Scope control</b> — The full application migration is explicitly excluded.</div></div>
+<div class="check"><span class="state pass">PASS</span><div><b>Ownership</b> — The plan funds a second maintainer and rollback owner.</div></div>
+    </div></div>
+    <div class="challenge-col"><h3>Challenge the staying case</h3><div class="checks">
+      <div class="check"><span class="state pass">PASS</span><div><b>Funded counterfactual</b> — TypeScript, WASM, and Go alternatives have owners and same-fixture results.</div></div>
+<div class="check"><span class="state unknown">HIT</span><div><b>Target shortfall</b> — The measured 1.25–1.40× range does not meet 1.59×.</div></div>
+<div class="check"><span class="state pass">PASS</span><div><b>Cost of inaction</b> — The report names the missed 2.4 s workflow target.</div></div>
+<div class="check"><span class="state pass">PASS</span><div><b>Unsafe-surface check</b> — No hidden native dependency was found in the synthetic manifests.</div></div>
+<div class="check"><span class="state pass">PASS</span><div><b>Stop condition</b> — Optimization ends when the same fixture meets the target or its range is exhausted.</div></div>
+    </div></div>
   </div>
 </section>
 
 <section>
-  <h2><span class="no">07</span>Methodology &amp; weight adjustments</h2>
-  <div class="appendix">
-    <h3>Reproducible parameters of this assessment</h3>
-    <p>Archetype electron-desktop + embedded-server → default weights; user constraint &ldquo;assume the team is willing to learn Rust&rdquo; → team-readiness weight 2→1 (already applied). Bands: ≥+40 MIGRATE / +15…+40 PARTIAL / −10…+15 EXTRACT (requires a clean seam, else STAY) / &lt;−10 STAY. Overrides: no profile evidence → cap at EXTRACT; DOM/DB-dominated → cap at PARTIAL; memory-safe source language → safety dimension ≤0.</p>
-    <table>
-      <tr><th>Evidence gap</th><th>Effect</th></tr>
-      <tr><td>No profile for the 3rd interactive path (beyond diff &amp; scroll)</td><td>Confidence held at Medium; a second owned-CPU hotspot there could revise the index into the PARTIAL band</td></tr>
-      <tr><td>wasm boundary cost not yet measured (precedent range cited)</td><td>Step 2&rsquo;s acceptance threshold (≥4×) is set as a conservative floor</td></tr>
-    </table>
-  </div>
+  <h2 class="section-title"><span class="no">08</span>Method and decision record</h2>
+  <div class="method"><h3>Synthetic golden fixture · why-not-rust method 2.0</h3><p>This report is intentionally fictional and exists to regression-test the template. Repository commit: illustrative; scope: export kernel; sampling: synthetic golden fixture; mode: static synthetic analysis; user-supplied facts: none. Objective: reduce the 2 GB export from 3.8 s to ≤2.4 s. The method compares explicit options through four non-compensatory gates; it is not a statistical predictor. Amdahl inputs: f=.62, S=5, b=.03 → 1.87×; infinite-kernel ceiling 2.44×. No project code or network was run.</p><table>
+    <thead><tr><th>Evidence gap</th><th>Decision effect</th></tr></thead>
+    <tbody><tr><td>Production boundary cost</td><td>Above 7%, change authorization to DEFER–MEASURE and keep the TypeScript path.</td></tr><tr><td>Second Rust owner</td><td>If unfunded, G4 becomes UNKNOWN; pilot may run, production extraction is not authorized.</td></tr><tr><td>Production workload mix</td><td>If the owned kernel falls below the measured decision range, rerun D2 and G3 before rollout.</td></tr></tbody>
+  </table></div>
 </section>
 
-<footer>
-  <span>why-not-rust v0.1 · assessment based on static repo probes + existing profiles; project code was not executed</span>
-  <span>github.com/xiaotonng/why-not-rust</span>
-</footer>
-
+<footer><span>why-not-rust · method 2.0 · illustrative synthetic fixture · static analysis + synthetic artifacts</span><span>github.com/xiaotonng/why-not-rust</span></footer>
 </div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "synthetic://acme-desk",
+    "commit": "illustrative",
+    "scope": "export kernel",
+    "sampling": "synthetic golden fixture"
+  },
+  "analysis": {
+    "mode": "synthetic-golden",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "production boundary cost",
+      "second Rust owner continuity",
+      "production workload mix"
+    ]
+  },
+  "objective": {
+    "driver": "performance",
+    "requirement": "reduce 2 GB export from 3.8 s to \u003c=2.4 s",
+    "baseline": "3.8 s",
+    "target": "1.59x or better"
+  },
+  "decision": {
+    "authorization": "APPROVE",
+    "scope": "EXTRACT",
+    "selected_option_id": "rust-extract",
+    "confidence": "MEDIUM",
+    "robustness": "CONDITIONAL",
+    "because": "The owned kernel dominates the path and a coarse extraction clears the target without replacing the application.",
+    "change_trigger": "Conditional: re-open the decision if measured boundary cost exceeds 7%, parity is below 100%, or the funded second owner disappears."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "rust-extract",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "3.8 s baseline misses 2.4 s target"
+    },
+    {
+      "id": "G2",
+      "option_id": "rust-extract",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "62% owned CPU kernel; 5x bounded kernel result"
+    },
+    {
+      "id": "G3",
+      "option_id": "rust-extract",
+      "name": "economics and smallest option",
+      "state": "PASS",
+      "evidence": "funded TypeScript, WASM, and Go trials miss the target"
+    },
+    {
+      "id": "G4",
+      "option_id": "rust-extract",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "coarse boundary, feature flag, parity corpus, rollback"
+    }
+  ],
+  "options": [
+    {
+      "id": "ts-opt",
+      "name": "TypeScript optimize",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "Reduce the synthetic 2 GB export from 3.8 s to ≤2.4 s.",
+      "benefit_interval": "1.25–1.40x",
+      "one_time_cost": "2–4 engineer-days",
+      "recurring_cost": "low",
+      "time_to_value": "days",
+      "compatibility": "native",
+      "reversibility": "git revert",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Does not meet 1.59x target alone"
+    },
+    {
+      "id": "wasm-adopt",
+      "name": "Existing WASM parser",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "Reduce the synthetic 2 GB export from 3.8 s to ≤2.4 s.",
+      "benefit_interval": "1.38–1.52x",
+      "one_time_cost": "1–2 weeks",
+      "recurring_cost": "dependency",
+      "time_to_value": "1 week",
+      "compatibility": "format adapter",
+      "reversibility": "adapter flag",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Same-fixture trial misses the target"
+    },
+    {
+      "id": "rust-extract",
+      "name": "Rust kernel extraction",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "Reduce the synthetic 2 GB export from 3.8 s to ≤2.4 s.",
+      "benefit_interval": "1.70–1.90x",
+      "one_time_cost": "2–3 weeks",
+      "recurring_cost": "second owner",
+      "time_to_value": "1 week pilot",
+      "compatibility": "batch boundary",
+      "reversibility": "feature flag",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "Recommended smallest sufficient option"
+    },
+    {
+      "id": "go-sidecar",
+      "name": "Go sidecar",
+      "implementation": "non-rust-native",
+      "scope": "extract",
+      "target": "Reduce the synthetic 2 GB export from 3.8 s to ≤2.4 s.",
+      "benefit_interval": "1.44–1.55x",
+      "one_time_cost": "2–3 weeks",
+      "recurring_cost": "second stack",
+      "time_to_value": "1 week pilot",
+      "compatibility": "process boundary",
+      "reversibility": "feature flag",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Same-fixture trial misses the target"
+    },
+    {
+      "id": "rust-full",
+      "name": "Full Rust/Tauri app",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "Reduce the synthetic 2 GB export from 3.8 s to ≤2.4 s.",
+      "benefit_interval": "no extra export gain",
+      "one_time_cost": "9–14 months",
+      "recurring_cost": "full dual stack",
+      "time_to_value": "months",
+      "compatibility": "whole UI",
+      "reversibility": "poor",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "Fails smallest-sufficient-option gate"
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "wasm-adopt",
+        "rust-extract",
+        "go-sidecar"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Synthetic CPU profile assigns 62% of export wall-clock to the owned parser/diff kernel.",
+      "source": "synthetic/export.cpuprofile · representative 2 GB fixture",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "A 5× kernel with 3% boundary cost predicts 1.87× product speed; the target is 1.59×.",
+      "source": "decision_math.py · f=.62, S=5, b=.03",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [
+        "ts-opt",
+        "wasm-adopt",
+        "rust-extract",
+        "go-sidecar"
+      ],
+      "state": "NEUTRAL",
+      "strength": "STRONG",
+      "claim": "No GC-correlated p99 violation appears in the synthetic trace; GC is not part of the case.",
+      "source": "synthetic/export-trace.json",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "MODERATE",
+      "claim": "Single desktop instances create no fleet-density objective for this decision.",
+      "source": "synthetic deployment inventory",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "The long-lived application starts export after warm initialization; startup is outside the objective.",
+      "source": "synthetic lifecycle trace",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "TypeScript app code has no native/FFI surface; this proposal makes no safety claim.",
+      "source": "synthetic package manifests",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "wasm-adopt",
+        "rust-extract",
+        "go-sidecar"
+      ],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Chunk parallelism is available in Go, workers, and Rust; it is not Rust-specific in this design.",
+      "source": "synthetic worker PoC",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "ts-opt"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The current signed Electron packaging chain already meets distribution requirements.",
+      "source": "synthetic build config",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "wasm-adopt",
+        "rust-extract",
+        "go-sidecar"
+      ],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Rust, Go, and the existing WASM parser are all technically viable candidates.",
+      "source": "synthetic dependency spike",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "One immutable batch enters and one result batch returns; measured boundary estimate is 3%.",
+      "source": "synthetic boundary bench",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-extract"
+      ],
+      "state": "DISFAVORS",
+      "strength": "WEAK",
+      "claim": "One Rust maintainer creates bus-factor risk; the bounded extraction plan prices a second owner.",
+      "source": "synthetic staffing plan",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "ts-opt",
+        "wasm-adopt",
+        "go-sidecar"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "Funded TypeScript, WASM, and Go trials stay below the 1.59× target on the same fixture.",
+      "source": "synthetic counterfactual benchmarks",
+      "baseline_regime": "synthetic 2 GB export fixture",
+      "caveat": "Illustrative synthetic data; do not transfer to a real repository.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": {
+      "kernel_share": 0.62,
+      "kernel_speedup": 5.0,
+      "boundary_cost_share": 0.03,
+      "end_to_end_speedup": 1.8726591760299625,
+      "infinite_kernel_ceiling": 2.4390243902439024,
+      "target_speedup": 1.59,
+      "target_physically_possible": true,
+      "target_met_by_candidate": true
+    },
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "pydantic-core",
+      "outcome": "EXTRACT",
+      "match": "scripting API + hot pure kernel",
+      "mismatch": "different data model and workload",
+      "workload_regime": "validation core under a Python API",
+      "source_class": "first-party vendor benchmark",
+      "url": "https://pydantic.dev/articles/pydantic-v2"
+    },
+    {
+      "name": "Prisma Rust-free",
+      "outcome": "REVERSED",
+      "match": "JS host + boundary cost",
+      "mismatch": "database ORM calls are chattier",
+      "workload_regime": "internal 25k-row findMany benchmark",
+      "source_class": "first-party internal benchmark",
+      "url": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm"
+    },
+    {
+      "name": "TypeScript native port",
+      "outcome": "NON-RUST",
+      "match": "native-tool alternative",
+      "mismatch": "whole compiler port, not one kernel",
+      "workload_regime": "compiler and language-service preview benchmarks",
+      "source_class": "first-party preview benchmark",
+      "url": "https://devblogs.microsoft.com/typescript/typescript-native-port/"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Freeze the decision fixture",
+      "owner": "performance lead",
+      "cost_range": "1 day",
+      "artifact": "versioned 2 GB corpus, warm/cold protocol, and variance report",
+      "acceptance": "three baseline runs within ±3%",
+      "deadline_or_stop": "stop if the baseline no longer misses 2.4 s",
+      "rollback": "discard the fixture commit; production is untouched"
+    },
+    {
+      "step": 2,
+      "title": "Confirm equal-boundary pilots",
+      "owner": "two platform engineers",
+      "cost_range": "1 week",
+      "artifact": "Rust and Go candidates using the same batch API and copies",
+      "acceptance": "≥1.59× end-to-end, 100% parity, and ≤7% boundary cost",
+      "deadline_or_stop": "stop after one week if neither candidate clears every threshold",
+      "rollback": "delete pilot branches and keep the TypeScript path"
+    },
+    {
+      "step": 3,
+      "title": "Shadow the selected kernel",
+      "owner": "export team",
+      "cost_range": "1 week",
+      "artifact": "shadow diff log behind a disabled-by-default flag",
+      "acceptance": "100% fixture parity and no p95 regression",
+      "deadline_or_stop": "stop on the first unexplained mismatch",
+      "rollback": "disable the flag and route all work to TypeScript"
+    },
+    {
+      "step": 4,
+      "title": "Roll out with a kill switch",
+      "owner": "on-call maintainer",
+      "cost_range": "1 release",
+      "artifact": "5%→25%→100% rollout dashboard",
+      "acceptance": "error budget stays green for one release",
+      "deadline_or_stop": "remove the old path only after the observation window",
+      "rollback": "activate the kill switch and restore the TypeScript route"
+    }
+  ],
+  "assumptions": [
+    "5x kernel result and 3% boundary cost are synthetic",
+    "one additional Rust owner is funded"
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "PASS",
+        "claim": "Amdahl share and boundary are included.",
+        "evidence": "decision_math.py"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "Rust, Go, and WASM use the same fixture and bounded interfaces.",
+        "evidence": "synthetic counterfactual benchmarks"
+      },
+      {
+        "id": "M3",
+        "name": "Boundary uncertainty",
+        "state": "HIT",
+        "claim": "The 3% estimate is not yet a production measurement.",
+        "evidence": "synthetic/boundary-bench.json"
+      },
+      {
+        "id": "M4",
+        "name": "Scope control",
+        "state": "PASS",
+        "claim": "The full application migration is explicitly excluded.",
+        "evidence": "option comparison"
+      },
+      {
+        "id": "M5",
+        "name": "Ownership",
+        "state": "PASS",
+        "claim": "The plan funds a second maintainer and rollback owner.",
+        "evidence": "synthetic staffing plan"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "TypeScript, WASM, and Go alternatives have owners and same-fixture results.",
+        "evidence": "synthetic counterfactual benchmarks"
+      },
+      {
+        "id": "S2",
+        "name": "Target shortfall",
+        "state": "HIT",
+        "claim": "The measured 1.25–1.40× TypeScript range does not meet 1.59×.",
+        "evidence": "synthetic/ts-baseline.json"
+      },
+      {
+        "id": "S3",
+        "name": "Cost of inaction",
+        "state": "PASS",
+        "claim": "The report names the missed 2.4 s workflow target.",
+        "evidence": "synthetic requirement"
+      },
+      {
+        "id": "S4",
+        "name": "Unsafe-surface check",
+        "state": "PASS",
+        "claim": "No hidden native dependency was found in the synthetic manifests.",
+        "evidence": "synthetic package manifests"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "Optimization ends when the fixture meets the target or the funded range is exhausted.",
+        "evidence": "reversible path"
+      }
+    ]
+  }
+}
+</script>
 </body>
 </html>
