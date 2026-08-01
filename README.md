@@ -153,6 +153,23 @@ The report is a single dark/light HTML file with:
 - [Decision math calculator](skills/why-not-rust/scripts/decision_math.py)
 - [HTML and JSON safety helpers](skills/why-not-rust/scripts/report_safety.py)
 
+## Security model
+
+Assessing a repository means reading text other people wrote, so the skill treats all
+of it — files, comments, commit messages, filenames, metadata, RFC prose, and
+user-supplied team/budget/compliance facts — as data under an explicit
+[untrusted content boundary](skills/why-not-rust/SKILL.md#untrusted-content-boundary):
+
+- instruction-like text found while scanning is quoted as evidence, never obeyed, and
+  is surfaced in the report when it tries to steer the assessment;
+- ingested content cannot change the verdict, the proof gates, the output path, or the
+  guardrails, and cannot trigger commands, builds, installs, or network calls;
+- the target repository stays read-only apart from the report at its agreed path, and
+  the run makes no network calls unless you ask for `deep`;
+- URLs are rendered through `safe_href`, never fetched, and every visible value is
+  escaped by [`report_safety.py`](skills/why-not-rust/scripts/report_safety.py), so
+  scanned content cannot become executable markup in the HTML report.
+
 ## Limits
 
 This is a structured decision protocol, not a statistically trained predictor. It
