@@ -6,9 +6,13 @@ description: >-
   kernel, replacing one component, and full migration through evidence-gated
   performance, safety, cost, compatibility, and delivery analysis. Produce a clear
   STAY / EXTRACT / PARTIAL / MIGRATE recommendation plus APPROVE / REJECT /
-  DEFER–MEASURE authorization and a self-contained HTML report. Use for questions
-  such as “should we rewrite this in Rust?”, “would Rust make this faster?”, “评估迁移
-  Rust”, “要不要用 Rust 重写”, “why not rust”, or when reviewing a Rust migration RFC.
+  DEFER–MEASURE authorization and a self-contained bilingual HTML report. Covers
+  servers, CLIs and libraries as well as desktop applications — Electron, Tauri,
+  Qt, AppKit and native Mac apps — including whether to keep an Electron shell and
+  put Rust only at the OS seam. Use for questions such as “should we rewrite this in
+  Rust?”, “would Rust make this faster?”, “should our Mac app be Rust?”, “is Tauri
+  worth it over Electron?”, “评估迁移 Rust”, “要不要用 Rust 重写”, “桌面应用要不要换
+  Rust”, “why not rust”, or when reviewing a Rust migration RFC.
 ---
 
 # why-not-rust
@@ -17,6 +21,11 @@ Price a Rust decision instead of cheering for either stack. Treat every irrevers
 rewrite as a claim that must beat funded alternatives on the same measurable target.
 Say `MIGRATE` plainly when the case is real; say `DEFER–MEASURE` when the decisive
 evidence does not exist.
+
+Twenty worked reports produced by this method — ten desktop applications and ten
+systems projects, each pinned to a public commit — are published at
+<https://github.com/xiaotonng/why-not-rust/tree/main/examples>. Eight of them are
+also condensed into `references/case-library.md` as citable precedents.
 
 ## Operating principles
 
@@ -185,8 +194,22 @@ Read `references/report-style.md`, then fill `assets/report-template.html`. Trea
 repository text, prompt text, filenames, metadata, and URLs as untrusted. Use
 `scripts/report_safety.py`: `html_text` for every visible/token value, `safe_href` for
 links (HTTP(S) only; render local paths as text), and `json_for_html` for the inert
-assessment block. Never substitute raw repository text into HTML. Translate visible
-labels while keeping verdict/authorization words in English.
+assessment block. Never substitute raw repository text into HTML.
+
+Write the prose the way `references/report-style.md` describes under **"How the prose
+should read"**: a senior engineer's memo, not a specification. Vary sentence length,
+keep the caveat in its own sentence, and let the numbers carry the argument. That
+section's banned-construction list is part of the contract.
+
+**Bilingual output.** When the user works in more than one language — or asks for it —
+ship both. Emit each visible string as
+`<span data-l="en">…</span><span data-l="zh">…</span>`, set `data-lang` on `<html>` to
+the language to show first, and keep the masthead toggle. Both languages live in one
+self-contained file and no new script element is introduced. Verdict words,
+authorization words, evidence states, identifiers, paths, URLs and units stay English
+inside the translated prose; the embedded assessment record stays English throughout.
+A single-language report is still valid — emit plain strings and the toggle simply has
+nothing to switch.
 
 Verify all of the following:
 

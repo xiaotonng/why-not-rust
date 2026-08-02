@@ -1,0 +1,908 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · PyCQA/flake8</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">PyCQA/flake8</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Python · lint orchestrator · 4,741 lines of source across 33 files</span><span data-l="zh">Python · lint 编排器 · 33 个文件共 4,741 行源码</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">the rewrite already happened, and it was not yours</span><span data-l="zh">重写已经发生过了，只是不由你来做</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">Gates 1 and 2 pass. Adopters report one to three orders of magnitude against Python linters, and the published mechanism holds up. Gate 3 is where it stops. flake8&#x27;s own source is 4,741 lines; the checking happens in three packages it declares as dependencies, and the product is a plugin entry-point table. Give the orchestrator a generous 30% of lint wall-clock and make it infinitely fast: the ceiling is 1.43×, so a 10× target is impossible at that scope. The Rust linter that meets the target already shipped, and adopting it costs no rewrite.</span><span data-l="zh">G1 和 G2 通过。采用方报告的加速是一到三个数量级，公开的机制解释也站得住。卡住的是 G3。flake8 自己的源码 4,741 行；真正做检查的是它声明的三个依赖包，它卖的东西是一张插件 entry-point 表。就算给编排器 30% 的 lint 墙钟时间（已经很宽松），再让它快到无穷，天花板也只有 1.43×，10× 的目标在这个范围内不可能达成。满足这个目标的 Rust linter 已经发布了，采用它不需要重写。</span></p>
+      <p class="trigger"><span data-l="en">Stable. One thing would move it: a team whose blocking requirement is flake8&#x27;s plugin ecosystem specifically. Even then a Rust rewrite of flake8 is still not the answer, because a native binary cannot host Python plugins without embedding an interpreter.</span><span data-l="zh">结论稳定。只有一种情况会改变它：某个团队的阻塞需求恰好就是 flake8 的插件生态。就算那样，答案也不是把 flake8 用 Rust 重写——原生二进制没法在不内嵌解释器的前提下托管 Python 插件。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep flake8 as a plugin host; teams that need speed adopt the Rust linter</span><span data-l="zh">flake8 继续做插件宿主；需要速度的团队去用那个 Rust linter</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">cli-quick · plugin host that delegates all checking to three separate packages</span><span data-l="zh">cli-quick · 插件宿主，检查工作全部交给三个独立的包</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Reported gains of 150–1000× against Python linters.</span><span data-l="zh">对 Python linter 报告出的加速是 150–1000×。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Native start, parse-once and GIL-free parallelism all hold up.</span><span data-l="zh">原生启动、一次解析、无 GIL 并行，这三条都成立。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">Adoption meets the target at zero rewrite cost; the ceiling is 1.43×.</span><span data-l="zh">采用现成工具就能达标，重写成本为零；重写路线的天花板是 1.43×。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">A native binary cannot host Python plugins.</span><span data-l="zh">原生二进制托管不了 Python 插件。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">flake8&#x27;s own source</span><span data-l="zh">flake8 自己的源码</span></div><div class="value mono">4,741<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">src/ · 33 files — the whole orchestrator</span><span data-l="zh">src/ · 33 个文件，整个编排器</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Dependencies doing the checking</span><span data-l="zh">真正做检查的依赖</span></div><div class="value mono">3<span class="unit"><span data-l="en">packages</span><span data-l="zh">个包</span></span></div><div class="note"><span data-l="en">pycodestyle, pyflakes, mccabe — all Python</span><span data-l="zh">pycodestyle、pyflakes、mccabe，全是 Python</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Amdahl ceiling at 30% share</span><span data-l="zh">30% 份额下的 Amdahl 天花板</span></div><div class="value mono">1.43<span class="unit">×</span></div><div class="note"><span data-l="en">decision_math.py · share=.30, kernel=∞, b=0</span><span data-l="zh">decision_math.py · share=.30, kernel=∞, b=0</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Target the ceiling rules out</span><span data-l="zh">被天花板排除的目标</span></div><div class="value mono">10<span class="unit">×</span></div><div class="note"><span data-l="en">physically impossible at orchestrator scope</span><span data-l="zh">在编排器这个范围内物理上不可能</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust linter already shipped</span><span data-l="zh">已经发布的 Rust linter</span></div><div class="value mono">&lt;500<span class="unit">ms</span></div><div class="note"><span data-l="en">lints CPython · adoption cost, not rewrite cost</span><span data-l="zh">lint 完 CPython · 只有采用成本，没有重写成本</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Reported adopter gain</span><span data-l="zh">采用方报告的加速</span></div><div class="value mono">150–1000<span class="unit">×</span></div><div class="note"><span data-l="en">vs flake8 and 4-core pylint · adopter-reported</span><span data-l="zh">对比 flake8 与 4 核 pylint · 采用方自述</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Same objective for every option. Cut Python lint wall-clock by roughly an order of magnitude, for per-save and for CI, without losing the checks a team relies on.</span><span data-l="zh">所有方案对着同一个目标。把 Python lint 的墙钟时间压掉约一个数量级，保存时触发和 CI 两种调用都算，同时不丢掉团队依赖的检查项。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Adopt the existing Rust linter</span><span data-l="zh">直接采用已有的 Rust linter</span></span><span class="source"><span data-l="en">recommended · meets the target today, at no rewrite cost</span><span data-l="zh">推荐 · 今天就能达标，且没有重写成本</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">reported 150–1000× on adopter workloads</span><span data-l="zh">采用方负载上报告 150–1000×</span></td><td><span data-l="en">days of rule mapping; fast-moving dep</span><span data-l="zh">几天做规则映射；依赖迭代很快</span></td><td><span data-l="en">same day</span><span data-l="zh">当天</span></td><td><span data-l="en">rule-code mapping · revert the config</span><span data-l="zh">规则码映射 · 改回配置即可</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Optimize flake8 and its checkers in Python</span><span data-l="zh">在 Python 里优化 flake8 和它的 checker</span></span><span class="source"><span data-l="en">retain · a comparable project reached ~3× this way</span><span data-l="zh">保留 · 同型项目走这条路拿到过 ~3×</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">unmeasured; precedent suggests ~3× is reachable</span><span data-l="zh">未实测；先例显示 ~3× 可达</span></td><td><span data-l="en">weeks of profiling; none recurring</span><span data-l="zh">数周的 profiling；无新增长期成本</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">native · git revert</span><span data-l="zh">原生兼容 · git revert</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Keep flake8 for its plugin ecosystem</span><span data-l="zh">为插件生态留下 flake8</span></span><span class="source"><span data-l="en">retain · correct whenever a required plugin has no equivalent</span><span data-l="zh">保留 · 只要某个必需插件找不到替代，这就是对的答案</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">no speed benefit; preserves checks nothing else has</span><span data-l="zh">没有速度收益；保住别处没有的检查项</span></td><td><span data-l="en">none; current lint time</span><span data-l="zh">无；继续承担当前的 lint 时间</span></td><td><span data-l="en">in effect today</span><span data-l="zh">今天就生效</span></td><td><span data-l="en">native · nothing to change</span><span data-l="zh">原生兼容 · 什么都不用改</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rewrite flake8 in Rust</span><span data-l="zh">用 Rust 重写 flake8</span></span><span class="source"><span data-l="en">exclude · impossible threshold and an unshippable plugin story</span><span data-l="zh">排除 · 目标阈值不可能，插件方案也交付不了</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">capped at 1.43× under a generous share assumption</span><span data-l="zh">在宽松的份额假设下也封顶 1.43×</span></td><td><span data-l="en">4,741 lines; duplicate an existing tool</span><span data-l="zh">4,741 行；重复造一个已有的工具</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">loses Python plugins · no rollback</span><span data-l="zh">丢掉 Python 插件 · 无回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust parser behind the Python API</span><span data-l="zh">Python API 背后放一个 Rust parser</span></span><span class="source"><span data-l="en">retain · the shape that worked elsewhere, aimed at the wrong project</span><span data-l="zh">保留 · 这个形态在别处成功过，但对错了项目</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">unmeasured; boundary cost unpriced</span><span data-l="zh">未实测；边界成本没有定价</span></td><td><span data-l="en">PyO3 boundary; wheels everywhere</span><span data-l="zh">PyO3 边界；每个平台都要出 wheel</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">AST parity · pip rollback</span><span data-l="zh">AST 必须对齐 · pip 回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">States are option-scoped evidence, not additive points. The Amdahl figures come from scripts/decision_math.py with the inputs disclosed in the methodology.</span><span data-l="zh">每个状态都绑定到具体方案，不是可以相加的分数。Amdahl 数字来自 scripts/decision_math.py，输入在方法一节里列明。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag neutral">SUPPORTS · native options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The gap is adopter-reported and large: 2.5 min → 0.4 s against four-core-parallel pylint, and roughly 150–200× against flake8 on another team&#x27;s codebase.</span><span data-l="zh">差距由采用方报告，量级不小：对四核并行的 pylint 是 2.5 min → 0.4 s，在另一个团队的代码库上对 flake8 约 150–200×。</span></div><div class="source mono">https://github.com/astral-sh/ruff — adopter reports</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端可达性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-rewrite-flake8</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Grant flake8&#x27;s own code a generous 30% share of lint wall-clock and make it infinitely fast. The ceiling is 1.43×. A 10× target is physically impossible at orchestrator scope.</span><span data-l="zh">给 flake8 自己的代码 30% 的 lint 墙钟份额，这已经很宽松，再让它无限快。天花板是 1.43×。10× 的目标在编排器这个范围内物理上不可能。</span></div><div class="source mono">scripts/decision_math.py · share=.30, kernel=inf, boundary=0, target=10</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">A batch linter has no tail-latency SLO; CPython&#x27;s collector is not implicated in any stated requirement.</span><span data-l="zh">批处理式的 linter 没有尾延迟 SLO；已声明的需求里也没有一条牵涉 CPython 的垃圾回收。</span></div><div class="source mono">batch CLI invocation model</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机群占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Linting runs on developer machines and CI runners; no fleet-density objective or break-even is stated.</span><span data-l="zh">lint 跑在开发机和 CI runner 上；没有提出任何机群密度目标，也没有回本测算。</span></div><div class="source mono">developer and CI invocation</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">SUPPORTS · native options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Per-save invocation puts interpreter cold start on the critical path every time, and a native binary removes it. This favours any native tool, not Rust specifically.</span><span data-l="zh">保存即触发的调用方式，把解释器冷启动放进了每一次的关键路径，原生二进制可以去掉它。这一条对任何原生工具都成立，不是 Rust 独有。</span></div><div class="source mono">https://notes.crmarsh.com/python-tooling-could-be-much-much-faster</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全性与正确性</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Python is memory-safe at application scope and this codebase declares no native or FFI surface, so no memory-safety delta exists to claim.</span><span data-l="zh">Python 在应用层是内存安全的，这个代码库也没有声明任何原生或 FFI 界面，所以没有可以主张的内存安全差值。</span></div><div class="source mono">pure-Python package; setup.cfg declares three Python dependencies</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · adopt-rust-linter</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">File-level linting is embarrassingly parallel and the GIL constrains in-process Python parallelism; a native tool captures that directly.</span><span data-l="zh">按文件 lint 是天然可并行的，而 GIL 限制了进程内的 Python 并行；原生工具可以直接吃到这一块。</span></div><div class="source mono">https://notes.crmarsh.com/python-tooling-could-be-much-much-faster</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Both the Python package and the native binary install through ordinary package managers; no distribution constraint is unmet.</span><span data-l="zh">Python 包和原生二进制都能用常规包管理器装；没有哪条分发约束没被满足。</span></div><div class="source mono">pip-installable package · prebuilt native binaries</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · adopt-rust-linter</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The Rust linter this requirement implies already exists, is maintained, and lints CPython in under 500 ms. Adoption is the option; building it again is not.</span><span data-l="zh">这个需求指向的那个 Rust linter 已经存在、有人维护，lint 完 CPython 用不到 500 ms。可选项是采用它，不是再造一个。</span></div><div class="source mono">https://github.com/astral-sh/ruff</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-checker-extract</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">An extraction would cross the Python boundary per AST node or per check rather than in bulk, and PyO3 calls cost roughly 20–40 ns each against the raw C API.</span><span data-l="zh">抽取方案会按 AST 节点或按检查项逐次跨越 Python 边界，而不是批量跨越；相对裸 C API，每次 PyO3 调用约 20–40 ns。</span></div><div class="source mono">https://github.com/PyO3/pyo3/issues/3827</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-rewrite-flake8</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">flake8&#x27;s value is its plugin contract: an entry-point table mapping rule prefixes to checkers, plus delegation to three Python packages. A native binary cannot host Python plugins without embedding an interpreter.</span><span data-l="zh">flake8 的价值就是它的插件契约：一张把规则前缀映射到 checker 的 entry-point 表，加上对三个 Python 包的委派。原生二进制不内嵌解释器就托管不了 Python 插件。</span></div><div class="source mono">setup.cfg:40 [options.entry_points] · install_requires mccabe, pycodestyle, pyflakes</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实对照</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · py-optimize, adopt-rust-linter</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Two non-rewrite options are live: profiling the current stack, where a comparable project found roughly 3× with no language change, and adopting the existing native tool, which meets the target today.</span><span data-l="zh">两条不重写的路都还活着：一是给现有栈做 profiling，同型项目没换语言就拿到过约 3×；二是采用现成的原生工具，今天就能达标。</span></div><div class="source mono">https://prettier.io/blog/2023/11/30/cli-deep-dive · https://github.com/astral-sh/ruff</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">Two lenses are N/A. D4 fleet footprint and D6 safety carry no part of this objective: linting runs on developer machines and CI, and Python is memory-safe at application scope with no compiled extension declared. The only native call in the tree is a stdlib ctypes hop into kernel32 for Windows console colour.</span><span data-l="zh">两个维度判 N/A。D4 机群占用和 D6 安全性与本目标无关：lint 跑在开发机和 CI 上，Python 在应用层是内存安全的，仓库也没有声明任何编译扩展。整棵树里唯一的原生调用，是标准库 ctypes 为 Windows 控制台颜色跳一次 kernel32。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">flake8&#x27;s own source is 4,741 lines</span><span data-l="zh">flake8 自己的源码是 4,741 行</span></h3><p><span data-l="en">The whole orchestrator is 33 files. It declares mccabe, pycodestyle and pyflakes as dependencies, and those three separate packages do the actual checking. What flake8 adds is a plugin table mapping rule prefixes to them. Rewrite flake8 and you have not rewritten the linting.</span><span data-l="zh">整个编排器 33 个文件。它把 mccabe、pycodestyle、pyflakes 声明为依赖，真正做检查的就是这三个独立的包。flake8 自己加上去的，是一张把规则前缀映射到它们的插件表。重写 flake8，并没有重写 lint 本身。</span></p><span class="ref mono">src/ 4,741 lines · setup.cfg install_requires</span></div>
+<div class="card current"><h3><span data-l="en">The plugin entry-point table is the product</span><span data-l="zh">插件 entry-point 表就是产品本身</span></h3><p><span data-l="en">setup.cfg registers flake8.extension entries pointing at the pyflakes and pycodestyle adapters, plus a report-formatter table. Third-party plugins register the same way. That contract is what a native binary cannot carry.</span><span data-l="zh">setup.cfg 注册了指向 pyflakes 和 pycodestyle 适配器的 flake8.extension 条目，还有一张报告格式化表。第三方插件走的是同一条注册路径。原生二进制搬不动的，正是这份契约。</span></p><span class="ref mono">setup.cfg:40 [options.entry_points]</span></div>
+<div class="card unknown"><h3><span data-l="en">A 10× target is physically impossible at this scope</span><span data-l="zh">10× 的目标在这个范围内物理上不可能</span></h3><p><span data-l="en">Give flake8&#x27;s own code a generous 30% of lint wall-clock, make it infinitely fast, charge nothing for the boundary: the ceiling is 1.43×. The calculator returns &#x27;target physically IMPOSSIBLE&#x27;. In this method that string is a rendering-time error condition, not a figure of speech.</span><span data-l="zh">给 flake8 自己的代码 30% 的 lint 墙钟时间，速度设为无穷，边界成本记零：天花板 1.43×。计算器返回的是 &#x27;target physically IMPOSSIBLE&#x27;。在这套方法里，这个字符串是渲染期的错误条件，不是修辞。</span></p><span class="ref mono">decision_math.py amdahl --share .30 --kernel-speedup inf --target 10</span></div>
+<div class="card rust"><h3><span data-l="en">The slowness is not in dispute</span><span data-l="zh">慢这件事没有争议</span></h3><p><span data-l="en">Adopters report 2.5 min → 0.4 s against four-core-parallel pylint and roughly 150–200× against flake8. Gate 1 passes. Nothing here defends the incumbent on speed. The cheapest option that meets the requirement happens to be adoption, and that is the whole of the argument.</span><span data-l="zh">采用方报告：对四核并行的 pylint 是 2.5 min → 0.4 s，对 flake8 约 150–200×。G1 通过。这里没有替现状辩护的意思。只是满足需求的最便宜方案恰好是采用现成工具，整个论证就这么多。</span></p><span class="ref mono">github.com/astral-sh/ruff · adopter reports</span></div>
+<div class="card current"><h3><span data-l="en">Nobody has profiled the current stack</span><span data-l="zh">现有这套栈还没人做过 profiling</span></h3><p><span data-l="en">A comparable formatter found roughly 3× by profiling, caching and IPC fixes with no language change, days after a Rust competitor claimed its speed bounty. So the staying case has homework. Profile first. Then read the result: 3× still misses 10×.</span><span data-l="zh">同型的一个 formatter 靠 profiling、缓存和 IPC 修复拿到约 3×，一行语言都没换，时间就在某个 Rust 竞品领走速度赏金之后几天。所以「不动」这一方也有作业要交。先做 profiling。然后照结果说话：3× 仍然够不到 10×。</span></p><span class="ref mono">prettier.io/blog/2023/11/30/cli-deep-dive</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Order-of-magnitude lint time, by adoption</span><span data-l="zh">一个数量级的 lint 时间，靠采用就能拿到</span></b> — <span data-l="en">the native tool exists, is maintained, and lints CPython in under 500 ms — the benefit is available without writing Rust.</span><span data-l="zh">那个原生工具已经存在、有人维护，lint 完 CPython 不到 500 ms——这份收益不需要你写一行 Rust。</span></li><li><b><span data-l="en">No interpreter cold start per invocation</span><span data-l="zh">每次调用不再付解释器冷启动</span></b> — <span data-l="en">worth having for per-save workflows, and obtained by any native tool, not by Rust specifically.</span><span data-l="zh">对保存即 lint 的工作流值得要；任何原生工具都能给，不是 Rust 独有。</span></li><li><b><span data-l="en">File-level parallelism without the GIL</span><span data-l="zh">绕开 GIL 的文件级并行</span></b> — <span data-l="en">a large part of the published attribution, alongside parse-once architecture — and parse-once is not a language property.</span><span data-l="zh">公开归因里占很大一块，另一块是一次解析的架构——而一次解析不是语言属性。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">A faster flake8</span><span data-l="zh">更快的 flake8</span></b> — <span data-l="en">the orchestrator is 4,741 lines and the checking happens in three Python packages; a 10× target is above the physical ceiling at that scope.</span><span data-l="zh">编排器 4,741 行，检查工作在三个 Python 包里；10× 的目标高过这个范围的物理天花板。</span></li><li><b><span data-l="en">The plugin ecosystem</span><span data-l="zh">插件生态</span></b> — <span data-l="en">entry-point-registered Python plugins cannot run inside a native binary without an embedded interpreter.</span><span data-l="zh">用 entry-point 注册的 Python 插件，没有内嵌解释器就跑不进原生二进制。</span></li><li><b><span data-l="en">Memory safety</span><span data-l="zh">内存安全</span></b> — <span data-l="en">Python is memory-safe at application scope and this codebase declares no FFI surface.</span><span data-l="zh">Python 在应用层已经是内存安全的，这个代码库也没有声明 FFI 界面。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Astral · ruff</h3><span class="outcome">ADOPTED</span></div><p><span data-l="en">A Rust linter displaced the Python linter federation from outside it. Adopter-reported gains ran far above vendor claims. Its author&#x27;s decomposition credits four things: reading and parsing each file once for all rules, native execution, GIL-free parallelism, and caching.</span><span data-l="zh">一个 Rust linter 从外部把 Python linter 联盟顶掉了。采用方报告的加速远高于厂商自己的说法。作者本人的拆解把功劳给了四件事：每个文件只读取和解析一次供所有规则使用、原生执行、无 GIL 并行、缓存。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">identical objective, identical tool category, and it already exists</span><span data-l="zh">目标一致，工具品类一致，而且它已经存在</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">not a migration by flake8&#x27;s maintainers; a separate tool with its own rule set</span><span data-l="zh">这不是 flake8 维护者做的迁移，是另一个工具，有自己的规则集</span></div><a class="ref mono" href="https://github.com/astral-sh/ruff">third-party · project and adopter reports</a></article>
+<article class="precedent"><div class="top"><h3>pydantic · pydantic-core</h3><span class="outcome">EXTRACT</span></div><p><span data-l="en">A Rust validation core sat behind an unchanged Python API and captured native value at a coarse seam. The kernel gain was reported at roughly 17× on a representative model. End-to-end application gains landed around 2–3×.</span><span data-l="zh">一个 Rust 校验核心放在不变的 Python API 后面，在粗粒度的接缝上吃到了原生收益。代表性模型上内核加速报告约 17×。应用端到端落在 2–3×。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the extraction pattern the rust-checker-extract option would follow</span><span data-l="zh">rust-checker-extract 这个方案要走的就是这种抽取形态</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">pydantic owned its hot kernel; flake8 delegates checking to three separate packages</span><span data-l="zh">pydantic 自己拥有热点内核；flake8 把检查委派给三个独立的包</span></div><a class="ref mono" href="https://pydantic.dev/articles/pydantic-v2">first-party · vendor article</a></article>
+<article class="precedent"><div class="top"><h3>Prettier · pure-JavaScript CLI rework</h3><span class="outcome">STAYED</span></div><p><span data-l="en">Roughly 3× from profiling, caching and IPC fixes, with no language change. The baseline had simply never been optimized. Announced days after a Rust competitor claimed the speed bounty.</span><span data-l="zh">靠 profiling、缓存和 IPC 修复拿到约 3×，语言一行没动。基线此前根本没被优化过。发布时间就在某个 Rust 竞品领走速度赏金之后几天。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the in-stack counterfactual that must be priced before any rewrite</span><span data-l="zh">任何重写之前都必须先定价的栈内反事实</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a formatter with its own hot path, not a thin orchestrator over three packages</span><span data-l="zh">那是一个有自己热点路径的 formatter，不是压在三个包之上的薄编排器</span></div><a class="ref mono" href="https://prettier.io/blog/2023/11/30/cli-deep-dive">first-party · project blog</a></article>
+<article class="precedent"><div class="top"><h3>jaq vs jq</h3><span class="outcome">ADOPTED</span></div><p><span data-l="en">A Rust reimplementation of a widely used tool arrived from outside the original project. The incumbent&#x27;s maintainers wrote no Rust. Users who wanted the Rust version installed it.</span><span data-l="zh">一个被广泛使用的工具，它的 Rust 重实现是从原项目外部冒出来的。原项目维护者一行 Rust 都没写。想要 Rust 版本的用户，自己装上就是了。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the same &#x27;the ecosystem already shipped it&#x27; shape as this decision</span><span data-l="zh">和本次决策同一种形态：生态里已经有人把它做出来了</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">jq has no plugin entry-point ecosystem to preserve</span><span data-l="zh">jq 没有需要保住的插件 entry-point 生态</span></div><a class="ref mono" href="https://github.com/01mf02/jaq">third-party · project README</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Measure your own lint time before choosing</span><span data-l="zh">先量自己的 lint 时间，再谈选型</span></h3><p><span data-l="en">The adopting team times its own lint configuration on its own repository, split per tool and per invocation mode — per-save against CI. The number has to name which mode hurts and by how much. If neither mode misses a threshold the team cares about, stop here. Nothing changed, so nothing to undo.</span><span data-l="zh">采用方团队在自己的仓库上给现有 lint 配置计时，按工具拆，按调用方式拆——保存时触发和 CI 分开。结果必须能指出是哪一种调用方式在疼、疼多少。如果两种方式都没有越过团队在意的阈值，就到此为止。这一步什么都没改，也就没有东西要回滚。</span></p></div><span class="cost"><span data-l="en">1 day</span><span data-l="zh">1 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Map your rules to the native tool</span><span data-l="zh">把规则对到原生工具上</span></h3><p><span data-l="en">Same team, one table: every rule in the current flake8 plugin set against the native linter&#x27;s codes, with the unmapped ones written down rather than glossed. Each enforced rule ends up either mapped or dropped on purpose, in writing. If an unmapped rule turns out to be a hard requirement, keep flake8 and stop; that is a legitimate outcome. Rollback is a configuration revert.</span><span data-l="zh">同一个团队，一张表：把现有 flake8 插件集里的每条规则对到原生 linter 的规则码上，映射不上的写清楚，不要含糊过去。团队强制执行的每条规则，最后要么有映射，要么是白纸黑字有意放弃。如果某条映射不上的规则是硬需求，那就留下 flake8，到此为止；这是一个正当结果。回滚就是把配置改回去。</span></p></div><span class="cost"><span data-l="en">2–5 days</span><span data-l="zh">2–5 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Run both in parallel for one cycle</span><span data-l="zh">两个 linter 并行跑一个周期</span></h3><p><span data-l="en">Both linters run in CI for a cycle, with the native one non-blocking, and someone diffs the findings. Each diff line gets an explanation. A silent drop with no explanation stops the switch. Pulling the native linter out of CI restores the old world exactly, because flake8 never stopped being the gate.</span><span data-l="zh">两个 linter 在 CI 里并行跑一个周期，原生的那个设为非阻塞，然后有人去 diff 两边的发现。diff 的每一行都要有解释。任何一处没有解释的静默丢失，都足以叫停切换。把原生 linter 从 CI 里撤掉就完全回到原样，因为 flake8 从头到尾都还是那道闸。</span></p></div><span class="cost"><span data-l="en">1 week</span><span data-l="zh">1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">If flake8 must stay, profile it instead of rewriting it</span><span data-l="zh">如果 flake8 必须留下，就去 profile，不要重写</span></h3><p><span data-l="en">A flake8 contributor profiles the orchestrator together with its three checkers and reports the top contributors with their measured shares. Two outcomes. Either enough of the time sits inside flake8&#x27;s own code, which reopens D2 with measurements instead of a 30% assumption. Or it sits in the checkers, which is where the structure says it is, and the Rust track closes. Nothing ships either way.</span><span data-l="zh">一位 flake8 贡献者把编排器和它的三个 checker 一起做 CPU profile，报告排在前面的贡献者及其实测份额。两种结局。一种是有足够多的时间落在 flake8 自己的代码里，那就用实测数据而不是 30% 的假设重开 D2。另一种是时间落在 checker 里，也就是结构本来指向的地方，Rust 这条线就此关闭。两种结局都不上线任何东西。</span></p></div><span class="cost"><span data-l="en">1–3 weeks</span><span data-l="zh">1–3 周</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端可达性</span></b> — <span data-l="en">The rewrite option&#x27;s ceiling is 1.43× under a generous share assumption, so the 10× target is above the physical ceiling at orchestrator scope.</span><span data-l="zh">在宽松的份额假设下，重写方案的天花板是 1.43×，10× 的目标高过编排器范围内的物理天花板。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">A large share of the reported speedup is parse-once architecture, not language; the report separates the two rather than crediting all of it to Rust.</span><span data-l="zh">报告出的加速里有很大一块来自一次解析的架构，不来自语言；本报告把两者分开算，没有把功劳全记在 Rust 头上。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与测量口径</span></b> — <span data-l="en">The 150–1000× figures are adopter-reported for a competing tool on their own codebases, not measurements of flake8 taken here.</span><span data-l="zh">150–1000× 这组数字，是采用方在自己代码库上对一个竞品工具的报告，不是这里对 flake8 的实测。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">The extraction option is priced with per-call PyO3 overhead of roughly 20–40 ns, and the rewrite option with the loss of the Python plugin contract.</span><span data-l="zh">抽取方案按每次调用约 20–40 ns 的 PyO3 开销定价，重写方案按丢失 Python 插件契约定价。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The report notes that a Rust flake8 would duplicate a maintained tool, and asks who would maintain the second one.</span><span data-l="zh">报告指出 Rust 版 flake8 会和一个有人维护的工具重复，并追问第二份实现由谁来维护。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有预算的反事实对照</span></b> — <span data-l="en">In-stack profiling has not been done for flake8, and a comparable project found roughly 3× that way — so the staying case is currently asserted rather than measured.</span><span data-l="zh">flake8 没有做过栈内 profiling，而同型项目靠这条路拿到过约 3×——所以「不动」这一方目前是断言，不是实测。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Target shortfall</span><span data-l="zh">目标缺口</span></b> — <span data-l="en">Even the precedent-supported ~3× from Python-side optimization does not meet a 10× target; the report states both facts together.</span><span data-l="zh">就算拿到先例支持的 ~3×，Python 侧优化也够不到 10× 的目标；报告把这两件事放在一起说。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不作为的代价</span></b> — <span data-l="en">The report grants the requirement and names the per-save cost rather than treating slow linting as acceptable.</span><span data-l="zh">报告承认这个需求成立，并点名保存时触发的那部分代价，没有把慢当成可以接受。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">Native startup and GIL-free parallelism are recorded as advantages, and the selected option is the one that captures them.</span><span data-l="zh">原生启动和无 GIL 并行都被记为优势，而被选中的方案正是能吃到这两点的那个。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The path ends in a decision: adopt after a parallel-run cycle, or keep flake8 because a specific plugin is a hard requirement.</span><span data-l="zh">路径终点是一个决定：并行跑一个周期之后采用，或者因为某个具体插件是硬需求而留下 flake8。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">PyCQA/flake8 at 01b9726 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">PyCQA/flake8 @ 01b9726 · 只读静态分析 · why-not-rust method 2.0</span></h3><p><span data-l="en">Repository: github.com/PyCQA/flake8 at commit 01b9726, shallow clone. Scope: the whole repository, with the orchestrator in src/ as the migration candidate. Sampling: 4,741 lines across 33 files in src/, 4,802 lines of tests, and packaging metadata from setup.cfg. install_requires names mccabe, pycodestyle and pyflakes; [options.entry_points] at setup.cfg:40 declares the flake8.extension and flake8.report tables. The three checker packages are separate distributions and were not cloned or measured. No build, test, benchmark or network call was run against the project. Objective: cut Python lint wall-clock by roughly an order of magnitude. User-supplied facts: none. Amdahl inputs: share=0.30, kernel speedup=infinite, boundary=0, target=10 → end-to-end 1.4285714285714286x, infinite-kernel ceiling 1.4285714285714286x, target physically IMPOSSIBLE. The 30% share is an explicit upper-bound assumption chosen to favour the rewrite option; it is not a profile. Gates 1 and 2 pass, gates 3 and 4 fail. So a performance requirement that clears the first two gates still yields REJECT: the cheapest option that meets it is adopting a tool that already exists. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/PyCQA/flake8，commit 01b9726，shallow clone。范围：整个仓库，其中 src/ 里的编排器是迁移候选。取样：src/ 下 33 个文件共 4,741 行，测试 4,802 行，以及 setup.cfg 里的打包元数据。install_requires 列出 mccabe、pycodestyle、pyflakes；setup.cfg:40 的 [options.entry_points] 声明了 flake8.extension 和 flake8.report 两张表。三个 checker 包是独立的发行物，没有克隆，也没有测量。没有对项目执行任何构建、测试、基准或网络调用。目标：把 Python lint 的墙钟时间压掉约一个数量级。用户提供的事实：无。Amdahl 输入：share=0.30, kernel speedup=infinite, boundary=0, target=10 → end-to-end 1.4285714285714286x, infinite-kernel ceiling 1.4285714285714286x, target physically IMPOSSIBLE。30% 这个份额是为了照顾重写方案而显式选取的上界，不是 profile 结果。G1、G2 通过，G3、G4 未通过。所以一个能过前两道门的性能需求，最终仍然是 REJECT：满足它的最便宜方案，是采用一个已经存在的工具。这是一套结构化决策协议，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A profile of flake8&#x27;s own orchestration share</span><span data-l="zh">flake8 自身编排份额的 profile</span></td><td><span data-l="en">The 30% figure is a generous assumption, not a measurement. An actual profile would either reopen D2 with defensible inputs or confirm the time sits in the three checker packages.</span><span data-l="zh">30% 是一个宽松的假设，不是实测。真跑一次 profile，要么用站得住的输入重开 D2，要么确认时间就在那三个 checker 包里。</span></td></tr><tr><td><span data-l="en">Rule-coverage mapping for the adopting team</span><span data-l="zh">采用方团队的规则覆盖映射</span></td><td><span data-l="en">Adoption&#x27;s actual cost is which rules do not map. Until that list exists, the selected option&#x27;s compatibility risk is unquantified for any specific project.</span><span data-l="zh">采用的真实成本在于哪些规则映射不过去。这份清单出来之前，对任何具体项目来说，所选方案的兼容风险都没有量化。</span></td></tr><tr><td><span data-l="en">An independent benchmark of flake8 versus the native linter</span><span data-l="zh">flake8 与原生 linter 的独立基准测试</span></td><td><span data-l="en">Current figures are adopter-reported for the competing tool. An independent same-corpus comparison would firm up D1&#x27;s strength.</span><span data-l="zh">现在这些数字来自采用方对竞品工具的报告。一次同语料的独立对比可以坐实 D1 的证据强度。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 01b9726 · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在 commit 01b9726 上做静态分析 · 无构建、无基准、无网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/PyCQA/flake8",
+    "commit": "01b972636056a0ed581db62e260ef8df1ce470de",
+    "scope": "whole repository; the orchestrator in src/ is the migration candidate",
+    "sampling": "shallow clone; src/ (4,741 lines, 33 files), tests/ (4,802 lines) and setup.cfg measured; the three checker dependencies are separate packages and were not cloned"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A profile of flake8's own orchestration share",
+      "Rule-coverage mapping for the adopting team",
+      "An independent benchmark of flake8 versus the native linter"
+    ]
+  },
+  "objective": {
+    "driver": "performance",
+    "requirement": "cut Python lint wall-clock by roughly an order of magnitude for per-save and CI invocation, without losing the checks a team relies on",
+    "baseline": "flake8 orchestrating pycodestyle, pyflakes and mccabe in CPython",
+    "target": "approximately 10x end-to-end, from the adopter-reported gap"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "adopt-rust-linter",
+    "confidence": "HIGH",
+    "robustness": "STABLE",
+    "because": "Gates 1 and 2 pass. Adopters report one to three orders of magnitude against Python linters, and the published mechanism holds up. Gate 3 is where it stops. flake8's own source is 4,741 lines; the checking happens in three packages it declares as dependencies, and the product is a plugin entry-point table. Give the orchestrator a generous 30% of lint wall-clock and make it infinitely fast: the ceiling is 1.43×, so a 10× target is impossible at that scope. The Rust linter that meets the target already shipped, and adopting it costs no rewrite.",
+    "change_trigger": "Stable. One thing would move it: a team whose blocking requirement is flake8's plugin ecosystem specifically. Even then a Rust rewrite of flake8 is still not the answer, because a native binary cannot host Python plugins without embedding an interpreter."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "adopt-rust-linter",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "Adopters report 2.5 min → 0.4 s against four-core-parallel pylint and roughly 150–200× against flake8; per-save invocation makes the gap felt on every keystroke cycle."
+    },
+    {
+      "id": "G2",
+      "option_id": "adopt-rust-linter",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "The published decomposition names reading and parsing each file exactly once for all rules, native execution with no interpreter cold start, file-level parallelism without the GIL, and caching. A large share is architectural rather than language-specific, which the report keeps separate."
+    },
+    {
+      "id": "G3",
+      "option_id": "adopt-rust-linter",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "A Rust linter already exists and lints CPython in under 500 ms. Rewriting flake8's 4,741-line orchestrator is capped at a 1.43× ceiling under a generous 30% share assumption, computed with scripts/decision_math.py."
+    },
+    {
+      "id": "G4",
+      "option_id": "adopt-rust-linter",
+      "name": "delivery and reversibility",
+      "state": "FAIL",
+      "evidence": "flake8's product is the flake8.extension entry-point table plus delegation to pycodestyle, pyflakes and mccabe. A Rust reimplementation either drops third-party Python plugins or embeds an interpreter and re-acquires the cost it was rewritten to escape."
+    }
+  ],
+  "options": [
+    {
+      "id": "adopt-rust-linter",
+      "name": "Adopt the existing Rust linter",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "cut Python lint wall-clock by roughly an order of magnitude for per-save and CI invocation, without losing the checks a team relies on",
+      "benefit_interval": "reported 150–1000× on adopter workloads",
+      "one_time_cost": "days of rule mapping per project",
+      "recurring_cost": "tracks a fast-moving tool",
+      "time_to_value": "same day",
+      "compatibility": "rule coverage is close, not identical",
+      "reversibility": "put flake8 back in the config",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "Cheapest option that meets the stated target; the rewrite the requirement implies has already been done by someone else."
+    },
+    {
+      "id": "py-optimize",
+      "name": "Optimize flake8 and its checkers in Python",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "cut Python lint wall-clock by roughly an order of magnitude for per-save and CI invocation, without losing the checks a team relies on",
+      "benefit_interval": "unmeasured; precedent suggests ~3× is reachable",
+      "one_time_cost": "weeks of funded profiling",
+      "recurring_cost": "none new",
+      "time_to_value": "weeks",
+      "compatibility": "native",
+      "reversibility": "git revert",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "Genuinely undertried — Prettier found ~3× by profiling alone — but ~3× does not meet a 10× target."
+    },
+    {
+      "id": "stay-plugins",
+      "name": "Keep flake8 for its plugin ecosystem",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "cut Python lint wall-clock by roughly an order of magnitude for per-save and CI invocation, without losing the checks a team relies on",
+      "benefit_interval": "no speed benefit; preserves checks nothing else has",
+      "one_time_cost": "none",
+      "recurring_cost": "the current lint time",
+      "time_to_value": "in effect today",
+      "compatibility": "native",
+      "reversibility": "n/a",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "For a team whose blocking need is a specific Python plugin, this is the right answer and speed is not the objective."
+    },
+    {
+      "id": "rust-rewrite-flake8",
+      "name": "Rewrite flake8 in Rust",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "cut Python lint wall-clock by roughly an order of magnitude for per-save and CI invocation, without losing the checks a team relies on",
+      "benefit_interval": "capped at 1.43× under a generous share assumption",
+      "one_time_cost": "4,741 lines plus a plugin story",
+      "recurring_cost": "a second implementation of an existing tool",
+      "time_to_value": "months",
+      "compatibility": "entry-point plugin API cannot survive",
+      "reversibility": "poor",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "Fails on the Amdahl ceiling and on the plugin contract simultaneously; the checkers it delegates to stay in Python."
+    },
+    {
+      "id": "rust-checker-extract",
+      "name": "Rust parser behind the Python API",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "cut Python lint wall-clock by roughly an order of magnitude for per-save and CI invocation, without losing the checks a team relies on",
+      "benefit_interval": "unmeasured; boundary cost unpriced",
+      "one_time_cost": "PyO3 boundary plus AST parity",
+      "recurring_cost": "wheels for every platform",
+      "time_to_value": "months",
+      "compatibility": "AST must match CPython's exactly",
+      "reversibility": "pin the previous release",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "This is the pydantic-core pattern and it is sound in general, but here it would rebuild the tool that already exists, and per-node PyO3 crossings cost roughly 20–40 ns each."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "adopt-rust-linter",
+        "rust-rewrite-flake8",
+        "rust-checker-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The gap is adopter-reported and large: 2.5 min → 0.4 s against four-core-parallel pylint, and roughly 150–200× against flake8 on another team's codebase.",
+      "source": "https://github.com/astral-sh/ruff — adopter reports",
+      "baseline_regime": "adopter-reported, self-selected success stories",
+      "caveat": "These are third-party reports of a competing tool, not measurements of flake8 taken here; the direction is solid, the multiplier is not transferable.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-rewrite-flake8"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "Grant flake8's own code a generous 30% share of lint wall-clock and make it infinitely fast. The ceiling is 1.43×. A 10× target is physically impossible at orchestrator scope.",
+      "source": "scripts/decision_math.py · share=.30, kernel=inf, boundary=0, target=10",
+      "baseline_regime": "explicit upper-bound assumption, not a measured profile",
+      "caveat": "If the true share were even higher than 30%, the argument would only need re-running; the checking work still lives in three separate Python packages.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "A batch linter has no tail-latency SLO; CPython's collector is not implicated in any stated requirement.",
+      "source": "batch CLI invocation model",
+      "baseline_regime": "invocation shape",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Linting runs on developer machines and CI runners; no fleet-density objective or break-even is stated.",
+      "source": "developer and CI invocation",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [
+        "adopt-rust-linter",
+        "rust-rewrite-flake8"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Per-save invocation puts interpreter cold start on the critical path every time, and a native binary removes it. This favours any native tool, not Rust specifically.",
+      "source": "https://notes.crmarsh.com/python-tooling-could-be-much-much-faster",
+      "baseline_regime": "first-party decomposition by the competing tool's author",
+      "caveat": "Startup is one of several named factors; the account attributes a large share to parse-once architecture instead.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Python is memory-safe at application scope and this codebase declares no native or FFI surface, so no memory-safety delta exists to claim.",
+      "source": "pure-Python package; setup.cfg declares three Python dependencies",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "adopt-rust-linter"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "File-level linting is embarrassingly parallel and the GIL constrains in-process Python parallelism; a native tool captures that directly.",
+      "source": "https://notes.crmarsh.com/python-tooling-could-be-much-much-faster",
+      "baseline_regime": "first-party architectural account",
+      "caveat": "Python can parallelize with processes; the comparison then shifts to per-process interpreter startup and memory.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Both the Python package and the native binary install through ordinary package managers; no distribution constraint is unmet.",
+      "source": "pip-installable package · prebuilt native binaries",
+      "baseline_regime": "packaging inventory",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "adopt-rust-linter"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The Rust linter this requirement implies already exists, is maintained, and lints CPython in under 500 ms. Adoption is the option; building it again is not.",
+      "source": "https://github.com/astral-sh/ruff",
+      "baseline_regime": "shipped third-party tool",
+      "caveat": "Rule coverage overlaps flake8's ecosystem but is not identical; the mapping is the adopter's real cost.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-checker-extract"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "An extraction would cross the Python boundary per AST node or per check rather than in bulk, and PyO3 calls cost roughly 20–40 ns each against the raw C API.",
+      "source": "https://github.com/PyO3/pyo3/issues/3827",
+      "baseline_regime": "measured per-call overhead in the binding layer",
+      "caveat": "Batching and zero-copy designs reduce this; doing so means redesigning the plugin contract, which is the product.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-rewrite-flake8"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "flake8's value is its plugin contract: an entry-point table mapping rule prefixes to checkers, plus delegation to three Python packages. A native binary cannot host Python plugins without embedding an interpreter.",
+      "source": "setup.cfg:40 [options.entry_points] · install_requires mccabe, pycodestyle, pyflakes",
+      "baseline_regime": "packaging metadata in this commit",
+      "caveat": "A Rust tool can reimplement popular plugins' rules natively — which is what the existing one did, and why adoption rather than rewriting is the option.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "py-optimize",
+        "adopt-rust-linter"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Two non-rewrite options are live: profiling the current stack, where a comparable project found roughly 3× with no language change, and adopting the existing native tool, which meets the target today.",
+      "source": "https://prettier.io/blog/2023/11/30/cli-deep-dive · https://github.com/astral-sh/ruff",
+      "baseline_regime": "first-party reproduced result plus shipped tool",
+      "caveat": "~3× is real and still short of a 10× target; the two options are complementary, not alternatives.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": {
+      "kernel_share": 0.3,
+      "kernel_speedup": "unbounded",
+      "boundary_cost_share": 0.0,
+      "end_to_end_speedup": 1.4285714285714286,
+      "infinite_kernel_ceiling": 1.4285714285714286,
+      "target_speedup": 10.0,
+      "target_physically_possible": false,
+      "target_met_by_candidate": false,
+      "inputs_note": "Generous upper bound on flake8's own orchestration share of lint wall-clock, with an infinitely fast replacement and no boundary cost. Ceiling 1.4285714285714286x; the 10x target is physically impossible at this scope. The 30% share is an explicit assumption, not a measurement."
+    },
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Astral · ruff",
+      "outcome": "ADOPTED",
+      "match": "identical objective, identical tool category, and it already exists",
+      "mismatch": "not a migration by flake8's maintainers; a separate tool with its own rule set",
+      "workload_regime": "adopter-reported and first-party figures",
+      "source_class": "third-party · project and adopter reports",
+      "url": "https://github.com/astral-sh/ruff"
+    },
+    {
+      "name": "pydantic · pydantic-core",
+      "outcome": "EXTRACT",
+      "match": "the extraction pattern the rust-checker-extract option would follow",
+      "mismatch": "pydantic owned its hot kernel; flake8 delegates checking to three separate packages",
+      "workload_regime": "vendor benchmark plus user-reported app figures",
+      "source_class": "first-party · vendor article",
+      "url": "https://pydantic.dev/articles/pydantic-v2"
+    },
+    {
+      "name": "Prettier · pure-JavaScript CLI rework",
+      "outcome": "STAYED",
+      "match": "the in-stack counterfactual that must be priced before any rewrite",
+      "mismatch": "a formatter with its own hot path, not a thin orchestrator over three packages",
+      "workload_regime": "reproduced 29 s → 9 s",
+      "source_class": "first-party · project blog",
+      "url": "https://prettier.io/blog/2023/11/30/cli-deep-dive"
+    },
+    {
+      "name": "jaq vs jq",
+      "outcome": "ADOPTED",
+      "match": "the same 'the ecosystem already shipped it' shape as this decision",
+      "mismatch": "jq has no plugin entry-point ecosystem to preserve",
+      "workload_regime": "author-run benchmarks",
+      "source_class": "third-party · project README",
+      "url": "https://github.com/01mf02/jaq"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Measure your own lint time before choosing",
+      "owner": "the adopting team",
+      "cost_range": "1 day",
+      "artifact": "wall-clock for the current lint configuration on the real repository, split per tool and per invocation mode (per-save versus CI)",
+      "acceptance": "the measurement identifies which invocation mode actually hurts and by how much",
+      "deadline_or_stop": "stop if neither mode misses a threshold the team cares about",
+      "rollback": "measurement only"
+    },
+    {
+      "step": 2,
+      "title": "Map your rules to the native tool",
+      "owner": "the adopting team",
+      "cost_range": "2–5 days",
+      "artifact": "a rule-by-rule mapping from the current flake8 plugin set to the native linter's codes, with the unmapped rules listed explicitly",
+      "acceptance": "every rule the team enforces is either mapped or consciously dropped, in writing",
+      "deadline_or_stop": "stop and keep flake8 if an unmapped rule is a hard requirement — that is a legitimate outcome",
+      "rollback": "revert the configuration; nothing else changed"
+    },
+    {
+      "step": 3,
+      "title": "Run both in parallel for one cycle",
+      "owner": "the adopting team",
+      "cost_range": "1 week",
+      "artifact": "both linters in CI, with the native one non-blocking, and a diff of findings",
+      "acceptance": "the finding diff is explained line by line, with no unexplained silent drops",
+      "deadline_or_stop": "stop the switch on any unexplained divergence",
+      "rollback": "remove the native linter from CI; flake8 remains the gate"
+    },
+    {
+      "step": 4,
+      "title": "If flake8 must stay, profile it instead of rewriting it",
+      "owner": "a flake8 contributor",
+      "cost_range": "1–3 weeks",
+      "artifact": "a CPU profile of the orchestrator and its three checkers, with the top contributors and their measured shares",
+      "acceptance": "the profile either finds a material share in flake8's own code — reopening D2 with real inputs — or shows it is in the checkers",
+      "deadline_or_stop": "stop the Rust track entirely if the time is in the checkers, which is where the structure says it is",
+      "rollback": "measurement only"
+    }
+  ],
+  "assumptions": [
+    "flake8's own orchestration share of lint wall-clock is at most 30% — an explicit upper bound chosen to be generous to the rewrite option, not a measurement.",
+    "The shallow clone at the named commit represents the shipped package; dependency versions are read from setup.cfg as declared.",
+    "The competing tool's reported multipliers are third-party adopter figures and are used directionally, never transferred as a predicted result."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "The rewrite option's ceiling is 1.43× under a generous share assumption, so the 10× target is above the physical ceiling at orchestrator scope.",
+        "evidence": "decision_math.py · share=.30, kernel=inf, target=10"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "A large share of the reported speedup is parse-once architecture, not language; the report separates the two rather than crediting all of it to Rust.",
+        "evidence": "D5, D7 · notes.crmarsh.com decomposition"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The 150–1000× figures are adopter-reported for a competing tool on their own codebases, not measurements of flake8 taken here.",
+        "evidence": "D1 caveat"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "The extraction option is priced with per-call PyO3 overhead of roughly 20–40 ns, and the rewrite option with the loss of the Python plugin contract.",
+        "evidence": "D10, D11"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The report notes that a Rust flake8 would duplicate a maintained tool, and asks who would maintain the second one.",
+        "evidence": "rust-rewrite-flake8 reason"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "HIT",
+        "claim": "In-stack profiling has not been done for flake8, and a comparable project found roughly 3× that way — so the staying case is currently asserted rather than measured.",
+        "evidence": "D12 · reversible path step 4"
+      },
+      {
+        "id": "S2",
+        "name": "Target shortfall",
+        "state": "HIT",
+        "claim": "Even the precedent-supported ~3× from Python-side optimization does not meet a 10× target; the report states both facts together.",
+        "evidence": "py-optimize benefit interval"
+      },
+      {
+        "id": "S3",
+        "name": "Cost of inaction",
+        "state": "PASS",
+        "claim": "The report grants the requirement and names the per-save cost rather than treating slow linting as acceptable.",
+        "evidence": "G1 PASS · D5"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "Native startup and GIL-free parallelism are recorded as advantages, and the selected option is the one that captures them.",
+        "evidence": "D5, D7, D9"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The path ends in a decision: adopt after a parallel-run cycle, or keep flake8 because a specific plugin is a hard requirement.",
+        "evidence": "reversible path steps 2–3"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

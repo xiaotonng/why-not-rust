@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · keepassxreboot/keepassxc</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">keepassxreboot/keepassxc</span><span>2026-08-02</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">C++/Qt6 · desktop password manager · 113,863 lines of own src, 16,076 of them security-critical</span><span data-l="zh">C++/Qt6 · 桌面密码管理器 · 自有 src 113,863 行，其中 16,076 行属安全关键</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">stay native; the migration buys a new UI, not a safer parser</span><span data-l="zh">继续原生；这场迁移买到的是一套新 UI，不是更安全的解析器</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">KeePassXC parses hostile files in C++ while holding secrets. A malicious .kdbx reaches Kdbx4Reader::readHeaderField before the HMAC is checked, so the exposure is not hypothetical. Then look at who does the parsing. XML goes to QXmlStreamReader, gzip to zlib, every cipher and KDF to Botan. KeePassXC&#x27;s own share of that path is 2,003 lines. Qt appears in 476 of its 660 source files, so migrating to Rust means building a new UI, which means shipping a different application.</span><span data-l="zh">KeePassXC 用 C++ 解析别人递过来的文件，手里还攥着密码。一个恶意 .kdbx 会先走到 Kdbx4Reader::readHeaderField，HMAC 校验发生在那之后，所以暴露面不是假想的。再看这条路上究竟是谁在解析。XML 交给 QXmlStreamReader，gzip 交给 zlib，所有分组密码和 KDF 交给 Botan。KeePassXC 自己在这条路上只占 2,003 行。Qt 出现在它 660 个源文件中的 476 个，所以迁到 Rust 就得重做一套 UI，而那等于发布另一个应用。</span></p>
+      <p class="trigger"><span data-l="en">Stable on the migration question; the Qt counts will not be reinterpreted. Conditional on the extraction. The project ships an AFL harness aimed at exactly this path. If it finds a memory-safety defect in the pre-auth header parse or in one of the six importers, rust-parse-extract becomes the recommendation, and this report was wrong about urgency rather than about scope.</span><span data-l="zh">「整体迁移」这个问题上结论是稳的，Qt 那几个数字不会被重新解读。抽取方案则是有条件的。项目自带一套 AFL 脚手架，打的正是这条路。如果它在预认证的头部解析或六个导入器里查出内存安全缺陷，推荐结论就换成 rust-parse-extract；那说明本报告错在紧迫性，不在范围。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep C++/Qt; point the fuzzer the project already built at the pre-auth parser</span><span data-l="zh">留在 C++/Qt；把项目自己已经搭好的 fuzzer 对准预认证解析器</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>CONDITIONAL</b></span>
+        <span><span data-l="en">native-desktop-gui · Qt6 application that parses attacker-supplied files while holding secrets</span><span data-l="zh">原生桌面 GUI · Qt6 应用，手里攥着密码，同时解析别人递过来的文件</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">A hostile .kdbx header is parsed before any credential is verified.</span><span data-l="zh">恶意 .kdbx 的头部在任何凭据被验证之前就已经被解析。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Rust removes the class from the 2,003 lines it would replace.</span><span data-l="zh">它替掉的那 2,003 行里，这个缺陷类会消失。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">85.9% of the rewrite budget buys no safety at all.</span><span data-l="zh">重写预算里 85.9% 买不到任何安全收益。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">476 of 660 files include a Qt header. 72 .ui files. 45 translations.</span><span data-l="zh">660 个文件里 476 个 include 了 Qt 头。72 个 .ui 文件。45 种翻译。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Security-relevant core</span><span data-l="zh">安全关键内核</span></div><div class="value mono">14.1<span class="unit"><span data-l="en">% of own src</span><span data-l="zh">% 自有 src</span></span></div><div class="note"><span data-l="en">src/format + crypto + keys + streams · 16,076 of 113,863 lines</span><span data-l="zh">src/format + crypto + keys + streams · 16,076 / 113,863 行</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Files that include a Qt header</span><span data-l="zh">include 了 Qt 头的文件</span></div><div class="value mono">476<span class="unit"><span data-l="en">of 660</span><span data-l="zh">/ 660</span></span></div><div class="note"><span data-l="en">the migration blocker, counted rather than asserted</span><span data-l="zh">迁移的拦路虎，是数出来的，不是断言的</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Memory-safety CVEs on record</span><span data-l="zh">有记录的内存安全 CVE</span></div><div class="value mono">0<span class="unit"><span data-l="en">of 6</span><span data-l="zh">/ 6 条</span></span></div><div class="note"><span data-l="en">NVD records for KeePassXC and KeePassX, 2015–2026</span><span data-l="zh">NVD 里 KeePassXC 与 KeePassX 的记录，2015–2026</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Qt Designer files a rewrite must replace</span><span data-l="zh">重写必须替掉的 Qt Designer 文件</span></div><div class="value mono">72<span class="unit"><span data-l="en">files</span><span data-l="zh">个</span></span></div><div class="note"><span data-l="en">18,677 lines of .ui XML with no Rust equivalent</span><span data-l="zh">18,677 行 .ui XML，Rust 侧没有对应物</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Translations bound to Qt Linguist</span><span data-l="zh">绑在 Qt Linguist 上的翻译</span></div><div class="value mono">45<span class="unit"><span data-l="en">languages</span><span data-l="zh">种语言</span></span></div><div class="note"><span data-l="en">472,765 lines of .ts XML — the files that look like TypeScript</span><span data-l="zh">472,765 行 .ts XML，就是那些长得像 TypeScript 的文件</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">KDBX bytes KeePassXC frames itself</span><span data-l="zh">KeePassXC 自己拆帧的 KDBX 字节</span></div><div class="value mono">2,003<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">everything else on that path is Qt, zlib or Botan</span><span data-l="zh">这条路上其余部分是 Qt、zlib 或 Botan</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">One objective judges every option: remove the memory-unsafety class from the code that touches attacker-supplied bytes, without changing what KeePassXC is or how it reaches its packagers.</span><span data-l="zh">所有方案对着同一个目标：把接触攻击者字节的那部分代码里的内存不安全缺陷类去掉，同时不改变 KeePassXC 是什么，也不改变它怎么走到打包者手里。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Fuzz the pre-auth parser in C++</span><span data-l="zh">在 C++ 里 fuzz 预认证解析器</span></span><span class="source"><span data-l="en">recommended · the project already built this and left it idle</span><span data-l="zh">推荐 · 项目已经把这套东西做好了，只是没跑起来</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">aims at the 2,003-line framing path and 3,705 lines of importers</span><span data-l="zh">对准 2,003 行拆帧路径和 3,705 行导入器</span></td><td><span data-l="en">weeks; harness already written</span><span data-l="zh">数周；脚手架已经写好</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">native · no format risk</span><span data-l="zh">原生 · 无格式风险</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust crate for the KDBX framing layer</span><span data-l="zh">把 KDBX 拆帧层做成 Rust crate</span></span><span class="source"><span data-l="en">retain · the one Rust scope with a defensible shape</span><span data-l="zh">保留 · 唯一形状说得通的 Rust 范围</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">class removed in the pre-auth header path</span><span data-l="zh">预认证头部路径里，缺陷类消失</span></td><td><span data-l="en">2,003 lines + ABI; cargo everywhere</span><span data-l="zh">2,003 行 + ABI；到处都要 cargo</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">same internal API · build-flag rollback</span><span data-l="zh">内部 API 不变 · 构建开关回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust core for format, crypto, keys and streams</span><span data-l="zh">format/crypto/keys/streams 整体换 Rust 内核</span></span><span class="source"><span data-l="en">retain · larger than the exposure it addresses</span><span data-l="zh">保留 · 比它要解决的暴露面更大</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">covers 16,076 lines; Botan and Qt still parse and decrypt</span><span data-l="zh">覆盖 16,076 行；解析与解密仍由 Botan 和 Qt 承担</span></td><td><span data-l="en">16,076 lines; two crypto stacks</span><span data-l="zh">16,076 行；两套密码学栈</span></td><td><span data-l="en">quarters</span><span data-l="zh">数个季度</span></td><td><span data-l="en">format contract at risk · fixture rollback</span><span data-l="zh">格式契约有风险 · 靠测试夹具回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Adopt an existing Rust KDBX parser</span><span data-l="zh">直接采用现成的 Rust KDBX 解析器</span></span><span class="source"><span data-l="en">retain · the ecosystem shipped this already</span><span data-l="zh">保留 · 生态里已经有人做出来了</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">class removed for parsing, at someone else&#x27;s maintenance cost</span><span data-l="zh">解析侧缺陷类消失，维护成本落在别人身上</span></td><td><span data-l="en">FFI + parity work; upstream risk</span><span data-l="zh">FFI + 对齐验证；上游风险</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">divergence risk · revert the dependency</span><span data-l="zh">有分叉风险 · 撤掉依赖即可</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rust core plus a web UI</span><span data-l="zh">Rust 内核 + Web UI</span></span><span class="source"><span data-l="en">exclude · this is the 1Password 8 shape</span><span data-l="zh">排除 · 这就是 1Password 8 那个形状</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">solves cross-platform UI consistency, not memory safety</span><span data-l="zh">解决的是跨平台 UI 一致性，不是内存安全</span></td><td><span data-l="en">whole UI; new engine to track</span><span data-l="zh">整套 UI；还要跟一个新引擎</span></td><td><span data-l="en">years</span><span data-l="zh">数年</span></td><td><span data-l="en">product identity changes · no rollback</span><span data-l="zh">产品身份改变 · 无回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rewrite KeePassXC in Rust</span><span data-l="zh">用 Rust 重写 KeePassXC</span></span><span class="source"><span data-l="en">exclude · fails G3 and G4 on static counts</span><span data-l="zh">排除 · 在静态计数上过不了 G3 和 G4</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">safety on 14.1% of the code; the rest is UI plumbing</span><span data-l="zh">14.1% 的代码拿到安全收益；其余是 UI 管道</span></td><td><span data-l="en">113,863 lines; new toolkit</span><span data-l="zh">113,863 行；换工具箱</span></td><td><span data-l="en">years</span><span data-l="zh">数年</span></td><td><span data-l="en">everything at once · no rollback</span><span data-l="zh">全部一起动 · 无回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is evidence scoped to named options; they do not add up to a score. No performance claim was made about KeePassXC, so no Amdahl figure appears anywhere in this report.</span><span data-l="zh">每条状态都绑到具体方案上，不是可以相加的分数。没有人对 KeePassXC 提出性能主张，所以整份报告里不会出现 Amdahl 数字。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-parse-extract</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The objective is safety, so ownership means: whose code touches the hostile bytes first? KeePassXC&#x27;s does. Kdbx4Reader reads a file-controlled 32-bit length and reads that many bytes before the header HMAC is compared. That surface is owned, small and findable.</span><span data-l="zh">目标是安全，所以「归属」问的是：敌意字节最先落到谁的代码里？落到 KeePassXC 自己的代码里。Kdbx4Reader 先读一个来自文件的 32 位长度，再按这个长度读字节，之后才比对头部 HMAC。这块面是自有的，不大，也找得到。</span></div><div class="source mono">src/format/Kdbx4Reader.cpp:157-183 (header field read) vs :77 (HMAC comparison)</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full-gui, rust-core-extract</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Reach here means: which untrusted bytes stop being handled by C or C++? Not the XML, which QXmlStreamReader parses. Not the gzip, which zlib inflates through a 622-line Qt Solutions wrapper. Not the ciphers or the KDF, which are Botan&#x27;s. Rewrite all 113,863 lines and those three stay linked into the same process.</span><span data-l="zh">这里的影响面问的是：哪些不可信字节不再由 C 或 C++ 处理？XML 不算，那是 QXmlStreamReader 解析的。gzip 也不算，那是 zlib 通过一个 622 行的 Qt Solutions 包装器解压的。分组密码和 KDF 也不算，那些是 Botan 的。把 113,863 行全部重写，这三样照旧链进同一个进程。</span></div><div class="source mono">src/format/KdbxXmlReader.h:27,107 · src/streams/qtiocompressor.cpp (622 lines) · CMakeLists.txt:478</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">No managed runtime, no garbage collector, no latency SLO. The slowest operation is Argon2 key derivation, which is slow on purpose and lives in Botan under every option.</span><span data-l="zh">没有托管运行时，没有 GC，也没有延迟 SLO。最慢的一步是 Argon2 密钥派生，它是故意慢的，而且在每个方案下都住在 Botan 里。</span></div><div class="source mono">src/crypto/kdf/Argon2Kdf.cpp:173 · Botan::PasswordHashFamily</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">One user, one process, one machine. There is no instance count, no utilization figure and no unit price, so no cost case can be constructed in either direction.</span><span data-l="zh">一个用户，一个进程，一台机器。没有实例数、没有利用率、没有单价，两个方向都构不出成本论证。</span></div><div class="source mono">desktop application, no fleet</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The GUI starts once per session and stays resident; keepassxc-cli is invoked per command. Time to unlock is dominated by the KDF, not by process start. No option changes either shape.</span><span data-l="zh">GUI 每次会话启动一次然后常驻；keepassxc-cli 是每条命令起一次。解锁耗时主要来自 KDF，不是进程启动。没有哪个方案会改变这两种形态。</span></div><div class="source mono">src/main.cpp · src/cli (65 files, 4,794 lines)</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Three raw memcpy calls sit on the KDBX read path, copying decrypted block data into a caller-supplied char* buffer. Each is bounded by an explicit qMin against the buffer size. Rust makes that shape impossible rather than merely correct, and 12 memcpy occurrences across 113,863 lines is the whole surface.</span><span data-l="zh">KDBX 读路径上有三处裸 memcpy，把解密后的块数据拷进调用方给的 char* 缓冲区。每一处都用显式 qMin 对缓冲区大小做了限界。Rust 让这种写法根本不成立，而不只是「这次写对了」；整个仓库 113,863 行里 memcpy 一共出现 12 次，这就是全部的面。</span></div><div class="source mono">src/streams/HmacBlockStream.cpp:114 · HashedBlockStream.cpp:115 · SymmetricCipherStream.cpp:114</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Concurrency is thin and deliberate: 13 QtConcurrent occurrences, 12 QThread, 22 QMutex, and no std::thread at all. Qt&#x27;s signal-slot model already confines cross-thread work. Send and Sync would buy less here than they bought fish.</span><span data-l="zh">并发用得又薄又克制：QtConcurrent 出现 13 次，QThread 12 次，QMutex 22 次，std::thread 一次都没有。Qt 的信号槽模型本来就把跨线程的活儿圈住了。Send 和 Sync 在这里能买到的东西，比它们在 fish 那里买到的少。</span></div><div class="source mono">occurrence counts over 660 own src files via /usr/bin/grep -o</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">KeePassXC already builds with CMake, vcpkg, snapcraft and per-distro packaging, and INSTALL.md names Snap, AppImage, Flatpak and native as distribution types. Adding cargo is a new requirement for every packager. Nothing about distribution is currently unmet.</span><span data-l="zh">KeePassXC 现在用 CMake、vcpkg、snapcraft 加各发行版自己的打包脚本构建，INSTALL.md 里把 Snap、AppImage、Flatpak、native 列为分发类型。加上 cargo 是给每个打包者新增一条要求。分发这块目前没有未满足的约束。</span></div><div class="source mono">INSTALL.md:100 · vcpkg.json · snap/snapcraft.yaml · CMakeLists.txt:429-443</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · adopt-rust-kdbx</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">A maintained Rust KDBX parser already exists. The keepass crate has 221,728 downloads and was updated in July 2026, so nobody needs to write this from scratch. On the UI side the ecosystem runs the other way entirely.</span><span data-l="zh">Rust 侧已经有一个在维护的 KDBX 解析器。keepass crate 下载 221,728 次，2026 年 7 月还在更新，所以没人需要从零写一遍。UI 那一侧，生态的方向完全相反。</span></div><div class="source mono">crates.io API: keepass 0.13.19, 221,728 downloads, updated 2026-07-30</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full-gui, rust-core-electron</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The compatibility surface is not the KDBX format. It is 218 distinct Qt headers, 194 files declaring Q_OBJECT, 164 classes deriving from Qt types, 72 .ui layouts and 45 Qt Linguist catalogues. QAccessible is in that include list, which is the part no Rust toolkit currently answers.</span><span data-l="zh">兼容面不是 KDBX 格式。它是 218 个不同的 Qt 头、194 个声明 Q_OBJECT 的文件、164 个从 Qt 类型派生的类、72 个 .ui 布局，还有 45 份 Qt Linguist 词条。QAccessible 就在那份 include 清单里，而这一项目前没有哪个 Rust 工具箱能接。</span></div><div class="source mono">660 own src files: 476 with a Qt include, 218 distinct &lt;Q*&gt; headers, 194 Q_OBJECT, 164 Qt-derived classes; 72 .ui files at 18,677 lines</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full-gui</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">fish shell moved 57k lines of C++ to 75k of Rust in about two years with 200-plus authors, and reported performance parity. KeePassXC&#x27;s own src is 113,863 lines, twice that, and 85.9% of it has no safety argument attached. Crosslake&#x27;s rewrite dataset puts typical overrun at 1.5 to 2 times budget and schedule.</span><span data-l="zh">fish shell 用大约两年、200 多位作者，把 5.7 万行 C++ 搬成 7.5 万行 Rust，性能报的是持平。KeePassXC 自有 src 是 113,863 行，是它的两倍，其中 85.9% 挂不上任何安全论证。Crosslake 的重写数据集显示，典型超支和超期都在 1.5 到 2 倍。</span></div><div class="source mono">https://fishshell.com/blog/rustport/ · https://crosslaketech.com/how-long-does-a-complete-rewrite-of-a-software-application-take/</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">对照方案</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-fuzz</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The in-stack alternative is not hypothetical, and it is not cheap talk either. CodeQL security-and-quality runs on cpp for every push to develop and release branches, every pull request, and weekly. SonarCloud is configured. An AFL harness aimed at the .kdbx load path is written and documented. Tests are 28,849 lines with 32 .kdbx fixtures.</span><span data-l="zh">栈内那条路不是假想，也不是嘴上说说。CodeQL 的 security-and-quality 规则集对 cpp 跑在 develop 和 release 分支的每次 push、每个 PR，外加每周一次。SonarCloud 配好了。一套对准 .kdbx 加载路径的 AFL 脚手架写完并且有文档。测试 28,849 行，带 32 个 .kdbx 夹具。</span></div><div class="source mono">.github/workflows/codeql.yml:29 · sonar-project.properties · utils/fuzz-testing/README.md · src/cli/Utils.cpp:225</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">Two lenses are N/A. D3 tail and runtime: there is no managed runtime, no collector, and no latency SLO; the one deliberately slow path is Argon2 inside Botan. D4 fleet footprint: this is a single-user desktop application with no instance count and no price to compute against.</span><span data-l="zh">两条记为 N/A。D3 尾延迟与运行时：没有托管运行时，没有 collector，也没有延迟 SLO；唯一故意做慢的是 Botan 里的 Argon2。D4 机队占用：这是单用户桌面应用，既没有实例数也没有价格可算。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card unknown"><h3><span data-l="en">45 files look like TypeScript and are Qt translation XML</span><span data-l="zh">45 个文件长得像 TypeScript，其实是 Qt 翻译 XML</span></h3><p><span data-l="en">Every .ts file in this tree opens with &lt;!DOCTYPE TS&gt;&lt;TS version=&quot;2.1&quot;&gt;. All 45 live under share/translations, and together they are 472,765 lines. Count them as TypeScript and .ts becomes 73.3% of the source-code line total. GitHub&#x27;s Linguist gets this right and reports no TypeScript; line-counting tools that key on the extension do not. Every figure in this report excludes them.</span><span data-l="zh">这棵树里每个 .ts 文件都以 &lt;!DOCTYPE TS&gt;&lt;TS version=&quot;2.1&quot;&gt; 开头。45 个全在 share/translations 下面，合计 472,765 行。把它们算成 TypeScript，.ts 就占到源码行数的 73.3%。GitHub 的 Linguist 判对了，报的是没有 TypeScript；靠扩展名数行的工具判不对。本报告里所有数字都把它们排除在外。</span></p><span class="ref mono">share/translations/keepassxc_*.ts · 45 files · 472,765 lines</span></div>
+<div class="card current"><h3><span data-l="en">The security core is 14.1% of the code</span><span data-l="zh">安全内核占代码的 14.1%</span></h3><p><span data-l="en">src/format, src/crypto, src/keys and src/streams together are 91 files and 16,076 lines. KeePassXC&#x27;s own src, excluding the vendored src/thirdparty tree, is 113,863. src/gui alone is 50,344, or 44.2%. A rewrite pitched on memory safety spends most of its budget on dialogs, models and views.</span><span data-l="zh">src/format、src/crypto、src/keys、src/streams 合起来 91 个文件、16,076 行。KeePassXC 自有 src，扣掉内置的 src/thirdparty，是 113,863 行。仅 src/gui 就有 50,344 行，占 44.2%。一场打着内存安全旗号的重写，大部分预算花在对话框、model 和 view 上。</span></p><span class="ref mono">src/format+crypto+keys+streams · 16,076 of 113,863 lines</span></div>
+<div class="card current"><h3><span data-l="en">KeePassXC writes no crypto of its own</span><span data-l="zh">KeePassXC 没有自己写任何密码学代码</span></h3><p><span data-l="en">CMakeLists.txt:478 makes Botan a hard requirement, minimum 2.19.1. src/crypto is 1,571 lines across 14 files, and it is a wrapper: 24 Botan:: call sites cover the ciphers, hashes, RNG and both KDFs. src/core/Alloc.cpp even routes global operator delete through Botan::secure_scrub_memory. Rewriting this in Rust replaces glue around a library that was never KeePassXC&#x27;s to get wrong.</span><span data-l="zh">CMakeLists.txt:478 把 Botan 定为硬依赖，最低 2.19.1。src/crypto 是 14 个文件、1,571 行，而且是层包装：24 处 Botan:: 调用点覆盖了分组密码、哈希、RNG 和两种 KDF。src/core/Alloc.cpp 甚至把全局 operator delete 接到 Botan::secure_scrub_memory 上。用 Rust 重写这部分，换掉的是一层胶水，而底下那个库本来就不是 KeePassXC 能写错的东西。</span></p><span class="ref mono">CMakeLists.txt:478 · src/crypto (14 files, 1,571 lines) · src/core/Alloc.cpp:47</span></div>
+<div class="card rust"><h3><span data-l="en">The pre-auth header parse is the case for Rust</span><span data-l="zh">预认证的头部解析，才是 Rust 的理由所在</span></h3><p><span data-l="en">Kdbx4Reader::readHeaderField reads a 32-bit length straight out of the file, then reads that many bytes. The header HMAC is not compared until 80 lines earlier in the call graph, inside readDatabaseImpl. So a hostile .kdbx gets a parser to run with no credential at all. Add the six importers for Bitwarden, 1Password OpVault, 1PUX, ProtonPass, CSV and legacy KDB, and that is 3,705 more lines fed by files from other vendors.</span><span data-l="zh">Kdbx4Reader::readHeaderField 直接从文件里读一个 32 位长度，然后按这个长度读字节。头部 HMAC 的比对发生在调用链更靠前的 readDatabaseImpl 里。所以一个恶意 .kdbx 能在完全没有凭据的情况下让解析器跑起来。再加上 Bitwarden、1Password OpVault、1PUX、ProtonPass、CSV 和旧版 KDB 六个导入器，又是 3,705 行由别家厂商的文件喂进来的代码。</span></p><span class="ref mono">src/format/Kdbx4Reader.cpp:157 · six importers, 3,705 lines</span></div>
+<div class="card current"><h3><span data-l="en">No memory-safety CVE has been recorded in eleven years</span><span data-l="zh">十一年里没有一条内存安全 CVE 记录</span></h3><p><span data-l="en">NVD returns six CVE records for KeePassXC or KeePassX between 2015 and 2026. The CWEs are 200, 863, 316 twice, the 352/353/640 group for the browser extension, and 427 for an OpenSSL config search path. Not one is a memory-safety class. The CHANGELOG covers 55 releases back to 2012 and names two: an out-of-memory crash on malformed SSH keys, and two heap-use-after-free crashes in the CLI. Nobody has proven the class is absent. It has not surfaced.</span><span data-l="zh">NVD 在 2015 到 2026 年间返回六条 KeePassXC 或 KeePassX 的 CVE 记录。CWE 分别是 200、863、两次 316、浏览器扩展那组 352/353/640，以及一条关于 OpenSSL 配置搜索路径的 427。没有一条属于内存安全类。CHANGELOG 覆盖 55 个版本、回溯到 2012 年，里面点到两处：畸形 SSH key 导致的内存耗尽崩溃，以及CLI 里两个 heap-use-after-free。没人证明这个缺陷类不存在，只是它没有冒出来。</span></p><span class="ref mono">NVD keywordSearch=keepass · CHANGELOG.md:86, :632</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Class elimination on the pre-auth path</span><span data-l="zh">预认证路径上，这个缺陷类直接消失</span></b> — <span data-l="en">a Rust framing parser cannot produce a memory-unsafety defect while decoding a hostile .kdbx header, and that header is parsed before any credential is checked.</span><span data-l="zh">用 Rust 写的拆帧解析器，在解码敌意 .kdbx 头部时产不出内存不安全缺陷；而那个头部就是在任何凭据被校验之前被解析的。</span></li><li><b><span data-l="en">A crate that already exists</span><span data-l="zh">一个已经存在的 crate</span></b> — <span data-l="en">the keepass crate has 221,728 downloads and shipped a release in July 2026, so the extraction starts from working code rather than a blank file.</span><span data-l="zh">keepass crate 下载 221,728 次，2026 年 7 月还发了版本，所以抽取方案是从能跑的代码起步，不是从空文件起步。</span></li><li><b><span data-l="en">Nothing on crypto, and that is fine</span><span data-l="zh">密码学这块什么也买不到，这没问题</span></b> — <span data-l="en">Botan already owns every cipher, hash, RNG and KDF. src/crypto is 1,571 lines of wrapper, so there is no unsafe primitive here for Rust to displace.</span><span data-l="zh">Botan 已经拿下了所有分组密码、哈希、RNG 和 KDF。src/crypto 是 1,571 行包装层，这里没有不安全的原语等着 Rust 来替。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">A process without C++ in it</span><span data-l="zh">一个不含 C++ 的进程</span></b> — <span data-l="en">Qt6 and Botan stay linked under every option. QXmlStreamReader still parses the decrypted database XML and zlib still inflates it.</span><span data-l="zh">在任何方案下，Qt6 和 Botan 都还链在里面。解密后的数据库 XML 仍由 QXmlStreamReader 解析，仍由 zlib 解压。</span></li><li><b><span data-l="en">The user interface</span><span data-l="zh">那套用户界面</span></b> — <span data-l="en">476 of 660 source files include a Qt header and 72 .ui layouts hold 18,677 lines. No Rust toolkit carries that, so the migration ships a different application.</span><span data-l="zh">660 个源文件里 476 个 include 了 Qt 头，72 个 .ui 布局装着 18,677 行。没有哪个 Rust 工具箱接得下来，所以这场迁移交付的是另一个应用。</span></li><li><b><span data-l="en">Freedom from the KDBX contract</span><span data-l="zh">从 KDBX 契约里脱身</span></b> — <span data-l="en">two format generations plus legacy KDB plus six import formats survive any implementation change, and a parsing regression in a password manager means silent data loss.</span><span data-l="zh">两代格式、旧版 KDB、六种导入格式，在任何实现变更之后都还在；而密码管理器里的解析回归意味着无声的数据丢失。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>1Password 8 · Rust core, web UI</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">1Password&#x27;s own post describes stopping work on the SwiftUI Mac app and extending the Electron web UI to cover macOS, with a shared Rust core chosen as a language known for &quot;performance, security, and memory safety&quot;. Mac users pushed back for years afterwards, on forums and elsewhere. This is the road KeePassXC has not taken.</span><span data-l="zh">1Password 自己那篇文章写了：停掉 SwiftUI 版 Mac 应用，把 Electron 的 Web UI 扩到 macOS，底下用一个共享的 Rust 内核，选它的理由是这门语言以 &quot;performance, security, and memory safety&quot; 著称。之后好几年，Mac 用户在论坛和别的地方一直在反弹。这条路 KeePassXC 没有走。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">password manager, native Mac app, Rust core, and the same UI-toolkit decision</span><span data-l="zh">密码管理器、原生 Mac 应用、Rust 内核，面对的是同一个 UI 工具箱决策</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">closed source and unprobeable; their driver was cross-platform consistency and a ship date, not memory safety</span><span data-l="zh">闭源，没法探查；他们的动因是跨平台一致性加发布日期，不是内存安全</span></div><a class="ref mono" href="https://1password.com/blog/1password-8-the-story-so-far">first-party blog · reaction third-party</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Stylo vs Servo</h3><span class="outcome">EXTRACTED</span></div><p><span data-l="en">The same organisation ran both experiments on one C++ codebase. The CSS engine extraction shipped in Firefox 57 after about two years. The whole-engine replacement was cancelled and the team laid off. Holley&#x27;s line is the one to keep: the desire to throw everything away tends to be an emotional one.</span><span data-l="zh">同一个组织在同一份 C++ 代码库上跑了两个实验。CSS 引擎的抽取用了大约两年，随 Firefox 57 发布。整引擎替换被取消，团队被裁。Holley 那句话值得留着：想把一切扔掉重来，这种冲动往往是情绪性的。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">C++ codebase, memory-safety motive, and the same extract-versus-replace fork</span><span data-l="zh">C++ 代码库、内存安全动机，面对的是同一个「抽取还是替换」的分叉</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Stylo had a parallel-styling win Rust uniquely enabled; KeePassXC&#x27;s core has no such win, and there is no donor project to ride</span><span data-l="zh">Stylo 有一个只有 Rust 能拿下的并行样式计算收益；KeePassXC 的内核没有这种收益，也没有一个可以蹭的捐赠项目</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Google · Android memory-safety program</h3><span class="outcome">STAYED</span></div><p><span data-l="en">Android&#x27;s memory-safety vulnerability share fell from 76% in 2019 to under 20% in 2025 without a mass rewrite. New code went to Rust; old C and C++ was left to decay. Their measured reason: five-year-old code carries 3.4 to 7.4 times lower vulnerability density than new code.</span><span data-l="zh">Android 的内存安全漏洞占比从 2019 年的 76% 降到 2025 年的 20% 以下，没有做大规模重写。新代码走 Rust，旧的 C 和 C++ 留在原地自然衰减。他们量出来的理由是：五年前的代码，漏洞密度比新代码低 3.4 到 7.4 倍。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a C++ security-relevant codebase choosing interop over rewrite, and code-age decay applies directly to a parse path written in 2018</span><span data-l="zh">一份与安全相关的 C++ 代码库选了互操作而不是重写；代码年龄衰减这条，直接适用于一条 2018 年写成的解析路径</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">OS scope at Google headcount; their C and C++ is raw-pointer heavy where KeePassXC&#x27;s parse path is QByteArray-based</span><span data-l="zh">那是操作系统级范围，配 Google 的人力；他们的 C/C++ 裸指针很重，而 KeePassXC 的解析路径建在 QByteArray 上</span></div><a class="ref mono" href="https://blog.google/security/rust-in-android-move-fast-fix-things/">first-party · security blog</a></article>
+<article class="precedent"><div class="top"><h3>Trifecta · sudo-rs</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">A privilege tool that parses attacker-influenced input was rewritten in Rust and became the Ubuntu 25.10 default, with no performance framing anywhere in the first-party material. The argument was attack surface, full stop. If KeePassXC&#x27;s pre-auth parser ever produces a finding, this is the shape the answer takes.</span><span data-l="zh">一个解析受攻击者影响输入的提权工具，用 Rust 重写，成了 Ubuntu 25.10 的默认实现，官方材料里通篇没有性能话术。论证就是攻击面，没有别的。如果 KeePassXC 的预认证解析器哪天真查出问题，答案就长这个样子。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the strongest confirming case: untrusted input, security boundary, safety-only justification</span><span data-l="zh">最强的正面例证：不可信输入、安全边界、纯安全论证</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a small setuid CLI with no GUI and no Qt; KeePassXC&#x27;s equivalent path is 2,003 lines inside a 113,863-line Qt application</span><span data-l="zh">那是个小的 setuid CLI，没有 GUI，也没有 Qt；KeePassXC 对应的路径是嵌在 113,863 行 Qt 应用里的 2,003 行</span></div><a class="ref mono" href="https://trifectatech.org/blog/memory-safe-sudo-to-become-the-default-in-ubuntu/">first-party · project blog</a></article>
+<article class="precedent"><div class="top"><h3>Zed · GPUI</h3><span class="outcome">GREENFIELD</span></div><p><span data-l="en">The flagship Rust desktop application found no existing Rust GUI framework that met its bar, so it built one. A 2025 survey of 43 Rust GUI crates reached the same place: the overwhelming majority are not production-ready, with accessibility and input methods the usual gaps. KeePassXC needs both, in 45 languages.</span><span data-l="zh">那个旗舰级的 Rust 桌面应用，没找到一个达标的现成 Rust GUI 框架，于是自己写了一个。2025 年一份对 43 个 Rust GUI crate 的调研走到同一个结论：绝大多数还不能上生产，缺口通常在无障碍和输入法。KeePassXC 这两样都要，还要乘以 45 种语言。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the G4 question directly: whether a Rust toolkit can carry a real desktop UI today</span><span data-l="zh">直接对上 G4 那个问题：今天有没有 Rust 工具箱能撑起一套真实的桌面 UI</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Zed is greenfield and venture-funded; KeePassXC is a volunteer project with 72 .ui layouts and 472,765 lines of translation catalogue to carry across</span><span data-l="zh">Zed 是有风投的全新项目；KeePassXC 是志愿者项目，还得把 72 个 .ui 布局和 472,765 行翻译词条搬过去</span></div><a class="ref mono" href="https://zed.dev/blog/videogame">first-party blog · survey third-party</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Run the fuzzer the project already wrote</span><span data-l="zh">把项目自己写好的 fuzzer 跑起来</span></h3><p><span data-l="en">KeePassXC maintainers take utils/fuzz-testing/README.md off the shelf and run it continuously in CI instead of by hand. Seed the corpus from the 32 tracked .kdbx fixtures, then extend coverage to the six importers, which currently have no harness at all. The step passes when the campaign has run one full release cycle over both KDBX generations and every import format. A crash in the pre-auth header path goes straight to step 3. Nothing ships, so nothing rolls back.</span><span data-l="zh">KeePassXC 维护者把 utils/fuzz-testing/README.md 那套东西从架子上取下来，放进 CI 持续跑，不再手动跑。语料用仓库里那 32 个 .kdbx 夹具做种子，然后把覆盖面扩到六个导入器——它们现在一个脚手架都没有。通过标准是：这一轮跑满一个完整发布周期，覆盖两代 KDBX 和每一种导入格式。预认证头部路径上一旦崩，直接跳到第三步。这一步不发布东西，也就没有东西要回退。</span></p></div><span class="cost"><span data-l="en">2-4 weeks</span><span data-l="zh">2-4 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Say out loud that Qt is the product</span><span data-l="zh">把「Qt 就是产品本身」这句话说出来</span></h3><p><span data-l="en">Before any migration proposal gets review time, someone writes down what replaces Qt. Which toolkit renders the 72 .ui layouts. How 45 Qt Linguist catalogues get re-plumbed. What answers QAccessible on Windows, macOS and Linux. The step passes when that document names a toolkit and a shipping application built on it that has the accessibility and input-method coverage KeePassXC has now. No document, no review. The current Qt build carries on either way.</span><span data-l="zh">任何迁移提案要拿到评审时间之前，先有人把「拿什么替 Qt」写下来。哪个工具箱来渲染那 72 个 .ui 布局。45 份 Qt Linguist 词条怎么重新接线。Windows、macOS、Linux 上谁来接 QAccessible。通过标准是：这份文档点出一个工具箱，以及一个基于它发布的应用，其无障碍和输入法覆盖不低于 KeePassXC 现在的水平。没有文档就没有评审。不管怎样，现在这套 Qt 构建照旧往前走。</span></p></div><span class="cost"><span data-l="en">1 week per review</span><span data-l="zh">每轮评审 1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Extract the framing layer only if the fuzzer says so</span><span data-l="zh">只有 fuzzer 开口，才去抽取拆帧层</span></h3><p><span data-l="en">If step 1 produces a memory-safety finding, the framing layer moves to Rust behind a C ABI, starting with the pre-auth header parse and the three block streams. Validate against the 32 .kdbx fixtures plus whatever the fuzzer generated, byte for byte, in both directions. Keep both implementations behind a build flag for one release. If parity fails on any fixture, delete the flag and keep the C++ path. Scope stays at 2,003 lines; src/gui is never touched.</span><span data-l="zh">如果第一步查出内存安全问题，就把拆帧层挪到 Rust、藏在一个 C ABI 后面，先做预认证头部解析和那三条块流。用那 32 个 .kdbx 夹具，加上 fuzzer 生成的样本，双向逐字节校验。两套实现用构建开关并存一个版本周期。任何一个夹具对不上，就删掉开关、保留 C++ 那条路。范围就停在 2,003 行，src/gui 一行不动。</span></p></div><span class="cost"><span data-l="en">3-6 months</span><span data-l="zh">3-6 个月</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Write new importers in the safe language from the start</span><span data-l="zh">新的导入器，一开始就用安全语言写</span></h3><p><span data-l="en">Android&#x27;s decay finding applies here without much translation: new code carries the defects, old code has had them found. KeePassXC adds import formats over time, and the six it has are 3,705 lines. The next one gets written against the Rust framing crate if step 3 happened, and gets a fuzz target on day one either way. Acceptance is a harness merged alongside the parser, not after it. Reverting a new importer costs nothing, because nobody depended on it yet.</span><span data-l="zh">Android 那个衰减结论几乎不用转译就能用在这里：缺陷都在新代码里，旧代码的缺陷已经被找出来了。KeePassXC 会不断加导入格式，现有六个是 3,705 行。下一个如果第三步发生了，就对着 Rust 拆帧 crate 写；不管第三步有没有发生，它第一天就要有 fuzz target。验收标准是脚手架跟解析器一起合入，不是之后补。撤掉一个新导入器成本为零，因为还没人依赖它。</span></p></div><span class="cost"><span data-l="en">per feature</span><span data-l="zh">按功能计</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The proposal credits Rust with safety over the whole application. The bytes are handled by Qt&#x27;s XML reader, zlib and Botan, and KeePassXC&#x27;s own share of the KDBX read path is 2,003 lines.</span><span data-l="zh">提案把整个应用的安全都记在 Rust 头上。可字节是 Qt 的 XML reader、zlib 和 Botan 在处理，KeePassXC 自己在 KDBX 读路径上只占 2,003 行。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与工况</span></b> — <span data-l="en">A Rust safety claim gets compared against the current build with CodeQL on every pull request and an AFL harness in the tree, not against unanalysed C++.</span><span data-l="zh">Rust 的安全主张要跟「每个 PR 都跑 CodeQL、仓库里带 AFL 脚手架」的当前构建比，不是跟一份没做过分析的 C++ 比。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被漏掉的成本</span></b> — <span data-l="en">The UI never appears in the proposal&#x27;s budget. 476 of 660 files include a Qt header, 72 .ui layouts hold 18,677 lines, and 45 Qt Linguist catalogues hold 472,765.</span><span data-l="zh">提案的预算里从来没出现 UI。660 个文件里 476 个 include 了 Qt 头，72 个 .ui 布局 18,677 行，45 份 Qt Linguist 词条 472,765 行。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">Two KDBX generations, legacy KDB and six import formats are named and priced against every reimplementation option, including the adoption one.</span><span data-l="zh">两代 KDBX、旧版 KDB 和六种导入格式都点了名，并计入每个重新实现方案的成本，采用现成库那个方案也算在内。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The path requires a written UI replacement plan before any migration proposal gets review time, and names what that plan must contain.</span><span data-l="zh">路径要求：任何迁移提案拿到评审时间之前，先有一份书面的 UI 替换计划，并且点明这份计划里必须写什么。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying leaves a memory-unsafety class reachable from a file with no credential attached. Kdbx4Reader parses a file-controlled length before the header HMAC is compared, and KDBX 3.1 has no header HMAC at all.</span><span data-l="zh">不动，就意味着一个内存不安全缺陷类可以由一份不带任何凭据的文件触达。Kdbx4Reader 在比对头部 HMAC 之前就按文件给的长度解析，而 KDBX 3.1 根本没有头部 HMAC。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有人投入的对照方案</span></b> — <span data-l="en">CodeQL security-and-quality on cpp, SonarCloud, an AFL harness with an in-source hook, and 28,849 lines of tests with 32 .kdbx fixtures are all in the tree today.</span><span data-l="zh">对 cpp 跑的 CodeQL security-and-quality、SonarCloud、带源码内钩子的 AFL 脚手架，以及 28,849 行测试配 32 个 .kdbx 夹具，今天都在仓库里。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏的不安全面</span></b> — <span data-l="en">The report discloses its own inconvenient counts: 12 memcpy occurrences, 124 reinterpret_cast, and 29,484 lines of vendored C and C++ in src/thirdparty that no option touches.</span><span data-l="zh">报告把对自己不利的数字也报了：memcpy 出现 12 次，reinterpret_cast 124 次，src/thirdparty 里 29,484 行第三方 C/C++，没有哪个方案会动它们。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The report does not claim Rust would be slower or worse. It retains three Rust options, one of them adoption of an existing crate, and names the trigger that promotes the extraction.</span><span data-l="zh">报告没有主张 Rust 会更慢或更差。它保留了三个 Rust 方案，其中一个是采用现成 crate，并点明了让抽取方案上位的触发条件。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The selected option carries an explicit escalation rule: a crash in the pre-auth header path moves the decision to the Rust extraction, without further debate.</span><span data-l="zh">被选中的方案带一条明确的升级规则：预认证头部路径上出现崩溃，决策直接转到 Rust 抽取，不再另行辩论。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">keepassxreboot/keepassxc at 2058912 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">keepassxreboot/keepassxc @ 2058912 · 静态只读分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/keepassxreboot/keepassxc at commit 205891202f4b995a8c9277cd125498ac76468b15, shallow clone, 1,510 tracked files. Scope: the whole application, with src/format, src/crypto, src/keys and src/streams as the candidate seam. Counting basis: this repository is the reason the method demands one. 45 files carry a .ts extension and total 472,765 lines. All 45 sit under share/translations and every one opens with &lt;!DOCTYPE TS&gt;&lt;TS version=&quot;2.1&quot;&gt;, which makes them Qt Linguist translation XML. Count them as TypeScript and .ts becomes 73.3% of the (.ts + C/C++/Objective-C++) line total, which is what extension-keyed tools report. GitHub&#x27;s own Linguist gets it right and reports no TypeScript. Every figure here excludes them. C, C++ and Objective-C++ across the tracked tree: 808 files and 172,146 lines, being 390 .cpp at 114,511, 406 .h at 53,385, 7 .c at 3,469 and 5 .mm at 781. src/ excluding src/thirdparty is 660 files and 113,863 lines, and that is the denominator for every percentage in this report. src/thirdparty is 29,484 lines, of which 24,868 are a single zxcvbn word-list header. src/gui is 282 files and 50,344 lines, 44.2%. The security-relevant core of src/format, src/crypto, src/keys and src/streams is 91 files and 16,076 lines, 14.1%. tests/ is 127 files and 28,849 lines with 32 tracked .kdbx fixtures. Qt coupling, on the same 660 files: 476 include a Qt header, 218 distinct &lt;Q*&gt; headers are included, 194 files declare Q_OBJECT and 164 class declarations derive from a Qt type; 72 .ui Qt Designer files hold 18,677 lines. CMakeLists.txt:429-443 requires Qt 6.2.4 or newer with eight components plus DBus on Linux, and CMakeLists.txt:478 requires Botan 2.19.1 or newer. Occurrence counts use /usr/bin/grep -o piped to wc -l and count occurrences, not lines; comments are not excluded. memcpy appears 12 times in the 660 files, three of them on the KDBX read path; reinterpret_cast appears 124 times. Security history: NVD keyword search returns six CVE records for KeePassXC or KeePassX between 2015 and 2026, carrying CWE-200, CWE-863, CWE-316 twice, CWE-352/353/640 for the browser extension, and CWE-427; none is a memory-safety class. The repository&#x27;s GitHub advisory list holds one entry, CVE-2026-4158. The CHANGELOG spans 55 releases from 2012-05-07 to 2026-03-10, names two memory-safety-shaped fixes and no CVE. Absence of found defects is not absence of defects, and D6 is recorded MODERATE rather than WEAK for that reason. Objective: no RFC was supplied, so the assessment takes the question as posed. User-supplied facts: none. No Amdahl calculation appears, because no performance claim was made and a line share is not a time share. Nothing in the scanned repository content attempted to steer this assessment. The decision turns on G3 and G4, which fail on static counts, while G1 and G2 pass on the pre-auth parse path. Smallest sufficient step: the selected option reaches every line the Rust options target, using a harness the project already wrote. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/keepassxreboot/keepassxc，commit 205891202f4b995a8c9277cd125498ac76468b15，shallow clone，1,510 个纳管文件。范围：整个应用，候选接缝是 src/format、src/crypto、src/keys、src/streams。计数口径：这个仓库正好说明了为什么方法一定要求先说清口径。45 个文件带 .ts 扩展名，合计 472,765 行。这 45 个全在 share/translations 下，每个都以 &lt;!DOCTYPE TS&gt;&lt;TS version=&quot;2.1&quot;&gt; 开头，也就是 Qt Linguist 的翻译 XML。把它们算成 TypeScript，.ts 就占到（.ts + C/C++/Objective-C++）行数的 73.3%，这正是按扩展名判断的工具给出的结果。GitHub 自己的 Linguist 判对了，报的是没有 TypeScript。本文所有数字都把它们排除。全树的 C、C++、Objective-C++：808 个文件、172,146 行，其中 .cpp 390 个共 114,511 行，.h 406 个共 53,385 行，.c 7 个共 3,469 行，.mm 5 个共 781 行。src/ 扣掉 src/thirdparty 是 660 个文件、113,863 行，本报告每个百分比都以它为分母。src/thirdparty 是 29,484 行，其中 24,868 行是一个 zxcvbn 词表头文件。src/gui 是 282 个文件、50,344 行，占 44.2%。安全关键内核 src/format + src/crypto + src/keys + src/streams 是 91 个文件、16,076 行，占 14.1%。tests/ 是 127 个文件、28,849 行，带 32 个纳管的 .kdbx 夹具。Qt 耦合，同样按这 660 个文件算：476 个 include 了 Qt 头，被 include 的不同 &lt;Q*&gt; 头有 218 个，194 个文件声明 Q_OBJECT，164 处类声明从 Qt 类型派生；72 个 .ui Qt Designer 文件共 18,677 行。CMakeLists.txt:429-443 要求 Qt 6.2.4 及以上，八个组件，Linux 上另加 DBus；CMakeLists.txt:478 要求 Botan 2.19.1 及以上。出现次数用 /usr/bin/grep -o 接 wc -l 统计，数的是出现次数而不是行数，注释没有剔除。memcpy 在这 660 个文件里出现 12 次，其中三次在 KDBX 读路径上；reinterpret_cast 出现 124 次。安全历史：NVD 关键词检索在 2015 到 2026 年间返回六条 KeePassXC 或 KeePassX 的 CVE 记录，CWE 分别是 200、863、两次 316、浏览器扩展的 352/353/640，以及 427；没有一条属于内存安全类。仓库的 GitHub advisory 列表只有一条，CVE-2026-4158。CHANGELOG 覆盖 55 个版本，从 2012-05-07 到 2026-03-10，点到两处内存安全形态的修复，没有提到任何 CVE。没找到缺陷不等于没有缺陷，所以 D6 记的是 MODERATE 而不是 WEAK。目标：没有人给出 RFC，因此按问题原样评估。用户提供的事实：无。本报告没有 Amdahl 计算，因为没有人提出性能主张，而代码行数占比不能当时间占比用。扫描到的仓库内容里没有任何试图操纵本次评估的东西。决策落在 G3 和 G4 上，这两道门在静态计数上失败；G1 和 G2 则在预认证解析路径上通过。最小充分步骤：被选中的方案能覆盖 Rust 方案要打的每一行，而用的是项目自己早就写好的脚手架。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A fuzzing result for the pre-auth header path and the six importers</span><span data-l="zh">预认证头部路径与六个导入器的 fuzz 结果</span></td><td><span data-l="en">This is the whole decision. The harness exists and the corpus exists; nobody has published a campaign result. A finding authorizes rust-parse-extract immediately.</span><span data-l="zh">整个决策就压在这上面。脚手架有，语料有，但没有人公开过一轮完整的跑测结果。一旦查出问题，rust-parse-extract 立刻获得授权。</span></td></tr><tr><td><span data-l="en">A root-cause classification of the CHANGELOG&#x27;s 44 crash fixes</span><span data-l="zh">对 CHANGELOG 里 44 条崩溃修复做根因分类</span></td><td><span data-l="en">Two are named as memory-safety issues. The other 42 are described as UI lifecycle problems, and nobody has checked whether that description holds.</span><span data-l="zh">其中两条被点明是内存安全问题。另外 42 条被描述成 UI 生命周期问题，但没有人核对过这个描述是否成立。</span></td></tr><tr><td><span data-l="en">A Rust GUI toolkit with KeePassXC&#x27;s accessibility and translation coverage</span><span data-l="zh">一个具备 KeePassXC 无障碍与翻译覆盖度的 Rust GUI 工具箱</span></td><td><span data-l="en">Without one, G4 stays FAIL for the full migration regardless of what the fuzzer finds. This is the gap that makes the verdict STAY rather than EXTRACT.</span><span data-l="zh">没有这个东西，不管 fuzzer 查出什么，G4 对整体迁移都停在 FAIL。正是这个缺口让结论落在 STAY 而不是 EXTRACT。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 2058912 · no build, benchmark or network call against the project</span><span data-l="zh">公开仓库 · 在 commit 2058912 上做静态分析 · 没有对项目做构建、基准或网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-02",
+  "repository": {
+    "path": "https://github.com/keepassxreboot/keepassxc",
+    "commit": "205891202f4b995a8c9277cd125498ac76468b15",
+    "scope": "the whole application; src/format, src/crypto, src/keys and src/streams are the candidate seam",
+    "sampling": "shallow clone; 1,510 tracked files enumerated; 45 .ts Qt Linguist catalogues excluded from every count; src/, tests/ and utils/ measured; no build, test, benchmark or network call was run against the project"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A fuzzing result for the pre-auth header path and the six importers",
+      "A root-cause classification of the CHANGELOG's 44 crash fixes",
+      "A Rust GUI toolkit with KeePassXC's accessibility and translation coverage"
+    ]
+  },
+  "objective": {
+    "driver": "memory safety",
+    "requirement": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+    "baseline": "2,003 lines of own framing code on the KDBX read path plus 3,705 lines of importers; six NVD CVE records since 2015 and none with a memory-safety CWE",
+    "target": "class elimination on the pre-auth parse path; no performance target was stated and none is assessed"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "stay-fuzz",
+    "confidence": "HIGH",
+    "robustness": "CONDITIONAL",
+    "because": "KeePassXC parses hostile files in C++ while holding secrets. A malicious .kdbx reaches Kdbx4Reader::readHeaderField before the HMAC is checked, so the exposure is not hypothetical. Then look at who does the parsing. XML goes to QXmlStreamReader, gzip to zlib, every cipher and KDF to Botan. KeePassXC's own share of that path is 2,003 lines. Qt appears in 476 of its 660 source files, so migrating to Rust means building a new UI, which means shipping a different application.",
+    "change_trigger": "Stable on the migration question; the Qt counts will not be reinterpreted. Conditional on the extraction. The project ships an AFL harness aimed at exactly this path. If it finds a memory-safety defect in the pre-auth header parse or in one of the six importers, rust-parse-extract becomes the recommendation, and this report was wrong about urgency rather than about scope."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "stay-fuzz",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "src/format/Kdbx4Reader.cpp:157 reads a file-controlled quint32 length and reads that many bytes; the header HMAC is not compared until line 77 of readDatabaseImpl. Six import formats add 3,705 lines that consume files from other vendors. The safety requirement is named and reachable."
+    },
+    {
+      "id": "G2",
+      "option_id": "stay-fuzz",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "The mechanism is granted for the framing code KeePassXC owns: 2,003 lines on the KDBX read path, including three raw memcpy sites in the block streams. It stops there. QXmlStreamReader parses the decrypted XML, zlib inflates it, and Botan performs every cipher, hash and KDF."
+    },
+    {
+      "id": "G3",
+      "option_id": "stay-fuzz",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "The security-relevant core is 16,076 of 113,863 own src lines, 14.1%. src/gui alone is 50,344, 44.2%. A smaller option is already tooled: utils/fuzz-testing/README.md drives AFL at keepassxc-cli ls with a mutated .kdbx, and src/cli/Utils.cpp:225 carries the __AFL_COMPILER hook it needs."
+    },
+    {
+      "id": "G4",
+      "option_id": "stay-fuzz",
+      "name": "delivery and reversibility",
+      "state": "FAIL",
+      "evidence": "218 distinct Qt headers are included across src/, 194 files declare Q_OBJECT, and 164 class declarations derive from a Qt type. 72 Qt Designer .ui files hold 18,677 lines and 45 Qt Linguist catalogues hold 472,765. No production-grade Rust Qt binding exists, so the migration is a UI replacement with no dual-run and no rollback."
+    }
+  ],
+  "options": [
+    {
+      "id": "stay-fuzz",
+      "name": "Fuzz the pre-auth parser in C++",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+      "benefit_interval": "aims at the 2,003-line framing path and 3,705 lines of importers",
+      "one_time_cost": "weeks; the harness and corpus already exist",
+      "recurring_cost": "CI time for a continuous campaign",
+      "time_to_value": "weeks",
+      "compatibility": "native",
+      "reversibility": "nothing to roll back",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "Reaches every line the Rust options would target, at weeks rather than quarters, and it produces the evidence that would authorize an extraction."
+    },
+    {
+      "id": "rust-parse-extract",
+      "name": "Rust crate for the KDBX framing layer",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+      "benefit_interval": "class removed in the pre-auth header path",
+      "one_time_cost": "2,003 lines plus a C ABI and a parity harness",
+      "recurring_cost": "cargo in every packager's build",
+      "time_to_value": "months",
+      "compatibility": "byte-exact KDBX 3.1 and 4.x header handling",
+      "reversibility": "build flag, if kept dual",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "Correct target and the right size, but the seam is not clean: 62 of the 91 core files include a Qt header, so the boundary has to be built before the crate can be dropped in."
+    },
+    {
+      "id": "rust-core-extract",
+      "name": "Rust core for format, crypto, keys and streams",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+      "benefit_interval": "covers 16,076 lines; Botan and Qt still parse and decrypt",
+      "one_time_cost": "16,076 lines and a new crypto backend decision",
+      "recurring_cost": "two crypto stacks until Botan is dropped",
+      "time_to_value": "quarters",
+      "compatibility": "two KDBX generations plus legacy KDB",
+      "reversibility": "hard once the format layer moves",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "src/crypto is 1,571 lines of Botan wrapper, so most of this scope re-wraps a vetted library rather than removing unsafe code."
+    },
+    {
+      "id": "adopt-rust-kdbx",
+      "name": "Adopt an existing Rust KDBX parser",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+      "benefit_interval": "class removed for parsing, at someone else's maintenance cost",
+      "one_time_cost": "FFI layer plus format-parity validation against 32 fixtures",
+      "recurring_cost": "an upstream KeePassXC does not control",
+      "time_to_value": "months",
+      "compatibility": "a second implementation of the same format",
+      "reversibility": "drop the dependency",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "The keepass crate exists and is maintained, so this is cheaper than writing a parser; two independent implementations of one database format is the risk it carries."
+    },
+    {
+      "id": "rust-core-electron",
+      "name": "Rust core plus a web UI",
+      "implementation": "rust",
+      "scope": "component",
+      "target": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+      "benefit_interval": "solves cross-platform UI consistency, not memory safety",
+      "one_time_cost": "the whole UI, plus a browser engine in the shipped bundle",
+      "recurring_cost": "a rendering engine the project does not own",
+      "time_to_value": "years",
+      "compatibility": "abandons the native look users chose",
+      "reversibility": "none",
+      "evidence_strength": "MODERATE",
+      "disposition": "exclude",
+      "reason": "The published precedent traded a native Mac app for a shared web UI and drew years of public pushback; KeePassXC's users are the people who left over exactly that."
+    },
+    {
+      "id": "rust-full-gui",
+      "name": "Rewrite KeePassXC in Rust",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "remove the memory-unsafety class from the code that handles attacker-supplied bytes, without changing the application's identity or its packaging path",
+      "benefit_interval": "safety on 14.1% of the code; the rest is UI plumbing",
+      "one_time_cost": "113,863 lines, a GUI toolkit choice, and 45 translation catalogues",
+      "recurring_cost": "a UI framework with no Qt-equivalent accessibility story",
+      "time_to_value": "years",
+      "compatibility": "Qt6 · 72 .ui files · 45 languages · KDBX contract",
+      "reversibility": "none",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "Qt appears in 476 of 660 files and there is no Rust binding that carries it, so the safety objective arrives attached to a full UI replacement nobody asked for."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-parse-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The objective is safety, so ownership means: whose code touches the hostile bytes first? KeePassXC's does. Kdbx4Reader reads a file-controlled 32-bit length and reads that many bytes before the header HMAC is compared. That surface is owned, small and findable.",
+      "source": "src/format/Kdbx4Reader.cpp:157-183 (header field read) vs :77 (HMAC comparison)",
+      "baseline_regime": "static read of the shipped read path at this commit",
+      "caveat": "KDBX 3.1 has no header HMAC at all; Kdbx3Reader.cpp:136 parses header fields and the stream-start-bytes check at :80 happens after decryption.",
+      "change_trigger": "A fuzzing finding on this path would move the recommendation to rust-parse-extract."
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-full-gui",
+        "rust-core-extract"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "Reach here means: which untrusted bytes stop being handled by C or C++? Not the XML, which QXmlStreamReader parses. Not the gzip, which zlib inflates through a 622-line Qt Solutions wrapper. Not the ciphers or the KDF, which are Botan's. Rewrite all 113,863 lines and those three stay linked into the same process.",
+      "source": "src/format/KdbxXmlReader.h:27,107 · src/streams/qtiocompressor.cpp (622 lines) · CMakeLists.txt:478",
+      "baseline_regime": "static dependency inventory at this commit",
+      "caveat": "Replacing Botan and Qt's XML reader as well is conceivable, and is a much larger proposal than the one assessed here.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "No managed runtime, no garbage collector, no latency SLO. The slowest operation is Argon2 key derivation, which is slow on purpose and lives in Botan under every option.",
+      "source": "src/crypto/kdf/Argon2Kdf.cpp:173 · Botan::PasswordHashFamily",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "One user, one process, one machine. There is no instance count, no utilization figure and no unit price, so no cost case can be constructed in either direction.",
+      "source": "desktop application, no fleet",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "The GUI starts once per session and stays resident; keepassxc-cli is invoked per command. Time to unlock is dominated by the KDF, not by process start. No option changes either shape.",
+      "source": "src/main.cpp · src/cli (65 files, 4,794 lines)",
+      "baseline_regime": "shipped invocation model",
+      "caveat": "Nobody has published a startup measurement for KeePassXC, and none is needed for a safety decision.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-parse-extract",
+        "rust-core-extract",
+        "rust-full-gui"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Three raw memcpy calls sit on the KDBX read path, copying decrypted block data into a caller-supplied char* buffer. Each is bounded by an explicit qMin against the buffer size. Rust makes that shape impossible rather than merely correct, and 12 memcpy occurrences across 113,863 lines is the whole surface.",
+      "source": "src/streams/HmacBlockStream.cpp:114 · HashedBlockStream.cpp:115 · SymmetricCipherStream.cpp:114",
+      "baseline_regime": "occurrence count via /usr/bin/grep -o, comments not excluded",
+      "caveat": "Six NVD records exist for KeePassXC and KeePassX between 2015 and 2026 and none carries a memory-safety CWE. Absence of found defects is not absence of defects.",
+      "change_trigger": "A memory-safety finding in the parse path would raise this to STRONG and authorize rust-parse-extract."
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Concurrency is thin and deliberate: 13 QtConcurrent occurrences, 12 QThread, 22 QMutex, and no std::thread at all. Qt's signal-slot model already confines cross-thread work. Send and Sync would buy less here than they bought fish.",
+      "source": "occurrence counts over 660 own src files via /usr/bin/grep -o",
+      "baseline_regime": "static occurrence count at this commit",
+      "caveat": "A future decision to parallelize database loading would reopen this lens; nothing in the tree indicates that plan.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-parse-extract",
+        "rust-core-extract",
+        "rust-full-gui"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "KeePassXC already builds with CMake, vcpkg, snapcraft and per-distro packaging, and INSTALL.md names Snap, AppImage, Flatpak and native as distribution types. Adding cargo is a new requirement for every packager. Nothing about distribution is currently unmet.",
+      "source": "INSTALL.md:100 · vcpkg.json · snap/snapcraft.yaml · CMakeLists.txt:429-443",
+      "baseline_regime": "shipped build and packaging configuration",
+      "caveat": "A Rust component behind a C ABI is the cheapest version of this cost, which is one reason rust-parse-extract is retained rather than excluded.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "adopt-rust-kdbx"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "A maintained Rust KDBX parser already exists. The keepass crate has 221,728 downloads and was updated in July 2026, so nobody needs to write this from scratch. On the UI side the ecosystem runs the other way entirely.",
+      "source": "crates.io API: keepass 0.13.19, 221,728 downloads, updated 2026-07-30",
+      "baseline_regime": "public registry metadata, retrieved 2026-08-02",
+      "caveat": "Two independent implementations of one database format is a correctness risk for a password manager, and download count is not an audit.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-full-gui",
+        "rust-core-electron"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The compatibility surface is not the KDBX format. It is 218 distinct Qt headers, 194 files declaring Q_OBJECT, 164 classes deriving from Qt types, 72 .ui layouts and 45 Qt Linguist catalogues. QAccessible is in that include list, which is the part no Rust toolkit currently answers.",
+      "source": "660 own src files: 476 with a Qt include, 218 distinct \u003cQ*\u003e headers, 194 Q_OBJECT, 164 Qt-derived classes; 72 .ui files at 18,677 lines",
+      "baseline_regime": "static API-surface inventory at this commit",
+      "caveat": "rust-parse-extract inherits almost none of this surface: only 6 of the 91 core files derive from a Qt type.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-full-gui"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "fish shell moved 57k lines of C++ to 75k of Rust in about two years with 200-plus authors, and reported performance parity. KeePassXC's own src is 113,863 lines, twice that, and 85.9% of it has no safety argument attached. Crosslake's rewrite dataset puts typical overrun at 1.5 to 2 times budget and schedule.",
+      "source": "https://fishshell.com/blog/rustport/ · https://crosslaketech.com/how-long-does-a-complete-rewrite-of-a-software-application-take/",
+      "baseline_regime": "first-party retrospective; consultancy dataset, self-selected sample",
+      "caveat": "Neither figure was measured on KeePassXC; both are cited as schedule-realism reference points, not as predictions.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "stay-fuzz"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The in-stack alternative is not hypothetical, and it is not cheap talk either. CodeQL security-and-quality runs on cpp for every push to develop and release branches, every pull request, and weekly. SonarCloud is configured. An AFL harness aimed at the .kdbx load path is written and documented. Tests are 28,849 lines with 32 .kdbx fixtures.",
+      "source": ".github/workflows/codeql.yml:29 · sonar-project.properties · utils/fuzz-testing/README.md · src/cli/Utils.cpp:225",
+      "baseline_regime": "current upstream engineering at this commit",
+      "caveat": "None of it eliminates the memory-unsafety class; static analysis and fuzzing reduce incidence, and a Rust option would remove the class outright.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "1Password 8 · Rust core, web UI",
+      "outcome": "MIGRATED",
+      "match": "password manager, native Mac app, Rust core, and the same UI-toolkit decision",
+      "mismatch": "closed source and unprobeable; their driver was cross-platform consistency and a ship date, not memory safety",
+      "workload_regime": "first-party product announcement, August 2021; reaction from public forums",
+      "source_class": "first-party blog · reaction third-party",
+      "url": "https://1password.com/blog/1password-8-the-story-so-far"
+    },
+    {
+      "name": "Mozilla · Stylo vs Servo",
+      "outcome": "EXTRACTED",
+      "match": "C++ codebase, memory-safety motive, and the same extract-versus-replace fork",
+      "mismatch": "Stylo had a parallel-styling win Rust uniquely enabled; KeePassXC's core has no such win, and there is no donor project to ride",
+      "workload_regime": "first-party retrospective, shipped product",
+      "source_class": "first-party · engineering blog",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Google · Android memory-safety program",
+      "outcome": "STAYED",
+      "match": "a C++ security-relevant codebase choosing interop over rewrite, and code-age decay applies directly to a parse path written in 2018",
+      "mismatch": "OS scope at Google headcount; their C and C++ is raw-pointer heavy where KeePassXC's parse path is QByteArray-based",
+      "workload_regime": "first-party vulnerability statistics, 2019-2025",
+      "source_class": "first-party · security blog",
+      "url": "https://blog.google/security/rust-in-android-move-fast-fix-things/"
+    },
+    {
+      "name": "Trifecta · sudo-rs",
+      "outcome": "MIGRATED",
+      "match": "the strongest confirming case: untrusted input, security boundary, safety-only justification",
+      "mismatch": "a small setuid CLI with no GUI and no Qt; KeePassXC's equivalent path is 2,003 lines inside a 113,863-line Qt application",
+      "workload_regime": "shipped distribution default, first-party",
+      "source_class": "first-party · project blog",
+      "url": "https://trifectatech.org/blog/memory-safe-sudo-to-become-the-default-in-ubuntu/"
+    },
+    {
+      "name": "Zed · GPUI",
+      "outcome": "GREENFIELD",
+      "match": "the G4 question directly: whether a Rust toolkit can carry a real desktop UI today",
+      "mismatch": "Zed is greenfield and venture-funded; KeePassXC is a volunteer project with 72 .ui layouts and 472,765 lines of translation catalogue to carry across",
+      "workload_regime": "first-party product claims; third-party ecosystem survey",
+      "source_class": "first-party blog · survey third-party",
+      "url": "https://zed.dev/blog/videogame"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Run the fuzzer the project already wrote",
+      "owner": "KeePassXC maintainers",
+      "cost_range": "2-4 weeks",
+      "artifact": "a continuous AFL campaign in CI covering both KDBX generations and all six import formats, seeded from the 32 tracked .kdbx fixtures",
+      "acceptance": "the campaign runs one full release cycle with the importers covered and every crash triaged",
+      "deadline_or_stop": "a crash in the pre-auth header path escalates directly to the Rust extraction step",
+      "rollback": "measurement only; no code ships"
+    },
+    {
+      "step": 2,
+      "title": "Say out loud that Qt is the product",
+      "owner": "whoever proposes the migration",
+      "cost_range": "1 week per review",
+      "artifact": "a written UI replacement plan naming a toolkit, a shipping reference application, and the accessibility and translation story",
+      "acceptance": "the named toolkit has a shipping application with accessibility and input-method coverage matching the current Qt build",
+      "deadline_or_stop": "no migration proposal gets review time without it",
+      "rollback": "the current Qt6 build continues unchanged"
+    },
+    {
+      "step": 3,
+      "title": "Extract the framing layer only if the fuzzer says so",
+      "owner": "KeePassXC maintainers plus one Rust contributor",
+      "cost_range": "3-6 months",
+      "artifact": "a Rust framing crate behind a C ABI covering the pre-auth header parse and the three block streams, with a byte-for-byte parity harness",
+      "acceptance": "byte-identical results on all 32 tracked fixtures and the fuzzer corpus, in both read and write directions",
+      "deadline_or_stop": "delete the build flag and keep the C++ path if parity fails on any fixture",
+      "rollback": "build flag; the C++ implementation stays in tree for one release"
+    },
+    {
+      "step": 4,
+      "title": "Write new importers in the safe language from the start",
+      "owner": "KeePassXC maintainers",
+      "cost_range": "per feature",
+      "artifact": "a project rule that every new import format ships with a fuzz target, and targets the Rust framing crate once it exists",
+      "acceptance": "the fuzz harness merges in the same pull request as the parser, not later",
+      "deadline_or_stop": "no new import format merges without its harness",
+      "rollback": "revert the feature; no existing user depends on a format that just landed"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at the named commit represents the shipped tree; src/thirdparty is counted as it ships and excluded from own-code percentages.",
+    "Occurrence counts come from /usr/bin/grep -o piped to wc -l and count occurrences rather than lines; comments and string literals are not excluded.",
+    "The proposal under assessment is the question as posed — should KeePassXC migrate to Rust, primarily for memory safety — since no RFC or issue was supplied.",
+    "NVD keyword search is treated as the public CVE record for KeePassXC; a vulnerability fixed without a CVE would not appear in it."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "The proposal credits Rust with safety over the whole application. The bytes are handled by Qt's XML reader, zlib and Botan, and KeePassXC's own share of the KDBX read path is 2,003 lines.",
+        "evidence": "D2 · KdbxXmlReader.h:27 · qtiocompressor.cpp · CMakeLists.txt:478"
+      },
+      {
+        "id": "M2",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "A Rust safety claim gets compared against the current build with CodeQL on every pull request and an AFL harness in the tree, not against unanalysed C++.",
+        "evidence": "D12 · .github/workflows/codeql.yml:29"
+      },
+      {
+        "id": "M3",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "The UI never appears in the proposal's budget. 476 of 660 files include a Qt header, 72 .ui layouts hold 18,677 lines, and 45 Qt Linguist catalogues hold 472,765.",
+        "evidence": "D10 · G4 evidence"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "Two KDBX generations, legacy KDB and six import formats are named and priced against every reimplementation option, including the adoption one.",
+        "evidence": "D10 · src/format (46 files, 9,622 lines)"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The path requires a written UI replacement plan before any migration proposal gets review time, and names what that plan must contain.",
+        "evidence": "reversible path step 2"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying leaves a memory-unsafety class reachable from a file with no credential attached. Kdbx4Reader parses a file-controlled length before the header HMAC is compared, and KDBX 3.1 has no header HMAC at all.",
+        "evidence": "D6 · src/format/Kdbx4Reader.cpp:157 · Kdbx3Reader.cpp:136"
+      },
+      {
+        "id": "S2",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "CodeQL security-and-quality on cpp, SonarCloud, an AFL harness with an in-source hook, and 28,849 lines of tests with 32 .kdbx fixtures are all in the tree today.",
+        "evidence": "D12 · sonar-project.properties · src/cli/Utils.cpp:225"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The report discloses its own inconvenient counts: 12 memcpy occurrences, 124 reinterpret_cast, and 29,484 lines of vendored C and C++ in src/thirdparty that no option touches.",
+        "evidence": "D6 · occurrence counts over 660 own src files"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The report does not claim Rust would be slower or worse. It retains three Rust options, one of them adoption of an existing crate, and names the trigger that promotes the extraction.",
+        "evidence": "D9 · options rust-parse-extract, rust-core-extract, adopt-rust-kdbx"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The selected option carries an explicit escalation rule: a crash in the pre-auth header path moves the decision to the Rust extraction, without further debate.",
+        "evidence": "reversible path steps 1 and 3"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

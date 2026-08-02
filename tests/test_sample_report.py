@@ -46,7 +46,9 @@ class SampleReportTests(unittest.TestCase):
         self.assertEqual([option["id"] for option in selected], [selected_id])
         self.assertTrue(all(gate["option_id"] == selected_id for gate in assessment["gates"]))
         self.assertTrue(all(option["target"] for option in assessment["options"]))
-        self.assertIn(f'<tr class="selected"><td><span class="option-name">{selected[0]["name"]}</span>', self.rendered)
+        row = re.search(r'<tr class="selected">.*?</tr>', self.rendered, flags=re.DOTALL)
+        self.assertIsNotNone(row, "the selected option must be highlighted in the table")
+        self.assertIn(selected[0]["name"], row.group(0))
 
     def test_machine_record_preserves_method_precedents_path_and_challenges(self) -> None:
         assessment = self.assessment
@@ -74,8 +76,8 @@ class SampleReportTests(unittest.TestCase):
         quick = render_quick()
         numbers = re.findall(r'<span class="no">(\d\d)</span>', quick)
         self.assertEqual(numbers, ["01", "02", "03", "04"])
-        self.assertNotIn("Twelve-lens evidence ledger", quick)
-        self.assertNotIn("Matched precedents", quick)
+        self.assertNotIn("Evidence ledger", quick)
+        self.assertNotIn("Who has done this before", quick)
 
     def test_report_is_visibly_synthetic(self) -> None:
         self.assertGreaterEqual(self.rendered.lower().count("synthetic"), 10)

@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · evanw/esbuild</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">evanw/esbuild</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Go · JavaScript bundler · 149,016 lines of Go across 152 files</span><span data-l="zh">Go · JavaScript 打包器 · 149,016 行 Go，分布在 152 个文件</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">keep the language that already delivered the win</span><span data-l="zh">保留那门已经把胜利兑现的语言</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">Gate 1 fails before gate 2 gets a turn. Nobody has stated a performance requirement that esbuild misses. The repository&#x27;s own benchmark puts it about two orders of magnitude ahead of the JavaScript bundler it replaced. The author has published the decomposition as well: native ahead-of-time compilation, shared-memory parallelism, from-scratch data structures, exactly three AST passes. Zero of the four are Rust properties. All four were obtained in a garbage-collected language.</span><span data-l="zh">G1 没过，G2 就没有轮到。没有人写下过 esbuild 达不到的性能要求。仓库自带的基准显示，它比被它取代的那个 JavaScript 打包器快出大约两个数量级。作者本人也公布过原因拆解：原生 AOT 编译、共享内存并行、数据结构全部从零自建、AST 恰好三遍。四条里没有一条是 Rust 专属。四条都是在带垃圾回收的语言里拿到的。</span></p>
+      <p class="trigger"><span data-l="en">Stable. One thing reopens it: a measured requirement Go cannot meet — a hard sub-10 ms invocation budget, a wasm-only host where the Go runtime is disqualifying, or a memory ceiling with a published break-even. None is asserted today.</span><span data-l="zh">稳定。只有一件事能把它重新打开：一条测量过、而 Go 达不到的要求——硬性的 sub-10 ms 调用预算，只能跑 wasm、Go 运行时直接出局的宿主，或者带公开盈亏平衡点的内存上限。今天这些都没人提出。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep Go; the benefit the rewrite promises is already banked</span><span data-l="zh">继续用 Go；重写承诺的收益已经到账</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">compiler-buildtool · single-binary CLI with a reproducible benchmark</span><span data-l="zh">编译构建工具 · 单二进制 CLI，自带可复现基准</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">要求</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">No unmet performance target; the reproducible bench is ~106×.</span><span data-l="zh">没有未达成的性能目标；可复现基准约 106×。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果归因</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">All four documented speed factors are non-Rust-specific.</span><span data-l="zh">四条已公布的提速因素，没有一条是 Rust 专属。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">149,016 lines rewritten to chase an unquantified delta.</span><span data-l="zh">重写 149,016 行，去追一个没有量化的差值。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Staying has no delivery risk; the current build ships.</span><span data-l="zh">不动没有交付风险；当前构建已经在发货。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Reproducible benchmark</span><span data-l="zh">可复现基准</span></div><div class="value mono">0.39 vs 41.21<span class="unit"><span data-l="en">s</span><span data-l="zh">s</span></span></div><div class="note"><span data-l="en">make bench-three · esbuild vs webpack 5</span><span data-l="zh">make bench-three · esbuild 对 webpack 5</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Total Go source</span><span data-l="zh">Go 源码总量</span></div><div class="value mono">149,016<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">152 files · internal/ is 140,018 of them</span><span data-l="zh">152 个文件 · 其中 internal/ 占 140,018 行</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Goroutine launch sites</span><span data-l="zh">goroutine 启动点</span></div><div class="value mono">45<span class="unit"><span data-l="en">sites</span><span data-l="zh">处</span></span></div><div class="note"><span data-l="en">incl. the per-file parse fan-out · bundler.go:1633</span><span data-l="zh">含按文件的解析扇出 · bundler.go:1633</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">AST passes</span><span data-l="zh">AST 遍数</span></div><div class="value mono">3<span class="unit"><span data-l="en">passes</span><span data-l="zh">遍</span></span></div><div class="note"><span data-l="en">author-documented design constraint</span><span data-l="zh">作者写明的设计约束</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Speed factors that need Rust</span><span data-l="zh">非 Rust 不可的提速因素</span></div><div class="value mono">0<span class="unit"><span data-l="en">of 4</span><span data-l="zh">/ 4</span></span></div><div class="note"><span data-l="en">native AOT · parallelism · data structures · passes</span><span data-l="zh">原生 AOT · 并行 · 数据结构 · 遍数</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Unmet requirement on record</span><span data-l="zh">在案的未满足要求</span></div><div class="value mono">0<span class="unit"><span data-l="en">stated</span><span data-l="zh">条</span></span></div><div class="note"><span data-l="en">why G1 fails before G2 is reached</span><span data-l="zh">G1 就此失败，G2 没有轮到</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option answers the same objective: reduce bundler wall-clock time against a stated target. No such target is currently unmet. That is the finding.</span><span data-l="zh">所有方案回答的是同一个目标：把打包墙钟时间压到某个写明的指标之下。目前没有任何这样的指标处在未达成状态。这就是结论。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Keep Go</span><span data-l="zh">继续用 Go</span></span><span class="source"><span data-l="en">recommended · the requirement is already met</span><span data-l="zh">推荐 · 要求已经满足</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">already at the measured result</span><span data-l="zh">已经处在测得的结果上</span></td><td><span data-l="en">none; none new</span><span data-l="zh">无；无新增</span></td><td><span data-l="en">in effect today</span><span data-l="zh">今天就已生效</span></td><td><span data-l="en">native · nothing to roll back</span><span data-l="zh">原生 · 没有要回滚的东西</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Profile and optimize in Go</span><span data-l="zh">在 Go 里剖析并优化</span></span><span class="source"><span data-l="en">retain · the funded first move if a target ever appears</span><span data-l="zh">保留 · 一旦出现指标，这是有预算的第一步</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">whatever a profile finds; unbounded upward</span><span data-l="zh">剖析找到多少算多少；上限不封顶</span></td><td><span data-l="en">days per finding; none recurring</span><span data-l="zh">每个发现数天；无经常性成本</span></td><td><span data-l="en">days</span><span data-l="zh">数天</span></td><td><span data-l="en">native · git revert</span><span data-l="zh">原生 · git revert</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust kernel behind a Go boundary</span><span data-l="zh">Go 边界后面放一个 Rust 内核</span></span><span class="source"><span data-l="en">retain · recorded to be complete, not because it is promising</span><span data-l="zh">保留 · 记录在案是为了完整，不是因为它有希望</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">undefined — no hot kernel is identified</span><span data-l="zh">无从定义——没有识别出热点内核</span></td><td><span data-l="en">boundary + parity; second toolchain</span><span data-l="zh">边界 + 行为对齐；第二套工具链</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">AST across a boundary · flag rollback</span><span data-l="zh">AST 要跨边界 · 用编译开关回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rewrite esbuild in Rust</span><span data-l="zh">用 Rust 重写 esbuild</span></span><span class="source"><span data-l="en">exclude · fails G1 and G2</span><span data-l="zh">排除 · G1、G2 都不过</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">no evidence of any end-to-end gain</span><span data-l="zh">没有任何端到端收益的证据</span></td><td><span data-l="en">149,016 lines; new maintainers</span><span data-l="zh">149,016 行；一套新的维护者</span></td><td><span data-l="en">years</span><span data-l="zh">数年</span></td><td><span data-l="en">whole surface · no rollback</span><span data-l="zh">整个接口面 · 无法回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Adopt a Rust bundler instead</span><span data-l="zh">改用一个 Rust 打包器</span></span><span class="source"><span data-l="en">retain · a user&#x27;s choice, and it is not a rewrite of esbuild</span><span data-l="zh">保留 · 这是使用方的选择，不是重写 esbuild</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">depends on the project&#x27;s own measurement</span><span data-l="zh">取决于各项目自己的测量</span></td><td><span data-l="en">per project; new plugin ecosystem</span><span data-l="zh">按项目计；换一套插件生态</span></td><td><span data-l="en">days per project</span><span data-l="zh">每个项目数天</span></td><td><span data-l="en">different config · switch back</span><span data-l="zh">配置不同 · 可以换回来</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is evidence scoped to a named option, not a point to be summed. Several lenses come out NEUTRAL for one reason: the Go implementation already holds the property the Rust option would be adopted to obtain.</span><span data-l="zh">每个状态都是绑定到具体方案的证据，不是可以相加的分数。有几个维度判为 NEUTRAL，原因相同：Go 实现已经具备了那个「换 Rust 才能拿到」的性质。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">要求与归属</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">No unmet performance requirement is stated anywhere in the repository or its documentation. The repository also ships a reproducible benchmark. It puts the tool about two orders of magnitude ahead of the bundler it replaced.</span><span data-l="zh">仓库和文档里都没有写下任何未满足的性能要求。仓库还自带一套可复现基准，显示这个工具比被它取代的打包器快出大约两个数量级。</span></div><div class="source mono">Makefile bench-three targets · https://esbuild.github.io/faq/</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端可达</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust options</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">No kernel share can be computed: no target is identified and no hot kernel is identified. With no f and no target, the Amdahl formula has no defensible inputs.</span><span data-l="zh">算不出内核占比：目标没有，热点内核也没有识别出来。没有 f 也没有目标，Amdahl 公式就没有站得住的输入。</span></div><div class="source mono">no stated target; no identified hot kernel</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">A batch bundler has no tail-latency SLO. Nobody has filed Go&#x27;s collector pauses as a problem for a process that runs once and exits.</span><span data-l="zh">批处理打包器没有尾延迟 SLO。对一个跑一次就退出的进程，没有人把 Go 的 GC 停顿列为问题。</span></div><div class="source mono">batch CLI invocation model</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机群占用</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">esbuild runs on developer machines and CI runners. No fleet-density objective or break-even is stated.</span><span data-l="zh">esbuild 跑在开发者机器和 CI runner 上。没有写明任何机群密度目标或盈亏平衡点。</span></div><div class="source mono">developer and CI invocation</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-go</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">For a CLI the property that matters is native ahead-of-time compilation with no interpreter and no JIT warmup. The Go implementation already holds it.</span><span data-l="zh">对 CLI 来说，起作用的性质是原生 AOT 编译，没有解释器，也没有 JIT 预热。Go 实现已经具备。</span></div><div class="source mono">https://esbuild.github.io/faq/ — factor 1 of 4</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Go is memory-safe at application scope, and the codebase declares no native or FFI surface. No memory-safety delta is left to claim.</span><span data-l="zh">Go 在应用层是内存安全的，代码库也没有声明任何原生或 FFI 接口面。这里没有可以主张的内存安全增量。</span></div><div class="source mono">pure-Go module, no cgo in the build</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-go</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Shared-memory parallelism is the factor JavaScript workers cannot supply, because they must serialize. In Go it is already present and load-bearing: 45 goroutine launch sites across 149,016 lines, including the per-file parse fan-out, plus 27 in-code sync.WaitGroup references.</span><span data-l="zh">共享内存并行是 JavaScript worker 给不了的那一条，它们之间必须序列化。在 Go 这边它已经存在，而且承重：149,016 行里有 45 处 goroutine 启动点，含按文件的解析扇出，另有 27 处代码内的 sync.WaitGroup 引用。</span></div><div class="source mono">internal/bundler/bundler.go:1633 `go parseFile(` · 23 anonymous `go func(` + 22 named launches · 29 sync.WaitGroup lines, 27 outside comments</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · stay-go, rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Go already produces one statically linked, cross-compiled binary with no runtime dependency. That is the distribution property a Rust rewrite would be adopted to obtain.</span><span data-l="zh">Go 已经产出单个静态链接、可交叉编译、无运行时依赖的二进制。这正是「为分发而换 Rust」想要拿到的性质。</span></div><div class="source mono">go.mod single-module build · released platform binaries</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Native bundlers exist in both Go and Rust, so ecosystem availability favours neither for this objective. A consumer with a measured need can adopt an alternative without esbuild changing anything.</span><span data-l="zh">Go 和 Rust 都有原生打包器，就这个目标而言，生态供给不偏向任何一边。使用方如果有测量过的需求，可以直接换一个，esbuild 什么都不用动。</span></div><div class="source mono">external bundler landscape</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The selected option introduces no boundary. The extraction option would have to move a shared AST across one, which is the cost this architecture exists to avoid.</span><span data-l="zh">选中的方案不引入边界。抽取方案则必须把一份共享 AST 搬过边界，而这套架构存在的目的就是避开这笔成本。</span></div><div class="source mono">single-address-space AST design</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">This is a 149,016-line codebase whose architecture is documented as deliberately from-scratch and internally consistent. A reimplementation has to reproduce that coherence, plus the CLI, the JS API and plugin behaviour. Nothing funds it.</span><span data-l="zh">这是一个 149,016 行的代码库，作者写明其架构是刻意从零自建、内部一致的。重新实现必须把这份一致性重做一遍，还要加上 CLI、JS API 和插件行为。没有任何收益为它买单。</span></div><div class="source mono">internal/ 140,018 lines across 133 files · pkg/ 6,884 lines</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实对照</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-go, go-profile</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The strongest non-Rust native alternative is not hypothetical here; it is the shipping implementation. Microsoft reached the same conclusion independently on a comparable workload, porting the TypeScript compiler to Go for a measured 77.8 s → 7.5 s and choosing it over Rust.</span><span data-l="zh">这里最强的非 Rust 原生方案不是假设，它就是正在发货的那套实现。Microsoft 在一个可比的工作负载上独立得出了同样结论：把 TypeScript 编译器移植到 Go，实测 77.8 s → 7.5 s，并且是在与 Rust 对比后选的 Go。</span></div><div class="source mono">https://devblogs.microsoft.com/typescript/typescript-native-port/</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">N/A lenses: D6 safety and D10 boundary carry no part of this objective. Go is memory-safe at application scope, the codebase declares no FFI surface, and the selected option introduces no new boundary.</span><span data-l="zh">判为 N/A 的维度：D6 安全与 D10 边界在这个目标里不承担任何份额。Go 在应用层是内存安全的，代码库没有声明 FFI 面，选中的方案也不引入新边界。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">The benchmark ships in the repository, and anyone can run it</span><span data-l="zh">基准就在仓库里，谁都能跑</span></h3><p><span data-l="en">The Makefile ships bench-three targets that build the same input with esbuild, rollup, webpack 5 and parcel 2. The published result is 0.39 s against webpack 5&#x27;s 41.21 s. Nobody has to take that on trust. G1 fails cleanly.</span><span data-l="zh">Makefile 里有 bench-three 目标，用 esbuild、rollup、webpack 5 和 parcel 2 构建同一份输入。公布的结果是 0.39 s，webpack 5 是 41.21 s。这一条不需要谁去相信。G1 干净利落地失败。</span></p><span class="ref mono">Makefile · bench-three targets</span></div>
+<div class="card current"><h3><span data-l="en">The author already published the attribution</span><span data-l="zh">归因是作者自己公布的</span></h3><p><span data-l="en">The author lists four factors, each described as only somewhat significant on its own: native ahead-of-time compilation, shared-memory parallelism, everything written from scratch with consistent data structures, and exactly three AST passes. Count the Rust properties. There are none.</span><span data-l="zh">作者列了四条，每一条单独看都只是「有点用」：原生 AOT 编译、共享内存并行、所有数据结构从零自建并保持一致、AST 恰好三遍。数一下里面有几条是 Rust 专属。一条都没有。</span></p><span class="ref mono">esbuild.github.io/faq/</span></div>
+<div class="card current"><h3><span data-l="en">The parallelism is in the parse fan-out</span><span data-l="zh">并行发生在解析扇出上</span></h3><p><span data-l="en">A JavaScript bundler structurally cannot have shared-memory parallelism. Its workers must serialize. esbuild gets it in Go across 45 goroutine launch sites, and the load-bearing one is the per-file parse fan-out — every source file goes to its own goroutine over shared memory.</span><span data-l="zh">JavaScript 打包器在结构上拿不到共享内存并行，它的 worker 之间必须序列化。esbuild 在 Go 里用 45 处 goroutine 启动点拿到了它，承重的那一处是按文件的解析扇出：每个源文件交给自己的 goroutine，走共享内存。</span></p><span class="ref mono">internal/bundler/bundler.go:1633 · 23 anonymous + 22 named launches</span></div>
+<div class="card current"><h3><span data-l="en">Microsoft ran the same comparison and also chose Go</span><span data-l="zh">Microsoft 做过同样的对比，选的也是 Go</span></h3><p><span data-l="en">The TypeScript compiler&#x27;s native port went from 77.8 s to 7.5 s on the VS Code repository. The language was Go. It was explicitly picked over Rust for a behaviour-preserving port with cyclic AST semantics. Native execution and shared-memory parallelism are not Rust-exclusive.</span><span data-l="zh">TypeScript 编译器的原生移植在 VS Code 仓库上从 77.8 s 降到 7.5 s。用的语言是 Go。这是明确对比 Rust 之后的选择，理由是移植要保行为、AST 又是有环的。原生执行和共享内存并行不是 Rust 独有的。</span></p><span class="ref mono">devblogs.microsoft.com/typescript/typescript-native-port/</span></div>
+<div class="card rust"><h3><span data-l="en">What would change this answer</span><span data-l="zh">什么会改变这个答案</span></h3><p><span data-l="en">A stated requirement Go cannot meet. A hard sub-10 ms invocation budget, a wasm-only host where the Go runtime is disqualifying, or a memory ceiling with a published break-even. They are named here so the verdict can be falsified.</span><span data-l="zh">一条写明了的、Go 达不到的要求。硬性的 sub-10 ms 调用预算，只能跑 wasm、Go 运行时直接出局的宿主，或者带公开盈亏平衡点的内存上限。把它们列出来，是为了让这个判定可以被证伪。</span></p><span class="ref mono">change trigger · no such requirement asserted today</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Nothing this objective needs</span><span data-l="zh">这个目标需要的东西，一样也没有</span></b> — <span data-l="en">the four documented sources of esbuild&#x27;s speed are already banked in Go. Rust would re-obtain them, not add to them.</span><span data-l="zh">esbuild 提速的四个已公布来源，在 Go 里都已经到账。Rust 只是把它们再拿一遍，不会往上加。</span></li><li><b><span data-l="en">A smaller binary and no collector</span><span data-l="zh">更小的二进制，没有 GC</span></b> — <span data-l="en">both are Rust properties. No stated requirement in this project is satisfied by either one.</span><span data-l="zh">这两条确实是 Rust 的性质。但这个项目里没有任何写明的要求靠它们来满足。</span></li><li><b><span data-l="en">A different plugin ecosystem for consumers</span><span data-l="zh">给使用方的另一套插件生态</span></b> — <span data-l="en">projects with a measured need esbuild misses can adopt a Rust bundler today, without esbuild rewriting anything.</span><span data-l="zh">如果某个项目有 esbuild 满足不了的、测量过的需求，今天就可以换一个 Rust 打包器，esbuild 一行都不用重写。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Speed, on this evidence</span><span data-l="zh">提速，就现有证据而言</span></b> — <span data-l="en">no unmet target exists and no hot kernel is identified. No end-to-end gain can be predicted at all.</span><span data-l="zh">没有未达成的目标，也没有识别出热点内核。端到端收益完全无法预测。</span></li><li><b><span data-l="en">Memory safety</span><span data-l="zh">内存安全</span></b> — <span data-l="en">Go is memory-safe at application scope and the build declares no FFI surface. There is no class of bug left to eliminate.</span><span data-l="zh">Go 在应用层是内存安全的，构建也没有声明 FFI 面。没有哪一类缺陷可以被消掉。</span></li><li><b><span data-l="en">Better distribution</span><span data-l="zh">更好的分发</span></b> — <span data-l="en">Go already ships one statically linked cross-compiled binary with no runtime dependency.</span><span data-l="zh">Go 已经在发一个静态链接、交叉编译、无运行时依赖的二进制。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Microsoft · TypeScript native port</h3><span class="outcome">NON-RUST</span></div><p><span data-l="en">A behaviour-preserving native port of tsc reached 77.8 s → 7.5 s on the VS Code repository, at about half the memory. Go won the language call against Rust. Cyclic AST graphs and 1:1 compatibility mattered more there than the absence of a collector.</span><span data-l="zh">tsc 的一次保行为原生移植，在 VS Code 仓库上做到 77.8 s → 7.5 s，内存约为原来的一半。语言这一关，Go 赢了 Rust。有环的 AST 图和 1:1 兼容，在那边比「没有 GC」更重要。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same workload class, same &#x27;native beats JS&#x27; finding, explicit Rust-versus-Go comparison</span><span data-l="zh">同一类工作负载，同样得出「原生胜过 JS」，而且是明确的 Rust 对 Go 比较</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a compiler port rather than a bundler, and a redesign was explicitly forbidden there</span><span data-l="zh">那是编译器移植不是打包器，而且那边明确禁止重新设计</span></div><a class="ref mono" href="https://devblogs.microsoft.com/typescript/typescript-native-port/">first-party · vendor blog</a></article>
+<article class="precedent"><div class="top"><h3>Prettier · pure-JavaScript CLI rework</h3><span class="outcome">STAYED</span></div><p><span data-l="en">Roughly 3× came from profiling, caching and IPC fixes, with no language change. It landed days after a Rust competitor claimed the speed bounty. The baseline was unoptimized JavaScript, not JavaScript.</span><span data-l="zh">大约 3× 来自剖析、缓存和 IPC 修复，语言没有换。落地时间是在一个 Rust 竞品拿走提速悬赏之后几天。基线是未经优化的 JavaScript，不是 JavaScript 本身。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">in-stack optimization as the option that must be priced before a rewrite</span><span data-l="zh">在原栈内优化，是重写之前必须先定价的那个方案</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Prettier had an unmet gap; esbuild has none stated</span><span data-l="zh">Prettier 当时确有一个未满足的差距；esbuild 没有任何写明的差距</span></div><a class="ref mono" href="https://prettier.io/blog/2023/11/30/cli-deep-dive">first-party · project blog</a></article>
+<article class="precedent"><div class="top"><h3>Vercel · Turbopack launch benchmark</h3><span class="outcome">RETRACTED</span></div><p><span data-l="en">A launch claim of 700× against webpack turned out to compare Turbopack plus SWC against Vite plus Babel. Match the configurations and the gap mostly closed. The shipped product still landed at a first-party 2–5×.</span><span data-l="zh">发布时宣称对 webpack 有 700×，后来查明比的是 Turbopack 加 SWC 对 Vite 加 Babel。把配置对齐之后，差距基本消失。产品本身最终落在第一方口径的 2–5×。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the benchmark-method risk that any Rust-versus-Go bundler comparison invites</span><span data-l="zh">任何 Rust 对 Go 的打包器比较都会招来的基准方法风险</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">concerns marketing methodology rather than esbuild&#x27;s own reproducible harness</span><span data-l="zh">问题出在营销口径，而不是 esbuild 自带的可复现测试台</span></div><a class="ref mono" href="https://github.com/yyx990803/vite-vs-next-turbo-hmr/discussions/8">third-party · maintainer analysis</a></article>
+<article class="precedent"><div class="top"><h3>Astral · ruff</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">The counterexample. A Rust tool did displace a federation of Python linters, and adopter-reported gains ran far above the vendor&#x27;s claims. The attribution was parse-once architecture plus native execution plus GIL-free parallelism.</span><span data-l="zh">反例在这里。一个 Rust 工具确实把一堆 Python linter 挤了出去，采用方自己报的收益远高于厂商口径。归因是「只解析一次」的架构，加上原生执行，加上没有 GIL 的并行。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same tool category, and it shows a native rewrite can win outright</span><span data-l="zh">同一类工具，而且它证明原生重写可以赢得彻底</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">the baseline was an interpreted federation re-parsing files; esbuild is already a single native tool</span><span data-l="zh">那边的基线是一堆解释型工具反复重解析文件；esbuild 本身已经是单个原生工具</span></div><a class="ref mono" href="https://github.com/astral-sh/ruff">third-party · adopter reports</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">State a requirement or close the question</span><span data-l="zh">要么写下一条要求，要么把问题关掉</span></h3><p><span data-l="en">Whoever wants the rewrite writes the target down: a performance, memory or distribution number the current build measurably misses. It has to be a number with a workload attached, measured on the repository&#x27;s own benchmark harness. If no such target exists, close the question here. That is today&#x27;s state, and no code moves.</span><span data-l="zh">想要重写的人先把指标写下来：一个当前构建确实达不到的性能、内存或分发数字。它必须是带工作负载的数字，并且在仓库自带的基准台上测出来。如果根本没有这样的指标，问题就到此为止。今天就是这个状态，代码一行不动。</span></p></div><span class="cost"><span data-l="en">1 day</span><span data-l="zh">1 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Profile in Go first</span><span data-l="zh">先在 Go 里做剖析</span></h3><p><span data-l="en">A contributor profiles the failing workload for CPU and allocations, and names the top contributors. It passes when the profile reproducibly identifies a component holding a material share of wall-clock. If the time is spread thin with no dominant component, stop. A rewrite would not reach it either.</span><span data-l="zh">由一位贡献者对这个不达标的负载做 CPU 和分配剖析，点名排在前面的贡献者。通过标准是：剖析能可复现地指出某个组件占了墙钟时间里可观的一块。如果时间摊得很平、没有主导组件，就停。重写同样够不到它。</span></p></div><span class="cost"><span data-l="en">3–5 days</span><span data-l="zh">3–5 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Fund the in-Go fix before considering a boundary</span><span data-l="zh">先给 Go 内的修复出钱，再谈边界</span></h3><p><span data-l="en">The same contributor lands the optimization the profile points at and measures it on the same harness. It passes when the stated target is met, or when the leftover gap is quantified. Escalate past Go only if that gap survives and is attributable to a language-class property Go lacks. Rollback is a git revert; the released binary never sees it.</span><span data-l="zh">同一位贡献者把剖析指向的优化落地，并在同一套测试台上测量。通过标准是：写明的指标达成，或者剩余差距被量化出来。只有当这个差距仍然存在、并且能归因到 Go 缺失的某项语言级性质时，才升级到 Go 之外。回滚就是一条 git revert，已发布的二进制不受影响。</span></p></div><span class="cost"><span data-l="en">days per finding</span><span data-l="zh">每个发现数天</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端可达</span></b> — <span data-l="en">No kernel and no target are identified, so no end-to-end reach can be argued for any Rust option. D2 is UNKNOWN.</span><span data-l="zh">既没有内核也没有目标，任何 Rust 方案都谈不上端到端可达。D2 记为 UNKNOWN。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The four documented factors behind esbuild&#x27;s speed are language-class and architectural. None of them is credited to Rust here.</span><span data-l="zh">esbuild 提速的四个已公布因素属于语言级和架构级。这里没有把其中任何一条记在 Rust 头上。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与口径</span></b> — <span data-l="en">The 106× figure is disclosed as a comparison against a JavaScript bundler, not against another native tool. It is used only to show that no gap is unmet.</span><span data-l="zh">106× 这个数字已声明是对 JavaScript 打包器的比较，不是对另一个原生工具。它只用来说明没有未满足的差距。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">The extraction option is priced with the cost of moving a shared AST across a boundary, which is what this architecture exists to avoid.</span><span data-l="zh">抽取方案在定价时算进了「共享 AST 跨边界」的成本，而这套架构存在的目的就是避开它。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The full-rewrite option is priced with the maintainer question, for a codebase whose coherence is one of its documented advantages.</span><span data-l="zh">全量重写方案在定价时算进了维护者问题——这个代码库的内部一致性本身就是它写明的优势之一。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">反事实方案是否有预算</span></b> — <span data-l="en">The staying option is not hypothetical: the reproducible benchmark is in the repository and the profile-first path is specified.</span><span data-l="zh">不动这个方案不是空谈：可复现基准就在仓库里，先剖析的路径也已经写明。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不作为的代价</span></b> — <span data-l="en">No missed SLO, cost overrun or security exposure is on record, so there is no cost of inaction to omit.</span><span data-l="zh">在案记录里没有 SLO 未达、成本超支或安全暴露，所以不存在被漏掉的「不作为代价」。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">是否漏掉不安全面</span></b> — <span data-l="en">The build is pure Go with no declared FFI surface, checked rather than assumed.</span><span data-l="zh">构建是纯 Go，没有声明 FFI 面。这是查过的，不是假设的。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">是否否认原生优势</span></b> — <span data-l="en">Rust&#x27;s advantages are stated plainly: smaller binaries, no collector. The finding is that no requirement here needs them.</span><span data-l="zh">Rust 的优势这里直说了：二进制更小，没有 GC。结论只是这里没有任何要求用得上它们。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Endless optimize-first treadmill</span><span data-l="zh">「先优化」会不会没完没了</span></b> — <span data-l="en">The path carries an explicit escalation rule: if a quantified gap survives in-Go optimization and is attributable to a property Go lacks, the decision reopens.</span><span data-l="zh">路径里写了明确的升级规则：如果一个量化过的差距在 Go 内优化之后仍然存在，并且能归因到 Go 缺失的性质，这个决定就重开。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">evanw/esbuild at 6ff1d8b · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">evanw/esbuild @ 6ff1d8b · 只读静态分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/evanw/esbuild at commit 6ff1d8b, shallow clone, 349 tracked files. Scope: the whole repository. Sampling: 149,016 lines of Go across 152 files, of which internal/ holds 140,018 across 133 files and pkg/ holds 6,884; 45 goroutine launch sites (23 anonymous `go func(` plus 22 named, among them the per-file parse fan-out at internal/bundler/bundler.go:1633) and 29 sync.WaitGroup lines, 27 of them outside comments; bench targets read from the Makefile. Nothing was built, tested, benchmarked or fetched. The 0.39 s versus 41.21 s figures are the author&#x27;s published results for the harness that ships in this repository, not measurements taken here. Objective: reduce bundler wall-clock time against a stated target. User-supplied facts: none. There is no Amdahl calculation, because there is no target and no identified hot kernel, so the formula has no defensible inputs; D2 is recorded UNKNOWN. G1 fails. Under this method&#x27;s non-compensatory gates that ends the assessment, however good the delivery story for a rewrite might be. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/evanw/esbuild，commit 6ff1d8b，浅克隆，349 个受版本控制的文件。范围：整个仓库。采样：149,016 行 Go，分布在 152 个文件，其中 internal/ 占 140,018 行、133 个文件，pkg/ 占 6,884 行；45 处 goroutine 启动点（23 处匿名 `go func(` 加 22 处具名，其中包括 internal/bundler/bundler.go:1633 的按文件解析扇出）；29 行 sync.WaitGroup，其中 27 行不在注释里；bench 目标从 Makefile 读取。没有做任何构建、测试、基准或网络请求。0.39 s 对 41.21 s 这组数字是作者公布的、针对本仓库自带测试台的结果，不是这里测出来的。目标：把打包墙钟时间压到某个写明的指标之下。用户提供的事实：无。这里没有 Amdahl 计算，因为既没有目标，也没有识别出热点内核，公式没有站得住的输入；D2 记为 UNKNOWN。G1 FAIL。在这套方法的非补偿式门槛下，评估到此为止，无论重写的交付故事讲得多好。这是一套结构化决策协议，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A stated, measured requirement the current build misses</span><span data-l="zh">一条写明并测量过、当前构建确实达不到的要求</span></td><td><span data-l="en">Decisive. Without one, G1 fails and no Rust option can be assessed on benefit at all — this is the gap, not an oversight.</span><span data-l="zh">决定性。没有它，G1 就是 FAIL，任何 Rust 方案的收益都无从评估——这个缺口本身就是结论，不是疏漏。</span></td></tr><tr><td><span data-l="en">A CPU and allocation profile of a failing workload</span><span data-l="zh">一份不达标负载的 CPU 与分配剖析</span></td><td><span data-l="en">Would identify whether any component holds a material share, and therefore whether a boundary or a rewrite could reach it.</span><span data-l="zh">它能判断有没有哪个组件占了可观的一块，进而判断边界或重写有没有可能够得着。</span></td></tr><tr><td><span data-l="en">Independent benchmarks against other native bundlers</span><span data-l="zh">对其他原生打包器的独立基准</span></td><td><span data-l="en">The repository&#x27;s harness compares against JavaScript tooling. A native-versus-native comparison would sharpen D12 in either direction.</span><span data-l="zh">仓库自带的测试台比的是 JavaScript 工具链。原生对原生的比较会让 D12 更锐利，往哪边都算。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 6ff1d8b · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在 commit 6ff1d8b 上的静态分析 · 没有构建、基准或网络请求</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/evanw/esbuild",
+    "commit": "6ff1d8b0d8c134e867a397eef39702a223ebef9e",
+    "scope": "whole repository",
+    "sampling": "shallow clone; 349 tracked files enumerated; internal/, pkg/, Makefile and CHANGELOG measured; no benchmark was executed"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A stated, measured requirement the current build misses",
+      "A CPU and allocation profile of a failing workload",
+      "Independent benchmarks against other native bundlers"
+    ]
+  },
+  "objective": {
+    "driver": "performance",
+    "requirement": "reduce bundler wall-clock time against a stated target",
+    "baseline": "0.39 s on the repository's own three.js benchmark, against 41.21 s for webpack 5",
+    "target": "none stated — this is the finding, not a gap in the analysis"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "stay-go",
+    "confidence": "HIGH",
+    "robustness": "STABLE",
+    "because": "Gate 1 fails before gate 2 gets a turn. Nobody has stated a performance requirement that esbuild misses. The repository's own benchmark puts it about two orders of magnitude ahead of the JavaScript bundler it replaced. The author has published the decomposition as well: native ahead-of-time compilation, shared-memory parallelism, from-scratch data structures, exactly three AST passes. Zero of the four are Rust properties. All four were obtained in a garbage-collected language.",
+    "change_trigger": "Stable. One thing reopens it: a measured requirement Go cannot meet — a hard sub-10 ms invocation budget, a wasm-only host where the Go runtime is disqualifying, or a memory ceiling with a published break-even. None is asserted today."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "stay-go",
+      "name": "requirement",
+      "state": "FAIL",
+      "evidence": "The repository ships `make bench-three`, and the published result is 0.39 s for esbuild against 41.21 s for webpack 5 on the same input. No SLO, cost ceiling, or memory budget is stated as unmet."
+    },
+    {
+      "id": "G2",
+      "option_id": "stay-go",
+      "name": "rust-specific causality",
+      "state": "FAIL",
+      "evidence": "The author's own four-factor account — native AOT compilation, shared-memory parallelism, consistent purpose-built data structures, and exactly three AST passes — describes properties of compiled languages and of this architecture, not of Rust. All four were achieved with a GC."
+    },
+    {
+      "id": "G3",
+      "option_id": "stay-go",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "With no target to meet, the benefit interval for any rewrite is undefined, while the cost is a full reimplementation of 140,018 lines of internal packages plus its plugin and API surface."
+    },
+    {
+      "id": "G4",
+      "option_id": "stay-go",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "The selected option is the status quo: single static binary, cross-compiled, already distributed. There is nothing to dual-run and nothing to roll back."
+    }
+  ],
+  "options": [
+    {
+      "id": "stay-go",
+      "name": "Keep Go",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "reduce bundler wall-clock time against a stated target",
+      "benefit_interval": "already at the measured result",
+      "one_time_cost": "none",
+      "recurring_cost": "none new",
+      "time_to_value": "in effect today",
+      "compatibility": "native",
+      "reversibility": "n/a",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "No stated requirement is unmet, and the reproducible benchmark is in the repository."
+    },
+    {
+      "id": "go-profile",
+      "name": "Profile and optimize in Go",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "reduce bundler wall-clock time against a stated target",
+      "benefit_interval": "whatever a profile finds; unbounded upward",
+      "one_time_cost": "days per finding",
+      "recurring_cost": "none",
+      "time_to_value": "days",
+      "compatibility": "native",
+      "reversibility": "git revert",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "If a requirement is ever stated, this is the cheapest option and must be tried before any rewrite."
+    },
+    {
+      "id": "rust-hot-extract",
+      "name": "Rust kernel behind a Go boundary",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "reduce bundler wall-clock time against a stated target",
+      "benefit_interval": "undefined — no hot kernel is identified",
+      "one_time_cost": "cgo or IPC boundary plus parity",
+      "recurring_cost": "second toolchain, cgo build complexity",
+      "time_to_value": "months",
+      "compatibility": "shared AST would have to cross",
+      "reversibility": "build flag",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "esbuild's design shares one AST across all passes in one address space; extracting a kernel would have to serialize or duplicate it, which is the cost esbuild's architecture exists to avoid."
+    },
+    {
+      "id": "rust-full",
+      "name": "Rewrite esbuild in Rust",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "reduce bundler wall-clock time against a stated target",
+      "benefit_interval": "no evidence of any end-to-end gain",
+      "one_time_cost": "149,016 lines plus the plugin and JS API surface",
+      "recurring_cost": "new maintainer set for a single-author codebase",
+      "time_to_value": "years",
+      "compatibility": "CLI + JS API + plugin behaviour",
+      "reversibility": "none",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "No requirement is unmet, and the documented sources of esbuild's speed are not Rust-specific."
+    },
+    {
+      "id": "adopt-rust-bundler",
+      "name": "Adopt a Rust bundler instead",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "reduce bundler wall-clock time against a stated target",
+      "benefit_interval": "depends on the project's own measurement",
+      "one_time_cost": "per project migration",
+      "recurring_cost": "different plugin ecosystem",
+      "time_to_value": "days per project",
+      "compatibility": "different config and plugins",
+      "reversibility": "switch back",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "A project with a measured need that esbuild misses can adopt another native bundler today; that is a consumer decision, not an argument for rewriting esbuild."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-full",
+        "rust-hot-extract"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "No unmet performance requirement is stated anywhere in the repository or its documentation. The repository also ships a reproducible benchmark. It puts the tool about two orders of magnitude ahead of the bundler it replaced.",
+      "source": "Makefile bench-three targets · https://esbuild.github.io/faq/",
+      "baseline_regime": "repository-reproducible benchmark on a fixed input",
+      "caveat": "The 106× comparison is against a JavaScript bundler, not against another native tool; it establishes that no gap is unmet, not that esbuild is the fastest possible.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-full",
+        "rust-hot-extract"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "No kernel share can be computed: no target is identified and no hot kernel is identified. With no f and no target, the Amdahl formula has no defensible inputs.",
+      "source": "no stated target; no identified hot kernel",
+      "baseline_regime": "n/a",
+      "caveat": "Recorded UNKNOWN rather than assumed zero.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "A batch bundler has no tail-latency SLO. Nobody has filed Go's collector pauses as a problem for a process that runs once and exits.",
+      "source": "batch CLI invocation model",
+      "baseline_regime": "invocation shape",
+      "caveat": "A long-running dev server changes this question, and is not the assessed target.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "esbuild runs on developer machines and CI runners. No fleet-density objective or break-even is stated.",
+      "source": "developer and CI invocation",
+      "baseline_regime": "n/a",
+      "caveat": "Memory efficiency is one of the author's four documented factors, and it was achieved in Go.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [
+        "stay-go"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "For a CLI the property that matters is native ahead-of-time compilation with no interpreter and no JIT warmup. The Go implementation already holds it.",
+      "source": "https://esbuild.github.io/faq/ — factor 1 of 4",
+      "baseline_regime": "author's published decomposition",
+      "caveat": "First-party account; the four factors are described as individually modest and jointly large.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Go is memory-safe at application scope, and the codebase declares no native or FFI surface. No memory-safety delta is left to claim.",
+      "source": "pure-Go module, no cgo in the build",
+      "baseline_regime": "n/a",
+      "caveat": "Race-freedom claims would need their own incident evidence; none is present.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "stay-go"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Shared-memory parallelism is the factor JavaScript workers cannot supply, because they must serialize. In Go it is already present and load-bearing: 45 goroutine launch sites across 149,016 lines, including the per-file parse fan-out, plus 27 in-code sync.WaitGroup references.",
+      "source": "internal/bundler/bundler.go:1633 `go parseFile(` · 23 anonymous `go func(` + 22 named launches · 29 sync.WaitGroup lines, 27 outside comments",
+      "baseline_regime": "static count of parallel constructs in this commit",
+      "caveat": "Counting constructs measures intent, not achieved scaling.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "stay-go",
+        "rust-full"
+      ],
+      "state": "NEUTRAL",
+      "strength": "STRONG",
+      "claim": "Go already produces one statically linked, cross-compiled binary with no runtime dependency. That is the distribution property a Rust rewrite would be adopted to obtain.",
+      "source": "go.mod single-module build · released platform binaries",
+      "baseline_regime": "shipped distribution model",
+      "caveat": "Rust binaries can be smaller; no size requirement is stated.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Native bundlers exist in both Go and Rust, so ecosystem availability favours neither for this objective. A consumer with a measured need can adopt an alternative without esbuild changing anything.",
+      "source": "external bundler landscape",
+      "baseline_regime": "market inventory",
+      "caveat": "Plugin ecosystems differ and are the real switching cost for consumers.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "The selected option introduces no boundary. The extraction option would have to move a shared AST across one, which is the cost this architecture exists to avoid.",
+      "source": "single-address-space AST design",
+      "baseline_regime": "n/a",
+      "caveat": "That cost is priced under the extraction option rather than here.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "This is a 149,016-line codebase whose architecture is documented as deliberately from-scratch and internally consistent. A reimplementation has to reproduce that coherence, plus the CLI, the JS API and plugin behaviour. Nothing funds it.",
+      "source": "internal/ 140,018 lines across 133 files · pkg/ 6,884 lines",
+      "baseline_regime": "static inventory in this commit",
+      "caveat": "Line count is a proxy for effort; the plugin and API compatibility surface may dominate it.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "stay-go",
+        "go-profile"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The strongest non-Rust native alternative is not hypothetical here; it is the shipping implementation. Microsoft reached the same conclusion independently on a comparable workload, porting the TypeScript compiler to Go for a measured 77.8 s → 7.5 s and choosing it over Rust.",
+      "source": "https://devblogs.microsoft.com/typescript/typescript-native-port/",
+      "baseline_regime": "first-party preview benchmark on the VS Code repository",
+      "caveat": "A compiler port, not a bundler; and the choice turned partly on cyclic AST semantics specific to that codebase.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Microsoft · TypeScript native port",
+      "outcome": "NON-RUST",
+      "match": "same workload class, same 'native beats JS' finding, explicit Rust-versus-Go comparison",
+      "mismatch": "a compiler port rather than a bundler, and a redesign was explicitly forbidden there",
+      "workload_regime": "first-party preview benchmark",
+      "source_class": "first-party · vendor blog",
+      "url": "https://devblogs.microsoft.com/typescript/typescript-native-port/"
+    },
+    {
+      "name": "Prettier · pure-JavaScript CLI rework",
+      "outcome": "STAYED",
+      "match": "in-stack optimization as the option that must be priced before a rewrite",
+      "mismatch": "Prettier had an unmet gap; esbuild has none stated",
+      "workload_regime": "reproduced 29 s → 9 s",
+      "source_class": "first-party · project blog",
+      "url": "https://prettier.io/blog/2023/11/30/cli-deep-dive"
+    },
+    {
+      "name": "Vercel · Turbopack launch benchmark",
+      "outcome": "RETRACTED",
+      "match": "the benchmark-method risk that any Rust-versus-Go bundler comparison invites",
+      "mismatch": "concerns marketing methodology rather than esbuild's own reproducible harness",
+      "workload_regime": "warm-incremental HMR on synthetic trees",
+      "source_class": "third-party · maintainer analysis",
+      "url": "https://github.com/yyx990803/vite-vs-next-turbo-hmr/discussions/8"
+    },
+    {
+      "name": "Astral · ruff",
+      "outcome": "MIGRATED",
+      "match": "same tool category, and it shows a native rewrite can win outright",
+      "mismatch": "the baseline was an interpreted federation re-parsing files; esbuild is already a single native tool",
+      "workload_regime": "adopter-reported and vendor figures",
+      "source_class": "third-party · adopter reports",
+      "url": "https://github.com/astral-sh/ruff"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "State a requirement or close the question",
+      "owner": "the proposer",
+      "cost_range": "1 day",
+      "artifact": "a written performance, memory or distribution target that the current build measurably misses",
+      "acceptance": "the target is a number with a workload, measured on the repository's own benchmark harness",
+      "deadline_or_stop": "close the question if no such target exists — that is the current state",
+      "rollback": "no code changes"
+    },
+    {
+      "step": 2,
+      "title": "Profile in Go first",
+      "owner": "a contributor",
+      "cost_range": "3–5 days",
+      "artifact": "a CPU and allocation profile of the failing workload with the top contributors named",
+      "acceptance": "the profile identifies a component holding a material share of wall-clock, reproducibly",
+      "deadline_or_stop": "stop if time is distributed with no dominant component; a rewrite would not help either",
+      "rollback": "measurement only"
+    },
+    {
+      "step": 3,
+      "title": "Fund the in-Go fix before considering a boundary",
+      "owner": "a contributor",
+      "cost_range": "days per finding",
+      "artifact": "the optimization the profile implies, measured on the same harness",
+      "acceptance": "the stated target is met, or the remaining gap is quantified",
+      "deadline_or_stop": "escalate only if the gap survives and is attributable to a language-class property Go lacks",
+      "rollback": "git revert; the released binary is unaffected"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at the named commit represents the shipped tree; goroutine and WaitGroup counts are static occurrences, not measured parallelism.",
+    "The published bench-three figures are the author's own and were not re-run here, since running benchmarks requires the deep mode this analysis did not use.",
+    "No requirement beyond bundler wall-clock time is asserted; a wasm-host or binary-size constraint would need its own assessment."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "No kernel and no target are identified, so no end-to-end reach can be argued for any Rust option. D2 is UNKNOWN.",
+        "evidence": "D2 record"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "The four documented factors behind esbuild's speed are language-class and architectural. None of them is credited to Rust here.",
+        "evidence": "esbuild.github.io/faq/ · G2 FAIL"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "PASS",
+        "claim": "The 106× figure is disclosed as a comparison against a JavaScript bundler, not against another native tool. It is used only to show that no gap is unmet.",
+        "evidence": "D1 caveat"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "The extraction option is priced with the cost of moving a shared AST across a boundary, which is what this architecture exists to avoid.",
+        "evidence": "D10 · rust-hot-extract reason"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The full-rewrite option is priced with the maintainer question, for a codebase whose coherence is one of its documented advantages.",
+        "evidence": "D11 record"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "The staying option is not hypothetical: the reproducible benchmark is in the repository and the profile-first path is specified.",
+        "evidence": "Makefile bench-three · reversible path step 2"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "PASS",
+        "claim": "No missed SLO, cost overrun or security exposure is on record, so there is no cost of inaction to omit.",
+        "evidence": "D1 · no stated unmet requirement"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The build is pure Go with no declared FFI surface, checked rather than assumed.",
+        "evidence": "D6 · no cgo in the build"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "Rust's advantages are stated plainly: smaller binaries, no collector. The finding is that no requirement here needs them.",
+        "evidence": "buys/doesn't-buy columns"
+      },
+      {
+        "id": "S5",
+        "name": "Endless optimize-first treadmill",
+        "state": "PASS",
+        "claim": "The path carries an explicit escalation rule: if a quantified gap survives in-Go optimization and is attributable to a property Go lacks, the decision reopens.",
+        "evidence": "reversible path step 3"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

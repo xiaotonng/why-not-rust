@@ -44,12 +44,14 @@ class PackageLayoutTests(unittest.TestCase):
 
 
 class DocumentationIntegrityTests(unittest.TestCase):
-    def test_case_library_contains_52_cases(self) -> None:
+    def test_case_library_contains_60_cases(self) -> None:
         library = (SKILL_ROOT / "references" / "case-library.md").read_text(encoding="utf-8")
         headings = re.findall(r"^### (?!Challenge )", library, flags=re.MULTILINE)
-        self.assertEqual(len(headings), 52)
+        self.assertEqual(len(headings), 60)
         sections = re.split(r"^## [1-5] · .*?$", library, flags=re.MULTILINE)[1:5]
-        self.assertEqual([len(re.findall(r"^### ", section, flags=re.MULTILINE)) for section in sections], [24, 7, 12, 9])
+        self.assertEqual([len(re.findall(r"^### ", section, flags=re.MULTILINE)) for section in sections], [24, 7, 16, 13])
+        # The stated total in the header must track the real one.
+        self.assertIn("contains **60**", library)
 
     def test_readme_relative_links_and_images_exist(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

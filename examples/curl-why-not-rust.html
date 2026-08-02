@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · curl/curl</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-extract a-approve">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">curl/curl</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">C · network client library + CLI · 258,953 lines of C across 757 files</span><span data-l="zh">C · 网络客户端库 + 命令行工具 · 757 个文件、258,953 行 C</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">EXTRACT</div>
+      <div class="scope-sub"><span data-l="en">keep Rust at the backend seam curl already ships</span><span data-l="zh">把 Rust 留在 curl 已经发布的那道后端接缝上</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · APPROVE</div>
+      <p class="why"><span data-l="en">curl parses attacker-controlled bytes in C at a network trust boundary. It has already found the seam where Rust pays: lib/vtls/rustls.c, 1,468 lines behind an abstraction that already hosts six backends. Pushing Rust deeper cost four ISRG-funded years — the hyper HTTP backend reached near test-suite parity and was still removed in 8.12.0, for lack of contributors and users. G4 authorizes the seam and stops there.</span><span data-l="zh">curl 在网络信任边界上用 C 解析攻击者可控的字节。它已经找到了 Rust 能兑现价值的那道接缝：lib/vtls/rustls.c，1,468 行，挂在一个已经托管六个后端的抽象后面。往更深处推的代价是 ISRG 资助的四年——hyper HTTP 后端做到了接近测试套件对等，仍然在 8.12.0 被移除，原因是缺贡献者、缺用户。G4 只授权这道接缝，到此为止。</span></p>
+      <p class="trigger"><span data-l="en">Stable. Two things reopen it. The rustls or quiche backend loses its maintainer. Or a funded team with dual C/Rust expertise commits to the deeper HTTP layer with a named on-call owner — the exact resource whose absence killed hyper.</span><span data-l="zh">STABLE。两件事会重开它。rustls 或 quiche 后端失去维护者。或者一支有 C/Rust 双栈能力的资助团队接手更深的 HTTP 层，并指定 on-call 负责人——正是这项资源的缺席终结了 hyper。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">one pluggable backend behind the existing vtls API</span><span data-l="zh">既有 vtls 接口后面的一个可插拔后端</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">security-parser · library with a stable ABI</span><span data-l="zh">安全解析器 · 带稳定 ABI 的库</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">C parsing attacker-controlled bytes across TLS, HTTP and QUIC.</span><span data-l="zh">TLS、HTTP、QUIC 三层的攻击者可控字节，都由 C 解析。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果归属</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Memory-safe TLS state machine is a Rust-class change, not a redesign.</span><span data-l="zh">内存安全的 TLS 状态机靠换语言就能拿到，不需要重新设计。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">1,468-line backend vs the deleted whole-HTTP-layer attempt.</span><span data-l="zh">1,468 行的后端，对上那个已被删除的整层 HTTP 尝试。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Six selectable backends share one interface; 2,056 cases gate parity.</span><span data-l="zh">六个可选后端共用一个接口；2,056 个用例把住对等性。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Rust already in tree</span><span data-l="zh">树里已有的 Rust</span></div><div class="value mono">1,468<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">lib/vtls/rustls.c · shipped TLS backend</span><span data-l="zh">lib/vtls/rustls.c · 已发布的 TLS 后端</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust removed from tree</span><span data-l="zh">从树里删掉的 Rust</span></div><div class="value mono">8.12.0<span class="unit"><span data-l="en">release</span><span data-l="zh">版本</span></span></div><div class="note"><span data-l="en">docs/DEPRECATE.md:62 — hyper HTTP backend</span><span data-l="zh">docs/DEPRECATE.md:62 — hyper HTTP 后端</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Backend seam width</span><span data-l="zh">后端接缝的宽度</span></div><div class="value mono">5.8<span class="unit"><span data-l="en">%</span><span data-l="zh">%</span></span></div><div class="note"><span data-l="en">rustls.c share of the 25,481-line vtls layer</span><span data-l="zh">rustls.c 在 25,481 行 vtls 层里的占比</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">C the seam does not touch</span><span data-l="zh">接缝够不到的 C</span></div><div class="value mono">176,402<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">lib/ .c and .h — protocol, transfer, ABI</span><span data-l="zh">lib/ 的 .c 和 .h — 协议、传输、ABI</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Parity harness</span><span data-l="zh">对等性测试台</span></div><div class="value mono">2,056<span class="unit"><span data-l="en">cases</span><span data-l="zh">用例</span></span></div><div class="note"><span data-l="en">tests/data · inside a 232,601-line tests/ tree</span><span data-l="zh">tests/data · 位于 232,601 行的 tests/ 树内</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Public API surface</span><span data-l="zh">公开 API 面</span></div><div class="value mono">526<span class="unit"><span data-l="en">pages</span><span data-l="zh">页</span></span></div><div class="note"><span data-l="en">docs/libcurl/**/*.md — the compatibility contract</span><span data-l="zh">docs/libcurl/**/*.md — 兼容性契约</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Same objective for every option: remove the memory-unsafety class from curl&#x27;s handling of attacker-controlled bytes without breaking the libcurl ABI.</span><span data-l="zh">每个方案的目标相同：在不破坏 libcurl ABI 的前提下，从 curl 处理攻击者可控字节的路径上，消除内存不安全这一整类问题。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class=""><td><span class="option-name"><span data-l="en">Harden C in place</span><span data-l="zh">就地加固 C</span></span><span class="source"><span data-l="en">retain · necessary, not sufficient</span><span data-l="zh">保留 · 必要，但不充分</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">reduces, does not eliminate</span><span data-l="zh">降低，不消除</span></td><td><span data-l="en">continuous; fuzz + review</span><span data-l="zh">持续投入；fuzz + 评审</span></td><td><span data-l="en">already running</span><span data-l="zh">已经在跑</span></td><td><span data-l="en">native · no risk</span><span data-l="zh">原生 · 无风险</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="selected"><td><span class="option-name"><span data-l="en">Rust backends at vtls/vquic</span><span data-l="zh">在 vtls/vquic 上挂 Rust 后端</span></span><span class="source"><span data-l="en">recommended · already in the tree and surviving</span><span data-l="zh">推荐 · 已在树里，而且活了下来</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">eliminates the class inside the selected backend</span><span data-l="zh">在所选后端内部消除该类问题</span></td><td><span data-l="en">already paid; 1 maintainer</span><span data-l="zh">成本已付；1 名维护者</span></td><td><span data-l="en">shipped</span><span data-l="zh">已发布</span></td><td><span data-l="en">configure flag · full rollback</span><span data-l="zh">configure 开关 · 可完全回滚</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rust HTTP internals (hyper)</span><span data-l="zh">把 HTTP 内部换成 Rust（hyper）</span></span><span class="source"><span data-l="en">exclude · failed G4 on people, not on technology</span><span data-l="zh">排除 · G4 卡在人手，不在技术</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">wider class removal, never realized</span><span data-l="zh">覆盖面更大，但从未兑现</span></td><td><span data-l="en">4 funded years; dual-skill on-call</span><span data-l="zh">4 年资助投入；双栈 on-call</span></td><td><span data-l="en">never reached</span><span data-l="zh">从未达到</span></td><td><span data-l="en">deep glue · removed in 8.12.0</span><span data-l="zh">深层胶水 · 已在 8.12.0 移除</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Full Rust rewrite of curl</span><span data-l="zh">把 curl 整体重写为 Rust</span></span><span class="source"><span data-l="en">exclude · fails the smallest-sufficient-option gate</span><span data-l="zh">排除 · 过不了「最小充分方案」这道门</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">no evidence it clears the seam option</span><span data-l="zh">没有证据说明它能胜过接缝方案</span></td><td><span data-l="en">multi-year; every platform twice</span><span data-l="zh">以年计；每个平台都要做两遍</span></td><td><span data-l="en">years</span><span data-l="zh">以年计</span></td><td><span data-l="en">whole ABI + CLI · poor rollback</span><span data-l="zh">整个 ABI + CLI · 回滚很难</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Users adopt a Rust HTTP client</span><span data-l="zh">使用方改用 Rust HTTP 客户端</span></span><span class="source"><span data-l="en">retain · valid for consumers, not a curl decision</span><span data-l="zh">保留 · 对使用方成立，但不是 curl 的决定</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">full class removal for that caller only</span><span data-l="zh">只对那一个调用方彻底消除该类问题</span></td><td><span data-l="en">per consumer; narrower protocol set</span><span data-l="zh">按使用方计；协议覆盖变窄</span></td><td><span data-l="en">days per project</span><span data-l="zh">每个项目几天</span></td><td><span data-l="en">different API · caller&#x27;s choice</span><span data-l="zh">API 不同 · 由调用方定</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">States are option-scoped evidence, not additive points. Every repository claim was measured on the commit named in the methodology section.</span><span data-l="zh">每个状态都是针对具体方案的证据，不是可以相加的分数。所有仓库层面的数字，都在方法一节标明的 commit 上测得。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">176,402 lines of C and headers in lib/ own the parsing of attacker-controlled TLS records, HTTP messages and QUIC frames.</span><span data-l="zh">lib/ 里 176,402 行 C 和头文件，负责解析攻击者可控的 TLS 记录、HTTP 报文和 QUIC 帧。</span></div><div class="source mono">lib/ · 386 tracked C and header files</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">No performance requirement is asserted; curl&#x27;s own release notes make no throughput claim for any TLS backend.</span><span data-l="zh">本次没有提出性能要求；curl 自己的发布说明也没有为任何 TLS 后端声称过吞吐收益。</span></div><div class="source mono">objective is memory safety, not latency</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">curl has no managed runtime and no collector; there is no runtime mechanism in any tail to remove.</span><span data-l="zh">curl 没有托管运行时，也没有 GC；尾部没有任何运行时机制可以拿掉。</span></div><div class="source mono">C library, no GC</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">curl runs inside the caller&#x27;s process; there is no fleet whose density this decision changes.</span><span data-l="zh">curl 跑在调用方进程里；不存在一支会因这个决定改变部署密度的机队。</span></div><div class="source mono">embedded library invocation model</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Process startup is dominated by DNS and TLS handshake round-trips, not by library initialization.</span><span data-l="zh">进程启动时间由 DNS 和 TLS 握手的往返主导，库初始化不是大头。</span></div><div class="source mono">network-bound invocation</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">curl maintains a formal disclosure policy and advisory pipeline, which is direct evidence that the unsafe surface produces findings.</span><span data-l="zh">curl 维护着正式的披露政策和公告流程，这直接说明不安全面确实在持续产出漏洞。</span></div><div class="source mono">docs/VULN-DISCLOSURE-POLICY.md · docs/SECURITY-ADVISORY.md · SECURITY.md</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">curl&#x27;s multi interface is single-threaded and event-driven by design; no data-parallel work is blocked by the language.</span><span data-l="zh">curl 的 multi 接口设计上就是单线程、事件驱动；没有哪块数据并行的活是被语言卡住的。</span></div><div class="source mono">lib/multi.c event model</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">curl ships on platforms where a C compiler is the only guaranteed toolchain; a full Rust rewrite would require a Rust target for every one of them.</span><span data-l="zh">curl 会发到一些只保证有 C 编译器的平台上；整体 Rust 重写要求这些平台每一个都有 Rust target。</span></div><div class="source mono">configure.ac · 22 m4 files · Windows CE and VS2008 support only recently removed</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-backend-seam</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Production-grade Rust TLS and QUIC crates already exist and are already wired in; curl did not have to build them.</span><span data-l="zh">生产级的 Rust TLS 和 QUIC crate 已经存在，也已经接进来了；curl 不用自己造。</span></div><div class="source mono">lib/vtls/rustls.c · lib/vquic/cf-quiche.c</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-backend-seam</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The vtls abstraction already carries six interchangeable backend implementations, so a Rust backend needs no new seam and no ABI change.</span><span data-l="zh">vtls 抽象已经挂着六个可互换的后端实现，所以再加一个 Rust 后端不需要新接缝，也不动 ABI。</span></div><div class="source mono">lib/vtls/ · 6 backends registered in vtls.c:705, 33 files, 25,481 lines</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-http-layer, rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The deeper Rust integration died with no users asking for it and almost no developers able to work on the C/Rust glue, after four ISRG-funded years at near test-suite parity.</span><span data-l="zh">更深的那次 Rust 集成，在 ISRG 资助的四年后已经接近测试套件对等，最后还是死了：没有用户提出需求，能碰 C/Rust 胶水层的开发者也几乎没有。</span></div><div class="source mono">https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/ · docs/DEPRECATE.md:62</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实对照</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · c-harden vs rust-backend-seam</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Continuous fuzzing and review remain funded and running; they are complementary to the backend seam rather than an alternative to it.</span><span data-l="zh">持续 fuzzing 和代码评审仍有资金、仍在运行；它们与后端接缝互补，谈不上二选一。</span></div><div class="source mono">curl CI and fuzzing configuration in tests/ and .github/</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">N/A lenses: D2 end-to-end reach, D3 tail latency, D4 fleet footprint and D5 startup shape carry no part of a memory-safety objective for a client library invoked inside a caller&#x27;s process.</span><span data-l="zh">标为 N/A 的维度：D2 端到端影响、D3 尾延迟、D4 机队占用、D5 启动形态。对一个跑在调用方进程里的客户端库来说，内存安全这个目标不落在这三项上。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card rust"><h3><span data-l="en">The seam that survived is 1,468 lines</span><span data-l="zh">活下来的那道接缝是 1,468 行</span></h3><p><span data-l="en">curl&#x27;s Rust TLS backend sits behind an abstraction that already hosts six interchangeable implementations. Adding it required no ABI change, no protocol change, and no new interface. It is still in the tree.</span><span data-l="zh">curl 的 Rust TLS 后端挂在一个已经托管六个可互换实现的抽象后面。加它不需要改 ABI，不需要改协议，也不需要新接口。它至今还在树里。</span></p><span class="ref mono">lib/vtls/rustls.c · 1,468 lines of 25,481 in lib/vtls</span></div>
+<div class="card current"><h3><span data-l="en">hyper reached near parity and was deleted anyway</span><span data-l="zh">hyper 做到了接近对等，还是被删了</span></h3><p><span data-l="en">The hyper backend moved curl&#x27;s HTTP internals to Rust and reached near test-suite parity over four ISRG-funded years. It was deleted anyway. The maintainer&#x27;s published reasons: no user demand, and too few developers able to work on the C/Rust glue.</span><span data-l="zh">hyper 后端把 curl 的 HTTP 内部搬到了 Rust，在 ISRG 资助的四年里做到接近测试套件对等。它还是被删了。维护者公开给出的理由是：没有用户提需求，能碰 C/Rust 胶水层的开发者也太少。</span></p><span class="ref mono">docs/DEPRECATE.md:62 · daniel.haxx.se, 21 Dec 2024</span></div>
+<div class="card current"><h3><span data-l="en">Depth costs 526 API pages and 279 CLI options</span><span data-l="zh">深度的代价是 526 页 API 加 279 个选项</span></h3><p><span data-l="en">A rewrite has to preserve 526 documented libcurl API pages and 279 command-line options, on every platform curl supports. Adding a backend touches none of it. That gap is the distance between &#x27;rewrite it in Rust&#x27; and &#x27;add a Rust backend&#x27;.</span><span data-l="zh">重写必须在 curl 支持的每一个平台上，原样保住 526 页 libcurl API 文档和 279 个命令行选项。加一个后端一样都不碰。这个差距，就是「用 Rust 重写」和「加一个 Rust 后端」之间的距离。</span></p><span class="ref mono">docs/libcurl/**/*.md · src/tool_listhelp.c · 279 entries</span></div>
+<div class="card rust"><h3><span data-l="en">The parity harness makes the seam safe to try</span><span data-l="zh">对等性测试台让这道接缝可以放心试</span></h3><p><span data-l="en">2,056 test cases sit inside a 232,601-line tests/ tree, so a backend swap can be verified before release. Swap it, run the suite, read the result. Options with a comparable harness are cheap to attempt. Options without one are not.</span><span data-l="zh">232,601 行的 tests/ 树里有 2,056 个用例，所以换后端可以在发布前验完。换掉、跑套件、看结果。有这种测试台的方案，试一次很便宜；没有的，不便宜。</span></p><span class="ref mono">tests/data/test* · tests/ 2,615 files</span></div>
+<div class="card unknown"><h3><span data-l="en">Nobody has published curl&#x27;s advisories by root cause</span><span data-l="zh">没有人按根因公布过 curl 的历史公告</span></h3><p><span data-l="en">curl runs a formal disclosure process. The repository does not sort that advisory history into eliminated-by-construction, downgraded-to-safe-failure, and language-independent. Without the split, the size of the win from any Rust scope is bounded by argument, not measurement.</span><span data-l="zh">curl 有正式的漏洞披露流程。但仓库里没有把历史公告拆成「按构造消除」「降级为安全失败」「与语言无关」三类。没有这个拆分，任何 Rust 范围能拿到多大收益，都只能靠论证撑住，测不出来。</span></p><span class="ref mono">docs/SECURITY-ADVISORY.md · no in-repo root-cause classification</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Class elimination inside one backend</span><span data-l="zh">在单个后端内部消除整类问题</span></b> — <span data-l="en">memory-unsafety in the selected TLS implementation stops being reachable, with no change to callers.</span><span data-l="zh">所选 TLS 实现里的内存不安全不再可达，调用方什么都不用改。</span></li><li><b><span data-l="en">A maintainable integration shape</span><span data-l="zh">一种能长期维护的集成形状</span></b> — <span data-l="en">curl&#x27;s own experience is that library-shaped seams outlive deep integrations; rustls and quiche survived while hyper did not.</span><span data-l="zh">curl 自己的经验是：库形状的接缝比深度集成活得久。rustls 和 quiche 还在，hyper 没了。</span></li><li><b><span data-l="en">Reversibility by build flag</span><span data-l="zh">靠编译开关就能回滚</span></b> — <span data-l="en">a backend is chosen at configure time, so the rollback path is a build option rather than a revert.</span><span data-l="zh">后端在 configure 阶段选定，回滚就是改一个构建选项，不用 revert 代码。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Safety for the other 176,402 lines</span><span data-l="zh">另外那 176,402 行的安全性</span></b> — <span data-l="en">protocol state machines, transfer logic and the ABI layer stay in C; the seam does not reach them.</span><span data-l="zh">协议状态机、传输逻辑和 ABI 层还是 C，接缝够不到它们。</span></li><li><b><span data-l="en">Any measured throughput gain</span><span data-l="zh">任何实测的吞吐提升</span></b> — <span data-l="en">no performance requirement is stated and no backend claims one; treat &#x27;faster&#x27; as unevidenced here.</span><span data-l="zh">本次没有提出性能要求，也没有哪个后端声称有；这里的「更快」没有证据。</span></li><li><b><span data-l="en">A staffed path to deeper Rust</span><span data-l="zh">一条有人手的深水区路线</span></b> — <span data-l="en">the resource that decided the last attempt was contributors with dual C/Rust expertise, and the report cannot conjure them.</span><span data-l="zh">上一次尝试的胜负手是有 C/Rust 双栈能力的贡献者，这份报告变不出这些人。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>curl · hyper backend</h3><span class="outcome">ABANDONED</span></div><p><span data-l="en">Four ISRG-funded years took a Rust HTTP backend to near test-suite parity inside curl itself. 8.12.0 removed it. No users had asked for it, and almost no developers could work on the C/Rust glue.</span><span data-l="zh">ISRG 资助的四年，把一个 Rust HTTP 后端在 curl 内部做到了接近测试套件对等。8.12.0 把它删了。没有用户提过这个需求，能碰 C/Rust 胶水层的开发者也几乎没有。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same project, same language pair, same trust boundary</span><span data-l="zh">同一个项目、同一对语言、同一条信任边界</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a deeper layer than the vtls seam this report selects</span><span data-l="zh">层次比本报告选的 vtls 接缝更深</span></div><a class="ref mono" href="https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/">first-party · maintainer blog</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Stylo vs Servo</h3><span class="outcome">EXTRACT SHIPPED</span></div><p><span data-l="en">The same organisation shipped a Rust CSS engine into Firefox in about two years while the whole-engine replacement was cancelled and its team laid off. The seam shipped; the replacement did not.</span><span data-l="zh">同一家机构用大约两年，把一个 Rust CSS 引擎装进了 Firefox；同期整引擎替换被取消，团队被裁。接缝发出去了，替换没有。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">extraction-versus-replacement inside one C/C++ codebase</span><span data-l="zh">同一份 C/C++ 代码库里，抽取与替换的正面对照</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">browser engine, and the extraction was performance- as well as safety-motivated</span><span data-l="zh">对象是浏览器引擎，而且那次抽取除了安全还有性能动机</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineer account</a></article>
+<article class="precedent"><div class="top"><h3>Trifecta · sudo-rs</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">A scoped, privileged C tool was replaced in Rust and became an Ubuntu default. The stated rationale was attack-surface reduction. No performance framing at all.</span><span data-l="zh">一个范围明确的特权 C 工具被 Rust 重写，成了 Ubuntu 的默认实现。公开给出的理由是缩小攻击面。全程没有提性能。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">C on a hostile boundary; safety is the whole objective</span><span data-l="zh">敌意边界上的 C；目标只有安全</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a small standalone binary, not a library with a 526-page documented ABI</span><span data-l="zh">那是个独立的小二进制，不是带 526 页文档 ABI 的库</span></div><a class="ref mono" href="https://trifectatech.org/blog/memory-safe-sudo-to-become-the-default-in-ubuntu/">first-party · project blog</a></article>
+<article class="precedent"><div class="top"><h3>Google · Android memory-safety program</h3><span class="outcome">INCREMENTAL</span></div><p><span data-l="en">Memory-safety&#x27;s share of Android vulnerabilities fell from 76% to below 20%. New code went into safe languages while old C/C++ was left to decay. Mass rewriting was explicitly not the plan.</span><span data-l="zh">Android 漏洞里内存安全类的占比，从 76% 降到 20% 以下。新代码用安全语言写，旧的 C/C++ 让它自然老去。大规模重写被明确排除在外。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same class of requirement, same interop-over-rewrite conclusion</span><span data-l="zh">需求属于同一类，结论同样是互操作优于重写</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">an operating system with far more entry points than one client library</span><span data-l="zh">那是操作系统，入口点比一个客户端库多得多</span></div><a class="ref mono" href="https://blog.google/security/rust-in-android-move-fast-fix-things/">first-party · vendor security blog</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Publish curl&#x27;s advisories by root cause</span><span data-l="zh">按根因公布 curl 的历史公告</span></h3><p><span data-l="en">The curl security team sorts the advisory history into three buckets: eliminated-by-construction, downgraded-to-safe-failure, language-independent. Each entry names its component. It passes when every advisory in the published set is classified and attributed. If public advisory data will not support the classification, stop — that nobody can compute it yet is itself the result. No code changes here.</span><span data-l="zh">curl 安全团队把历史公告分成三类：按构造消除、降级为安全失败、与语言无关。每一条都标出所属组件。通过标准是已公布集合里的每一条都完成分类和归属。如果凭公开公告数据做不到分类，就停下——「现在还算不出来」本身就是结论。这一步不动任何代码。</span></p></div><span class="cost"><span data-l="en">2–4 weeks</span><span data-l="zh">2–4 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Keep the surviving seams staffed</span><span data-l="zh">把活下来的接缝养住</span></h3><p><span data-l="en">Put names on the rustls and quiche backends: an on-call owner each, plus a written bus-factor plan. The bar is two people per backend who can review and release changes to it. Below one active maintainer, mark that backend experimental rather than letting it rot. Rollback stays cheap. Deselect it at configure time and the other backends are unaffected.</span><span data-l="zh">给 rustls 和 quiche 各指定一名 on-call 负责人，并写下 bus-factor 计划。达标线是每个后端有两个人能评审并发布它的改动。活跃维护者一旦掉到一人以下，就把这个后端标成 experimental，别让它烂在树里。回滚很便宜：在 configure 阶段取消选择即可，其他后端不受影响。</span></p></div><span class="cost"><span data-l="en">ongoing</span><span data-l="zh">长期</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Widen only where the root-cause table points</span><span data-l="zh">只在根因表指向的地方拓宽</span></h3><p><span data-l="en">Maintainers pick one more component, and the reason has to be the step-1 table showing the class concentrates there. The proposal names the interface the Rust code would sit behind. Three things must hold before anyone writes code: a coarse existing interface, a parity path through the 2,056-case suite, and two committed reviewers. No reviewers, no proposal. That is the resource whose absence ended hyper. The component keeps its C implementation as the default build.</span><span data-l="zh">维护者再挑一个组件，理由必须来自第 1 步那张表：该类问题确实集中在那里。提案要写明这段 Rust 代码挂在哪个接口后面。动手写代码之前有三个前提：已有一个粗粒度接口、能在 2,056 个用例的套件里走通对等性、两名承诺到位的评审者。评审者不到位，提案就停。终结 hyper 的正是这项资源。该组件的默认构建仍然用 C 实现。</span></p></div><span class="cost"><span data-l="en">per component, scoped</span><span data-l="zh">按组件计，范围可控</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Re-run these gates when demand changes</span><span data-l="zh">需求变了就重跑这几道门</span></h3><p><span data-l="en">Two events reopen this file: a funded team appears, or a distributor requires memory-safe HTTP internals. Maintainers then spend a day on a short re-assessment. It passes only if it names who maintains the result five years out. No funded owner, close the review. Until then the current backend strategy runs unchanged.</span><span data-l="zh">两件事会重开这份文件：出现一支有资金的团队，或者某个发行方要求 HTTP 内部必须内存安全。届时维护者花一天做一次简短复评。通过的条件只有一条：复评里写明五年之后由谁维护这个结果。没有出资的负责人，就把复评关掉。在那之前，现有的后端策略照旧。</span></p></div><span class="cost"><span data-l="en">1 day per review</span><span data-l="zh">每次复评 1 天</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响</span></b> — <span data-l="en">The report claims class elimination only inside the selected backend and states the 176,402 lines it does not reach.</span><span data-l="zh">报告只在所选后端内部主张消除该类问题，并写明了它够不到的那 176,402 行。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">No performance benefit is claimed for any Rust option, so no redesign effect can be miscredited to the language.</span><span data-l="zh">没有为任何 Rust 方案主张性能收益，所以不会把重新设计的效果记到语言头上。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与口径</span></b> — <span data-l="en">The size of the safety win rests on structural exposure, because curl&#x27;s advisories are not classified by root cause in-repo.</span><span data-l="zh">安全收益的大小只能靠结构性暴露面来估，因为仓库内没有按根因分类的公告数据。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">The seam is an existing internal abstraction with six implementations; no ABI or protocol change is required.</span><span data-l="zh">接缝是一个已有的内部抽象，带 16 个实现；不需要改 ABI，也不需要改协议。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The path requires two named reviewers before any widening, which is the specific resource whose absence ended the hyper attempt.</span><span data-l="zh">路径要求任何拓宽之前先配齐两名具名评审者，也就是 hyper 当年缺的那项资源。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有资金的反事实对照</span></b> — <span data-l="en">Continuous fuzzing and review are funded, running, and credited in the ledger rather than dismissed.</span><span data-l="zh">持续 fuzzing 和评审有资金、在运行，账本里给了它们应有的位置，没有一笔带过。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying entirely in C keeps the memory-unsafety class reachable in every line that touches network input.</span><span data-l="zh">完全留在 C，意味着每一行接触网络输入的代码里，内存不安全这类问题都还可达。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">回避不安全面</span></b> — <span data-l="en">The report names the unsafe surface explicitly instead of hiding it behind the project&#x27;s good security record.</span><span data-l="zh">报告明确点出了不安全面，没有拿项目良好的安全记录把它遮过去。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The Rust backends already in the tree are recorded as an ecosystem advantage, not dismissed as hype.</span><span data-l="zh">树里已有的 Rust 后端被当作一项生态优势记录在案，没有被当成炒作打发掉。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">Widening is gated on a published root-cause table and two committed reviewers, so &#x27;harden C forever&#x27; is not the default answer.</span><span data-l="zh">拓宽的前置条件是公布根因表，加两名承诺到位的评审者，所以「永远加固 C」不是默认答案。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">curl/curl at 5275734 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">curl/curl @ 5275734 · 只读静态分析 · why-not-rust method 2.0</span></h3><p><span data-l="en">Repository: github.com/curl/curl at commit 5275734, shallow clone, 4,437 tracked files. Scope: the whole repository, with lib/vtls and lib/vquic as the candidate seam. Counting conventions matter here. The 258,953 figure counts .c files only; per-directory figures such as lib/ 176,402 count .c and .h together, and each lens states which. The backend count comes from the available_backends[] table at lib/vtls/vtls.c:705 (six), not from the 16 .c files in that directory. The 279 command-line options come from src/tool_listhelp.c, not from the 298 files in docs/cmdline-opts/, 19 of which are manpage-section includes. Sampling: line counts and file inventories were taken from tracked files only. No build, test, benchmark or network call was run against the project, and deleted history was not inspected. Objective: remove the memory-unsafety class from curl&#x27;s handling of attacker-controlled bytes without breaking the libcurl ABI. User-supplied facts: none. No Amdahl calculation appears because no performance requirement is asserted; D2 is recorded N/A rather than filled with an invented time share. One external source decided this report: curl&#x27;s own account of removing the hyper backend. It is a first-party maintainer statement about staffing and demand, not an independent evaluation of Rust&#x27;s fitness for HTTP. The framework compares explicit options through four non-compensatory gates. It is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/curl/curl，commit 5275734，浅克隆，4,437 个被跟踪文件。范围：整个仓库，候选接缝是 lib/vtls 和 lib/vquic。计数口径必须说清楚。258,953 这个数只统计 .c 文件；像 lib/ 176,402 这类按目录的数字，把 .c 和 .h 一起算，每个维度都会注明用的是哪一种。后端数量取自 lib/vtls/vtls.c:705 的 available_backends[] 表（六个），不是该目录下的 16 个 .c 文件。279 个命令行选项取自 src/tool_listhelp.c，不是 docs/cmdline-opts/ 下的 298 个文件——其中 19 个是 manpage 章节的 include。抽样：行数和文件清单只统计被跟踪文件。没有对该项目做任何构建、测试、基准或网络调用，也没有检查已删除的历史。目标：在不破坏 libcurl ABI 的前提下，从 curl 处理攻击者可控字节的路径上消除内存不安全这一整类问题。用户提供的事实：无。没有 Amdahl 计算，因为本次没有提出性能要求；D2 记为 N/A，而不是塞一个编造的时间占比。决定这份报告的外部证据只有一个：curl 自己关于移除 hyper 后端的说明。那是维护者的第一方陈述，讲的是人手和需求，不是对 Rust 是否适合做 HTTP 的独立评估。本框架用四道非补偿性证据门比较明确列出的方案。它是一套结构化的决策协议，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">Advisory root-cause classification</span><span data-l="zh">公告的根因分类</span></td><td><span data-l="en">Without it, the magnitude of any Rust scope&#x27;s safety win stays argued rather than measured; the seam decision does not depend on it, but widening does.</span><span data-l="zh">没有它，任何 Rust 范围的安全收益都只能论证、无法测量。接缝这个决定不依赖它，拓宽依赖。</span></td></tr><tr><td><span data-l="en">Backend maintainer continuity</span><span data-l="zh">后端维护者的延续性</span></td><td><span data-l="en">If the rustls or quiche backend loses its owner, G4 for that backend becomes UNKNOWN and it should be marked experimental rather than relied on.</span><span data-l="zh">rustls 或 quiche 后端一旦失去负责人，该后端的 G4 就变成 UNKNOWN，应当标为 experimental，不能再当作可依赖项。</span></td></tr><tr><td><span data-l="en">Funded dual-skill team for deeper layers</span><span data-l="zh">面向更深层的双栈资助团队</span></td><td><span data-l="en">Absent this, any proposal beyond the backend seam repeats the staffing condition that ended hyper, and stays excluded.</span><span data-l="zh">没有这个，任何超出后端接缝的提案都会撞上终结 hyper 的那套人手条件，只能继续排除在外。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 5275734 · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在 commit 5275734 上做静态分析 · 无构建、无基准、无网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/curl/curl",
+    "commit": "527573490eb2564b3d7c9dd51d8bff963b5d6303",
+    "scope": "whole repository, with the vtls/vquic backend layer as the candidate seam",
+    "sampling": "shallow clone; 4,437 tracked files enumerated; lib/, src/, tests/, docs/ measured; deleted history not inspected"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "Advisory root-cause classification",
+      "Backend maintainer continuity",
+      "Funded dual-skill team for deeper layers"
+    ]
+  },
+  "objective": {
+    "driver": "safety",
+    "requirement": "remove the memory-unsafety class from curl's handling of attacker-controlled bytes without breaking the libcurl ABI",
+    "baseline": "176,402 lines of C and headers in lib/ terminate untrusted network input",
+    "target": "class elimination in the components where advisories concentrate, at a scope curl can staff"
+  },
+  "decision": {
+    "authorization": "APPROVE",
+    "scope": "EXTRACT",
+    "selected_option_id": "rust-backend-seam",
+    "confidence": "HIGH",
+    "robustness": "STABLE",
+    "because": "curl parses attacker-controlled bytes in C at a network trust boundary. It has already found the seam where Rust pays: lib/vtls/rustls.c, 1,468 lines behind an abstraction that already hosts six backends. Pushing Rust deeper cost four ISRG-funded years — the hyper HTTP backend reached near test-suite parity and was still removed in 8.12.0, for lack of contributors and users. G4 authorizes the seam and stops there.",
+    "change_trigger": "Stable. Two things reopen it. The rustls or quiche backend loses its maintainer. Or a funded team with dual C/Rust expertise commits to the deeper HTTP layer with a named on-call owner — the exact resource whose absence killed hyper."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "rust-backend-seam",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "176,402 lines of C and headers in lib/ terminate untrusted network input; curl runs a formal advisory process (docs/VULN-DISCLOSURE-POLICY.md, docs/SECURITY-ADVISORY.md)."
+    },
+    {
+      "id": "G2",
+      "option_id": "rust-backend-seam",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "The safety delta comes from replacing manual-lifetime C at a hostile boundary; no algorithm, protocol, or architecture change is required to obtain it."
+    },
+    {
+      "id": "G3",
+      "option_id": "rust-backend-seam",
+      "name": "economics and smallest sufficient option",
+      "state": "PASS",
+      "evidence": "lib/vtls/rustls.c is 5.8% of the 25,481-line vtls layer and 0.8% of lib/; the deeper alternative consumed four funded years and shipped nothing durable."
+    },
+    {
+      "id": "G4",
+      "option_id": "rust-backend-seam",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "Six interchangeable TLS backends share the vtls interface, so rollback is a configure flag; tests/ carries 232,601 lines and 2,056 test cases as the parity harness."
+    }
+  ],
+  "options": [
+    {
+      "id": "c-harden",
+      "name": "Harden C in place",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "remove the memory-unsafety class from curl's handling of attacker-controlled bytes without breaking the libcurl ABI",
+      "benefit_interval": "reduces, does not eliminate",
+      "one_time_cost": "continuous",
+      "recurring_cost": "fuzzing + review time",
+      "time_to_value": "already running",
+      "compatibility": "native",
+      "reversibility": "n/a",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Fuzzing and review lower incident rate but leave the memory-unsafety class reachable in 176,402 lines of C and headers."
+    },
+    {
+      "id": "rust-backend-seam",
+      "name": "Rust backends at vtls/vquic",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "remove the memory-unsafety class from curl's handling of attacker-controlled bytes without breaking the libcurl ABI",
+      "benefit_interval": "eliminates the class inside the selected backend",
+      "one_time_cost": "already paid for rustls",
+      "recurring_cost": "one backend maintainer",
+      "time_to_value": "shipped",
+      "compatibility": "compile-time backend choice",
+      "reversibility": "select another backend",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "Smallest option that removes the class where it matters, with rollback by build flag."
+    },
+    {
+      "id": "rust-http-layer",
+      "name": "Rust HTTP internals (hyper)",
+      "implementation": "rust",
+      "scope": "partial",
+      "target": "remove the memory-unsafety class from curl's handling of attacker-controlled bytes without breaking the libcurl ABI",
+      "benefit_interval": "wider class removal, never realized",
+      "one_time_cost": "4 funded years, reached ~parity",
+      "recurring_cost": "dual C/Rust expertise",
+      "time_to_value": "never reached",
+      "compatibility": "deep glue layer",
+      "reversibility": "deleted",
+      "evidence_strength": "STRONG",
+      "disposition": "exclude",
+      "reason": "Removed in curl 8.12.0: no user demand and too few developers able to work on the C/Rust glue."
+    },
+    {
+      "id": "rust-full",
+      "name": "Full Rust rewrite of curl",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "remove the memory-unsafety class from curl's handling of attacker-controlled bytes without breaking the libcurl ABI",
+      "benefit_interval": "no evidence it clears the seam option",
+      "one_time_cost": "unbudgeted, multi-year",
+      "recurring_cost": "two toolchains for every platform",
+      "time_to_value": "years",
+      "compatibility": "526 API pages + 279 CLI options",
+      "reversibility": "poor",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "The hyper experiment shows the deeper layer is unstaffable at a fraction of this scope."
+    },
+    {
+      "id": "adopt-rust-client",
+      "name": "Users adopt a Rust HTTP client",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "remove the memory-unsafety class from curl's handling of attacker-controlled bytes without breaking the libcurl ABI",
+      "benefit_interval": "full class removal for that caller only",
+      "one_time_cost": "per consumer",
+      "recurring_cost": "loses curl protocol breadth",
+      "time_to_value": "days per project",
+      "compatibility": "different API",
+      "reversibility": "caller-side",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Solves the objective for one application without addressing curl's own surface."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-backend-seam",
+        "rust-http-layer",
+        "rust-full"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "176,402 lines of C and headers in lib/ own the parsing of attacker-controlled TLS records, HTTP messages and QUIC frames.",
+      "source": "lib/ · 386 tracked C and header files",
+      "baseline_regime": "static structure of the shipped library",
+      "caveat": "Structural evidence of exposure, not a per-component advisory attribution.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "No performance requirement is asserted; curl's own release notes make no throughput claim for any TLS backend.",
+      "source": "objective is memory safety, not latency",
+      "baseline_regime": "n/a",
+      "caveat": "If a throughput target is later stated, D2 must be recomputed with a real profile.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "curl has no managed runtime and no collector; there is no runtime mechanism in any tail to remove.",
+      "source": "C library, no GC",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "curl runs inside the caller's process; there is no fleet whose density this decision changes.",
+      "source": "embedded library invocation model",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Process startup is dominated by DNS and TLS handshake round-trips, not by library initialization.",
+      "source": "network-bound invocation",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-backend-seam",
+        "rust-http-layer",
+        "rust-full"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "curl maintains a formal disclosure policy and advisory pipeline, which is direct evidence that the unsafe surface produces findings.",
+      "source": "docs/VULN-DISCLOSURE-POLICY.md · docs/SECURITY-ADVISORY.md · SECURITY.md",
+      "baseline_regime": "project security process",
+      "caveat": "The advisories are not classified by memory-safety root cause in-repo, so the eliminated-by-construction share is unquantified here.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "curl's multi interface is single-threaded and event-driven by design; no data-parallel work is blocked by the language.",
+      "source": "lib/multi.c event model",
+      "baseline_regime": "library concurrency model",
+      "caveat": "Callers supply their own threading; this decision does not change it.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "curl ships on platforms where a C compiler is the only guaranteed toolchain; a full Rust rewrite would require a Rust target for every one of them.",
+      "source": "configure.ac · 22 m4 files · Windows CE and VS2008 support only recently removed",
+      "baseline_regime": "supported platform matrix",
+      "caveat": "A single optional backend does not carry this cost; a full rewrite does.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "rust-backend-seam"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Production-grade Rust TLS and QUIC crates already exist and are already wired in; curl did not have to build them.",
+      "source": "lib/vtls/rustls.c · lib/vquic/cf-quiche.c",
+      "baseline_regime": "shipped backend inventory",
+      "caveat": "Backend availability varies by platform and build configuration.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-backend-seam"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The vtls abstraction already carries six interchangeable backend implementations, so a Rust backend needs no new seam and no ABI change.",
+      "source": "lib/vtls/ · 6 backends registered in vtls.c:705, 33 files, 25,481 lines",
+      "baseline_regime": "existing internal interface",
+      "caveat": "The seam is coarse for TLS but not for HTTP internals — which is where the deeper attempt failed.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-http-layer",
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The deeper Rust integration died with no users asking for it and almost no developers able to work on the C/Rust glue, after four ISRG-funded years at near test-suite parity.",
+      "source": "https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/ · docs/DEPRECATE.md:62",
+      "baseline_regime": "first-party maintainer account of a completed attempt",
+      "caveat": "A staffing and demand outcome, not a statement about Rust's technical fitness for HTTP.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "c-harden",
+        "rust-backend-seam"
+      ],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Continuous fuzzing and review remain funded and running; they are complementary to the backend seam rather than an alternative to it.",
+      "source": "curl CI and fuzzing configuration in tests/ and .github/",
+      "baseline_regime": "current engineering practice",
+      "caveat": "No published experiment isolates the incident-rate contribution of either practice.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "curl · hyper backend",
+      "outcome": "ABANDONED",
+      "match": "same project, same language pair, same trust boundary",
+      "mismatch": "a deeper layer than the vtls seam this report selects",
+      "workload_regime": "first-party maintainer account",
+      "source_class": "first-party · maintainer blog",
+      "url": "https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/"
+    },
+    {
+      "name": "Mozilla · Stylo vs Servo",
+      "outcome": "EXTRACT SHIPPED",
+      "match": "extraction-versus-replacement inside one C/C++ codebase",
+      "mismatch": "browser engine, and the extraction was performance- as well as safety-motivated",
+      "workload_regime": "shipped in Firefox 57",
+      "source_class": "first-party · engineer account",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Trifecta · sudo-rs",
+      "outcome": "MIGRATED",
+      "match": "C on a hostile boundary; safety is the whole objective",
+      "mismatch": "a small standalone binary, not a library with a 526-page documented ABI",
+      "workload_regime": "distribution default, 2025",
+      "source_class": "first-party · project blog",
+      "url": "https://trifectatech.org/blog/memory-safe-sudo-to-become-the-default-in-ubuntu/"
+    },
+    {
+      "name": "Google · Android memory-safety program",
+      "outcome": "INCREMENTAL",
+      "match": "same class of requirement, same interop-over-rewrite conclusion",
+      "mismatch": "an operating system with far more entry points than one client library",
+      "workload_regime": "2019–2025 vulnerability share",
+      "source_class": "first-party · vendor security blog",
+      "url": "https://blog.google/security/rust-in-android-move-fast-fix-things/"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Publish curl's advisories by root cause",
+      "owner": "curl security team",
+      "cost_range": "2–4 weeks",
+      "artifact": "a table splitting the advisory history into eliminated-by-construction, downgraded-to-safe-failure and language-independent, with the component for each",
+      "acceptance": "every advisory in the published set is classified and attributed to a component",
+      "deadline_or_stop": "stop if the classification cannot be completed from public advisory data",
+      "rollback": "documentation only; no code changes"
+    },
+    {
+      "step": 2,
+      "title": "Keep the surviving seams staffed",
+      "owner": "named backend maintainers",
+      "cost_range": "ongoing",
+      "artifact": "a named on-call owner for the rustls and quiche backends plus a documented bus-factor plan",
+      "acceptance": "each Rust backend has at least two people who can review and release changes to it",
+      "deadline_or_stop": "if a backend drops below one active maintainer, mark it experimental rather than letting it rot",
+      "rollback": "deselect the backend at configure time; other backends are unaffected"
+    },
+    {
+      "step": 3,
+      "title": "Widen only where the root-cause table points",
+      "owner": "curl maintainers",
+      "cost_range": "per component, scoped",
+      "artifact": "a proposal for one additional component chosen because the table shows the class concentrates there, with the interface it would sit behind",
+      "acceptance": "the component has a coarse existing interface, a parity path in the 2,056-case suite, and two committed reviewers before any code is written",
+      "deadline_or_stop": "no proposal proceeds without the two reviewers — the resource whose absence ended hyper",
+      "rollback": "the component keeps its C implementation as the default build"
+    },
+    {
+      "step": 4,
+      "title": "Re-run these gates when demand changes",
+      "owner": "curl maintainers",
+      "cost_range": "1 day per review",
+      "artifact": "a short re-assessment triggered by a funded team or a distributor requirement for memory-safe HTTP internals",
+      "acceptance": "the review names who maintains the result five years out",
+      "deadline_or_stop": "close the review if no funded owner exists",
+      "rollback": "the current backend strategy continues unchanged"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at the named commit represents the shipped tree; deleted history was not inspected.",
+    "curl's supported-platform matrix continues to include targets where a C toolchain is the only guarantee.",
+    "No performance requirement is attached to this decision; if one appears, D2 must be recomputed with a real profile."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "PASS",
+        "claim": "The report claims class elimination only inside the selected backend and states the 176,402 lines it does not reach.",
+        "evidence": "lib/ line count vs lib/vtls/rustls.c"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "No performance benefit is claimed for any Rust option, so no redesign effect can be miscredited to the language.",
+        "evidence": "D2 recorded as N/A"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The size of the safety win rests on structural exposure, because curl's advisories are not classified by root cause in-repo.",
+        "evidence": "docs/SECURITY-ADVISORY.md"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "The seam is an existing internal abstraction with six implementations; no ABI or protocol change is required.",
+        "evidence": "lib/vtls/vtls.c:705 · 6 registered backends"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The path requires two named reviewers before any widening, which is the specific resource whose absence ended the hyper attempt.",
+        "evidence": "https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "Continuous fuzzing and review are funded, running, and credited in the ledger rather than dismissed.",
+        "evidence": "D12 · curl CI and fuzzing configuration"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying entirely in C keeps the memory-unsafety class reachable in every line that touches network input.",
+        "evidence": "lib/ 176,402 lines of C and headers on the trust boundary"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The report names the unsafe surface explicitly instead of hiding it behind the project's good security record.",
+        "evidence": "D1 and D6 records"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The Rust backends already in the tree are recorded as an ecosystem advantage, not dismissed as hype.",
+        "evidence": "D9 · lib/vtls/rustls.c, lib/vquic/cf-quiche.c"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "Widening is gated on a published root-cause table and two committed reviewers, so 'harden C forever' is not the default answer.",
+        "evidence": "reversible path steps 1 and 3"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>
