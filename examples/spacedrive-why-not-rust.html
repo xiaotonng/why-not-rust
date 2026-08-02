@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · spacedriveapp/spacedrive</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">spacedriveapp/spacedrive</span><span>2026-08-02</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Rust + React/Tauri · cross-device file manager · 240,726 lines of Rust, 48,279 of TSX</span><span data-l="zh">Rust + React/Tauri · 跨设备文件管理器 · Rust 240,726 行，TSX 48,279 行</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">Rust stays. The feature scope does not.</span><span data-l="zh">Rust 留着，功能范围留不住。</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">A file manager spends its time on three things: filesystem I/O, thumbnail decode, database queries. Spacedrive has 240,726 lines of Rust. Its own committed benchmark puts content identification at 95.5% of index wall clock on 100,000 files. That phase costs 13.4 ms per file and reads at most 58 KB of each one. The cost is six File::open calls per file, awaited in sequence. No language fixes that.</span><span data-l="zh">文件管理器的时间花在三处：文件系统 I/O、缩略图解码、数据库查询。Spacedrive 有 240,726 行 Rust。它自己提交进仓库的基准说，在 100,000 个文件上，content identification 占索引墙钟时间的 95.5%。这一段每个文件耗 13.4 ms，而每个文件最多只读 58 KB。代价是每个文件六次 File::open，一个接一个 await。换语言解决不了这个。</span></p>
+      <p class="trigger"><span data-l="en">Two things reopen this. First, a Deep-mode profile that splits thumbnail wall clock between Spacedrive&#x27;s own pipeline and the ffmpeg-sys, libheif and pdfium calls it makes. No such benchmark exists, so the thumbnail half of G2 is UNKNOWN rather than refuted. Second, one non-prerelease release shipping the sync subsystem. That would move G3 from FAIL to arguable.</span><span data-l="zh">两件事能让这个结论重开。第一，一份 Deep 模式的 profile，把缩略图的墙钟时间拆成 Spacedrive 自己的流水线和它调用 ffmpeg-sys、libheif、pdfium 的部分。这样的基准现在不存在，所以 G2 里缩略图那一半是 UNKNOWN，不是被否证。第二，发一个带 sync 子系统、且不带 prerelease 标记的版本。那能把 G3 从 FAIL 变成可以争论。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep the Rust core; defer the distributed-systems scope</span><span data-l="zh">保留 Rust 内核；把分布式那一摊往后放</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>MEDIUM</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>CONDITIONAL</b></span>
+        <span><span data-l="en">native-desktop-gui · Rust engine under a webview UI, with a P2P sync subsystem</span><span data-l="zh">原生桌面 GUI · webview 界面下面一个 Rust 引擎，外加一套 P2P 同步子系统</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">One core has to run on five platforms, a server and a CLI.</span><span data-l="zh">同一个内核要跑在五个平台、一台服务器和一个 CLI 上。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">The three hot paths are C libraries and one bad I/O loop.</span><span data-l="zh">三条热路径：一边是 C 库，一边是一个写坏的 I/O 循环。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">36,463 lines of P2P and sync, and no 1.0 in four years ten months.</span><span data-l="zh">36,463 行 P2P 与 sync，四年十个月没有 1.0。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state unknown">UNKNOWN</span></div><div class="ev"><span data-l="en">858 commits in 2025Q4, 36 in the last four months.</span><span data-l="zh">2025Q4 有 858 个 commit，最近四个月一共 36 个。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Content identification</span><span data-l="zh">content identification</span></div><div class="value mono">95.5<span class="unit"><span data-l="en">% of index wall clock</span><span data-l="zh">占索引墙钟时间</span></span></div><div class="note"><span data-l="en">shape_large · 100,000 files · Apple M3 Max</span><span data-l="zh">shape_large · 100,000 个文件 · Apple M3 Max</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Cost per file in that phase</span><span data-l="zh">该阶段每文件耗时</span></div><div class="value mono">13.4<span class="unit"><span data-l="en">ms</span><span data-l="zh">ms</span></span></div><div class="note"><span data-l="en">74.58 files/s · six File::open per file</span><span data-l="zh">74.58 files/s · 每个文件六次 File::open</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Read throughput there, upper bound</span><span data-l="zh">该阶段读取吞吐的上界</span></div><div class="value mono">7.6<span class="unit"><span data-l="en">MB/s</span><span data-l="zh">MB/s</span></span></div><div class="note"><span data-l="en">≤102,400 B per file × 100,000 ÷ 1,340.8 s</span><span data-l="zh">每文件 ≤102,400 B × 100,000 ÷ 1,340.8 s</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Ceiling from optimizing traversal</span><span data-l="zh">优化目录遍历能拿到的上限</span></div><div class="value mono">1.047<span class="unit"><span data-l="en">× end-to-end</span><span data-l="zh">× 端到端</span></span></div><div class="note"><span data-l="en">share 0.045; the docs ask for 13.4×</span><span data-l="zh">占比 0.045；文档要的是 13.4×</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">P2P and sync machinery</span><span data-l="zh">P2P 与 sync 那一摊</span></div><div class="value mono">36,463<span class="unit"><span data-l="en">lines of Rust</span><span data-l="zh">行 Rust</span></span></div><div class="note"><span data-l="en">18.5% of core/ · highest non-prerelease is 0.4.3</span><span data-l="zh">占 core/ 的 18.5% · 不带 prerelease 的最高版本是 0.4.3</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Commits, April to July 2026</span><span data-l="zh">2026 年 4 月至 7 月的 commit</span></div><div class="value mono">36<span class="unit"><span data-l="en">on main</span><span data-l="zh">在 main 上</span></span></div><div class="note"><span data-l="en">against 858 in 2025Q4</span><span data-l="zh">对照 2025Q4 的 858</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option is judged against one objective: index and browse a user&#x27;s files fast on five platforms, and get a release out without the prerelease bit on it.</span><span data-l="zh">所有方案对着同一个目标：在五个平台上把用户的文件索引好、浏览得快，并且发出一个不带 prerelease 标记的版本。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Keep the Rust core, defer P2P and sync</span><span data-l="zh">保留 Rust 内核，推迟 P2P 与 sync</span></span><span class="source"><span data-l="en">recommended · the smallest step that gets a 1.0 out the door</span><span data-l="zh">推荐 · 能把 1.0 送出门的最小一步</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">takes 36,463 lines off the 1.0 critical path</span><span data-l="zh">把 36,463 行从 1.0 的关键路径上挪走</span></td><td><span data-l="en">weeks; one feature flag</span><span data-l="zh">数周；一个 feature flag</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">no language change · flag rollback</span><span data-l="zh">不换语言 · 用 flag 回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Open each file once in the sampled hash</span><span data-l="zh">抽样哈希里每个文件只 open 一次</span></span><span class="source"><span data-l="en">retain · the counterfactual any performance claim has to beat first</span><span data-l="zh">保留 · 任何性能主张要先赢过这个对照</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">aims at 95.5% of index wall clock</span><span data-l="zh">打在占索引墙钟 95.5% 的那一段上</span></td><td><span data-l="en">days; no new dependency</span><span data-l="zh">数天；不加新依赖</span></td><td><span data-l="en">days</span><span data-l="zh">数天</span></td><td><span data-l="en">same hash bytes · git revert</span><span data-l="zh">哈希字节不变 · git revert</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Carry on at the current scope</span><span data-l="zh">按现在的范围继续</span></span><span class="source"><span data-l="en">exclude · fails G3 on measured delivery history</span><span data-l="zh">排除 · 在实测交付史上过不了 G3</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">the product as pitched, if it ships</span><span data-l="zh">如果发得出来，就是宣传里那个产品</span></td><td><span data-l="en">sunk; 240,726 lines, one author</span><span data-l="zh">已投入；240,726 行，一个活跃作者</span></td><td><span data-l="en">unbounded on this evidence</span><span data-l="zh">按现有证据说不出来</span></td><td><span data-l="en">status quo · nothing to roll back</span><span data-l="zh">现状 · 没什么要回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Replace the webview UI with Rust GPUI</span><span data-l="zh">把 webview 界面换成 Rust GPUI</span></span><span class="source"><span data-l="en">retain · the one place more Rust could touch what users call fast</span><span data-l="zh">保留 · 「多用一点 Rust」唯一可能影响用户口中「快」的地方</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">unmeasured; no frame-time or input-latency data exists</span><span data-l="zh">没量过；没有帧时间或输入延迟数据</span></td><td><span data-l="en">39,926 TSX lines; new UI stack</span><span data-l="zh">39,926 行 TSX；一套新的 UI 栈</span></td><td><span data-l="en">quarters</span><span data-l="zh">以季度计</span></td><td><span data-l="en">full UI rewrite · no partial rollback</span><span data-l="zh">整个界面重写 · 无法部分回滚</span></td><td><span class="ev-tag unknown">UNKNOWN</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Swift core, Apple platforms only</span><span data-l="zh">Swift 内核，只做 Apple 平台</span></span><span class="source"><span data-l="en">exclude · the workspace already targets Windows, Linux and Android</span><span data-l="zh">排除 · workspace 已经在做 Windows、Linux、Android</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">same C decoders, same SQLite, one fewer toolchain</span><span data-l="zh">同样的 C 解码器，同样的 SQLite，少一套工具链</span></td><td><span data-l="en">197,230 lines; three platforms lost</span><span data-l="zh">197,230 行；丢三个平台</span></td><td><span data-l="en">years</span><span data-l="zh">以年计</span></td><td><span data-l="en">Apple only · no rollback</span><span data-l="zh">只剩 Apple · 无回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">TypeScript core calling the same C libraries</span><span data-l="zh">TypeScript 内核，调同一批 C 库</span></span><span class="source"><span data-l="en">exclude · the resident daemon and the single binary are the part Rust does buy</span><span data-l="zh">排除 · 常驻进程和单一二进制恰好是 Rust 真买到的东西</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">hot paths unchanged; hiring and iteration get easier</span><span data-l="zh">热路径不变；招人和迭代变容易</span></td><td><span data-l="en">197,230 lines; runtime in the bundle</span><span data-l="zh">197,230 行；包里带运行时</span></td><td><span data-l="en">years</span><span data-l="zh">以年计</span></td><td><span data-l="en">no single binary · no rollback</span><span data-l="zh">没有单一二进制 · 无回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is evidence tied to named options, not a score to add up. The performance lenses lean on one artifact: the benchmark results the project committed itself. Where it has published no measurement, the lens says UNKNOWN.</span><span data-l="zh">每条状态都绑在具体方案上，不是可以相加的分数。性能几条主要靠一份材料：项目自己提交进仓库的基准结果。凡是它没量过的地方，这条就记 UNKNOWN。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · fix-io-loop</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Spacedrive owns the hot path, and the project measured it. On its own 100,000-file recipe, a discovery-only index finishes in 60.15 s. Turn content identification on and the same tree takes 1,340.8 s. So 95.5% of the work sits in one phase of Spacedrive&#x27;s own code.</span><span data-l="zh">热路径确实归 Spacedrive 自己，而且项目自己量过。在它自己那份 100,000 文件的 recipe 上，只做discovery 的索引 60.15 s 跑完。打开 content identification，同一棵树要 1,340.8 s。也就是说95.5% 的工作压在 Spacedrive 自有代码的一个阶段里。</span></div><div class="source mono">core/benchmarks/results/shape_large-{indexing_discovery,content_identification}-ssd.json</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag current">DISFAVORS · stay-full-scope</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Directory traversal is 4.5% of a full Content-mode index. Make it ten times faster and the index gets 1.042× faster; make it infinitely fast and the ceiling is 1.047×. The project&#x27;s own docs ask for 13.4× over its own measurement. The gap does not live in the traversal code.</span><span data-l="zh">目录遍历占完整 Content 模式索引的 4.5%。把它快十倍，整体快 1.042×；快到无穷，上限是 1.047×。而项目自己的文档要求比自己的实测快 13.4×。这个差距不在遍历代码里。</span></div><div class="source mono">share 0.045 from the two committed shape_large runs; target 13.4 = ~1K files/sec at docs/core/indexing.mdx:388 over 74.58 files/s measured</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-native-ui</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">The explorer a user actually looks at is 39,926 lines of TSX in a system webview. Nobody has published a frame time or an input latency for it. Whatever the Rust core does about garbage collection, it does not reach the surface where people decide whether an app feels fast.</span><span data-l="zh">用户真正看着的那个 explorer 是 39,926 行 TSX，跑在系统 webview 里。没有人公开过它的帧时间或输入延迟。Rust 内核在 GC 上做了什么，都到不了用户判断「这个 app 快不快」的那一层。</span></div><div class="source mono">packages/interface · 191 .tsx files, 39,926 lines; 77 .ts files, 6,837 lines</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">This is a desktop app. It runs on hardware the user already paid for, so there is no instance count, no utilization and no hourly price to compare across options.</span><span data-l="zh">这是个桌面应用，跑在用户已经买下的硬件上。没有实例数、没有利用率、没有小时单价，方案之间没有可比的机队成本。</span></div><div class="source mono">apps/tauri · apps/mobile · desktop and mobile targets</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-rust-cut-scope</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Two native binaries come out of core/: spacedrive and sd-daemon. A desktop file manager gets launched and killed all day, and there is no runtime to boot first. That property is worth something and it is the kind of thing Rust gives you for free.</span><span data-l="zh">core/ 产出两个原生二进制：spacedrive 和 sd-daemon。桌面文件管理器一天里被开开关关很多次，而它前面没有运行时要先起来。这个性质有价值，而且是 Rust 顺手就给的。</span></div><div class="source mono">core/Cargo.toml [[bin]] spacedrive, sd-daemon · core/src/bin (4 files, 698 lines)</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Rust removes memory-unsafety from 240,726 lines, and that is a real property. It is not a distinctive one here. Swift is memory-safe, TypeScript is memory-safe, and the code that parses hostile image and video bytes is C under every option.</span><span data-l="zh">Rust 让 240,726 行代码没有内存不安全问题，这是实在的性质，但在这里不是差异化的性质。Swift 内存安全，TypeScript 内存安全，而真正去解析可疑图片和视频字节的那部分，每个方案下都是 C。</span></div><div class="source mono">220 unsafe occurrences across 39 .rs files; 109 of them in crates/ffmpeg (2,672 lines)</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-rust-cut-scope</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The indexer uses a work-stealing walker on half the available cores and a memory-mapped arena for the ephemeral index, 3,623 lines of it. Doing that in a language with real threads and no collector is easier. The property is genuine.</span><span data-l="zh">索引器用 work-stealing walker 跑在一半的核上，临时索引用内存映射 arena，那部分 3,623 行。在一个有真线程、没有 collector 的语言里做这些确实更省事。这个性质是实的。</span></div><div class="source mono">core/src/ops/indexing/ephemeral/ (arena.rs, index.rs, writer.rs, snapshot.rs) · docs/core/indexing.mdx:395</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-rust-cut-scope</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">One workspace ships a desktop app, a headless server, a 9,808-line CLI, and iOS and Android cores. This is the requirement Rust is measurably serving. Swift does not reach Windows or Android, and a Node core does not produce a single native binary for five targets.</span><span data-l="zh">一个 workspace 出桌面应用、无头服务端、9,808 行的 CLI，以及 iOS 和 Android 内核。这才是 Rust 在这里确实兑现的需求。Swift 到不了 Windows 和 Android，Node 内核也给不出面向五个目标的单一原生二进制。</span></div><div class="source mono">Cargo.toml members: apps/server, apps/cli, apps/tauri/src-tauri, apps/mobile/modules/sd-mobile-core/core, core, crates/*</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag current">DISFAVORS · stay-full-scope</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The team&#x27;s own retrospective names the bill. They wrote prisma-client-rust and rspc because Rust had neither, then could not maintain either. Prisma&#x27;s Rust engine was deprecated under them. libp2p was replaced by Iroh. This is what a thin ecosystem costs, and it is priced in years.</span><span data-l="zh">账单是团队自己写下来的。他们写了 prisma-client-rust 和 rspc，因为 Rust 两样都没有，然后两样都维护不下去。Prisma 的 Rust engine 在他们脚下被弃用。libp2p 后来换成了 Iroh。生态薄就是这个价钱，而且是按年算的。</span></div><div class="source mono">docs/overview/history.mdx:82-92 — &quot;The team built prisma-client-rust and rspc out of necessity, then couldn&#x27;t maintain them&quot;</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Every option links the same C. Cargo.lock resolves 1,272 crates, 51 of them -sys bindings: SQLite, FFmpeg, libheif, libwebp, zstd, whisper.cpp. A Swift core would call the same FFmpeg. So would a Node core. The decode boundary is a constant, not a variable.</span><span data-l="zh">每个方案链接的是同一批 C。Cargo.lock 解出 1,272 个 crate，其中 51 个是 -sys 绑定：SQLite、FFmpeg、libheif、libwebp、zstd、whisper.cpp。Swift 内核会调同一个 FFmpeg，Node 内核也一样。解码边界是常量，不是变量。</span></div><div class="source mono">Cargo.lock · libsqlite3-sys 0.30.1, ffmpeg-sys-next 7.1.3, libheif-sys 2.2.1+1.17.6, libwebp-sys 0.9.6, whisper-rs-sys 0.14.1, pdfium-render 0.8.27</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag current">DISFAVORS · stay-full-scope</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">240,726 lines of Rust, 36,463 of them distributed systems, and 1,256 of the last 1,504 commits from one author name. 28 releases in four years ten months and none non-prerelease is still 0.4.3. core/src/service/watcher_old carries 5,559 lines kept for reference and not compiled.</span><span data-l="zh">240,726 行 Rust，其中 36,463 行是分布式系统，最近 1,504 个 commit 里 1,256 个来自同一个作者名。四年十个月 28 个发布，不带 prerelease 的最高版本还是 0.4.3。core/src/service/watcher_old 里留着 5,559 行，注释说是留作参考、不参与编译。</span></div><div class="source mono">gh api repos/spacedriveapp/spacedrive/{commits,releases} · core/src/service/mod.rs:22</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">对照方案</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · fix-io-loop</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">There is an in-stack change worth days that aims at 95.5% of the measured wall clock. Hold one file handle instead of opening six times per file. Any argument that Spacedrive needs a different language for speed has to beat that first, and nobody has tried it.</span><span data-l="zh">栈内有一个几天的改动，正对着实测墙钟的 95.5%：一个文件句柄拿着用，别每个文件开六次。任何「Spacedrive 换语言才能快」的说法都要先赢过它，而这件事还没有人做过。</span></div><div class="source mono">core/src/domain/content_identity.rs:224,235,247 · core/src/volume/backend/local.rs:133</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">One lens is N/A. D4 fleet footprint: Spacedrive runs on the user&#x27;s own machine. There is no instance count and no price per hour, so there is no fleet cost to compare.</span><span data-l="zh">一条记为 N/A。D4 机队占用：Spacedrive 跑在用户自己的机器上。没有实例数，也没有小时单价，没有可比的机队成本。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">95.5% of the index is one phase that opens each file six times</span><span data-l="zh">索引的 95.5% 压在一个阶段上，而它每个文件开六次</span></h3><p><span data-l="en">Spacedrive committed its own benchmark results. On 100,000 files, an Apple M3 Max with 16 physical cores, a discovery-only index takes 60.15 s. With content identification on, the same tree takes 1,340.8 s. That is 13.4 ms per file. content_identity.rs hashes files above 100 KB by sampling 8 KB plus four 10 KB blocks plus 8 KB, so it reads at most 58 KB of each one, and it gets those six ranges through six calls to read_range. local.rs:133 opens the file inside every call.</span><span data-l="zh">Spacedrive 把自己的基准结果提交进了仓库。100,000 个文件，Apple M3 Max、16 个物理核，只做 discovery 的索引 60.15 s；打开 content identification，同一棵树 1,340.8 s。合到每个文件 13.4 ms。content_identity.rs 对 100 KB 以上的文件用抽样：8 KB 加四个 10 KB 块加 8 KB，所以每个文件最多读 58 KB，而这六段是通过六次 read_range 拿的。local.rs:133 在每一次调用里都重新 open 一遍文件。</span></p><span class="ref mono">core/src/domain/content_identity.rs:213-251 · core/src/volume/backend/local.rs:133</span></div>
+<div class="card current"><h3><span data-l="en">The thumbnail path is FFmpeg, libheif, PDFium and libwebp</span><span data-l="zh">缩略图那条路是 FFmpeg、libheif、PDFium、libwebp</span></h3><p><span data-l="en">crates/ffmpeg is 2,672 lines of Rust over ffmpeg-sys-next 7.1.3, and 109 of the repository&#x27;s 220 unsafe occurrences are in it. crates/images pulls libheif-sys for HEIF and a pinned fork of pdfium-render for PDF. Encoding goes out through libwebp-sys. Rust holds the pointers and checks the error codes. The decoders are C and C++, and they would be in any language.</span><span data-l="zh">crates/ffmpeg 是 2,672 行 Rust，架在 ffmpeg-sys-next 7.1.3 上；全仓库 220 处 unsafe 里有 109 处在它里面。crates/images 为 HEIF 拉 libheif-sys，为 PDF 拉一个钉住版本的 pdfium-render fork。编码走 libwebp-sys 出去。Rust 负责持指针、查错误码。解码器是 C 和 C++，换任何语言它们都在。</span></p><span class="ref mono">crates/ffmpeg/Cargo.toml · crates/images/Cargo.toml · Cargo.lock</span></div>
+<div class="card current"><h3><span data-l="en">Search is SQLite&#x27;s C full-text extension</span><span data-l="zh">搜索是 SQLite 的 C 全文扩展</span></h3><p><span data-l="en">The headline is a ~55ms search over a million entries. The implementation is an FTS5 virtual table, created by a migration whose own comment says &quot;high-performance full-text search&quot;. FTS5 ships inside SQLite, reached through libsqlite3-sys 0.30.1. Spacedrive writes the query. SQLite answers it.</span><span data-l="zh">宣传语是「百万条目 ~55ms 搜索」。实现是一个 FTS5 虚拟表，建表 migration 自己的注释写着 &quot;high-performance full-text search&quot;。FTS5 在 SQLite 里，经 libsqlite3-sys 0.30.1 到达。Spacedrive 写查询，SQLite 回答。</span></p><span class="ref mono">core/src/infra/db/migration/m20250120_000001_create_fts5_search_index.rs:3</span></div>
+<div class="card current"><h3><span data-l="en">36,463 lines of P2P and sync, and 0.4.3 is still the highest stable tag</span><span data-l="zh">36,463 行 P2P 与 sync，而最高的稳定标签还是 0.4.3</span></h3><p><span data-l="en">Device pairing is 2,629 lines. The sync peer is 3,038. P2P file transfer is 2,015. Add the network and sync trees under core/src/service, core/src/infra and core/src/ops and it comes to 36,463 lines, 18.5% of core/. The repository opened on 2021-09-27. Twenty-eight releases later, the newest is v2.0.0-alpha.2 from 2026-02-07, and it carries the prerelease bit.</span><span data-l="zh">设备配对 2,629 行，sync peer 3,038 行，P2P 文件传输 2,015 行。把 core/src/service、core/src/infra、core/src/ops 下的 network 和 sync 几棵树加起来是 36,463 行，占 core/ 的 18.5%。仓库 2021-09-27 建的。二十八个发布之后，最新的是 2026-02-07 的 v2.0.0-alpha.2，带着 prerelease 标记。</span></p><span class="ref mono">core/src/service/network/protocol/pairing/mod.rs:2629 lines · gh api repos/spacedriveapp/spacedrive/releases</span></div>
+<div class="card current"><h3><span data-l="en">The team wrote its own ORM client and its own RPC layer, then could not maintain them</span><span data-l="zh">团队自己写了 ORM 客户端和 RPC 层，然后维护不下去</span></h3><p><span data-l="en">The retrospective is in the repository and it is blunt. Prisma&#x27;s Rust client engine was deprecated, &quot;leaving the project on an unmaintained fork with no migration path&quot;. libp2p was &quot;fundamentally broken&quot;. And the line that matters most: the team built prisma-client-rust and rspc &quot;out of necessity, then couldn&#x27;t maintain them&quot;. Neither existed in Rust. Both became debt.</span><span data-l="zh">回顾就在仓库里，写得很直接。Prisma 的 Rust client engine 被弃用，&quot;leaving the project on an unmaintained fork with no migration path&quot;。libp2p 是 &quot;fundamentally broken&quot;。而最要紧的一句：团队写 prisma-client-rust 和 rspc 是 &quot;out of necessity, then couldn&#x27;t maintain them&quot;。这两样 Rust 里都没有，后来都变成了负债。</span></p><span class="ref mono">docs/overview/history.mdx:82-92</span></div>
+<div class="card unknown"><h3><span data-l="en">Nobody has benchmarked the thumbnail path</span><span data-l="zh">缩略图那条路没有人量过</span></h3><p><span data-l="en">core/benchmarks/results holds three scenarios: indexing-discovery, aggregation, content-identification. There is no media or thumbnail scenario, on any shape, on either disk. Deep mode is the configuration that triggers thumbnail generation, and its cost is unmeasured. This is why the thumbnail half of G2 reads UNKNOWN and not FAIL.</span><span data-l="zh">core/benchmarks/results 里有三个场景：indexing-discovery、aggregation、content-identification。没有 media 或 thumbnail 场景，任何 shape、任何盘都没有。触发缩略图生成的是 Deep 模式，而它的开销没被量过。所以 G2 里缩略图那一半写的是 UNKNOWN，不是 FAIL。</span></p><span class="ref mono">core/benchmarks/results/ · 18 result files, 3 scenarios, none for media</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">One core on five platforms, with no runtime</span><span data-l="zh">一个内核，五个平台，不带运行时</span></b> — <span data-l="en">one workspace builds the Tauri desktop app, a headless server, a 9,808-line CLI, and the iOS and Android cores. This is the requirement the repository actually demonstrates.</span><span data-l="zh">一个 workspace 出 Tauri 桌面应用、无头服务端、9,808 行的 CLI，以及 iOS 和 Android 内核。这是仓库真正证明了的需求。</span></li><li><b><span data-l="en">A daemon that can hold a large resident index</span><span data-l="zh">一个装得下大索引的常驻进程</span></b> — <span data-l="en">sd-daemon keeps a memory-mapped arena index, 3,623 lines of it. Real threads, no collector walking a million entries.</span><span data-l="zh">sd-daemon 里是内存映射的 arena 索引，3,623 行。真线程，没有 collector 去爬一百万条目。</span></li><li><b><span data-l="en">Memory safety across 240,726 lines</span><span data-l="zh">240,726 行代码的内存安全</span></b> — <span data-l="en">real, though 220 unsafe occurrences sit in 39 files and the image decoders stay C. Swift and TypeScript would also be memory-safe.</span><span data-l="zh">这是实的，尽管 39 个文件里有 220 处 unsafe，而图像解码器还是 C。Swift 和 TypeScript 也一样内存安全。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Faster indexing</span><span data-l="zh">更快的索引</span></b> — <span data-l="en">content identification is 95.5% of index wall clock and costs 13.4 ms per file to read at most 58 KB. Six File::open calls per file is not a language problem.</span><span data-l="zh">content identification 占索引墙钟的 95.5%，每个文件 13.4 ms，只为读最多 58 KB。每文件六次 File::open，这不是语言问题。</span></li><li><b><span data-l="en">Faster thumbnails</span><span data-l="zh">更快的缩略图</span></b> — <span data-l="en">FFmpeg, libheif, PDFium and libwebp do the decoding. No benchmark for that path exists either way.</span><span data-l="zh">解码是 FFmpeg、libheif、PDFium、libwebp 做的。而且这条路上根本没有基准。</span></li><li><b><span data-l="en">Faster search</span><span data-l="zh">更快的搜索</span></b> — <span data-l="en">the ~55ms figure is an FTS5 virtual table. That is SQLite, written in C.</span><span data-l="zh">那个 ~55ms 是 FTS5 虚拟表。那是 SQLite，用 C 写的。</span></li><li><b><span data-l="en">A UI that feels native</span><span data-l="zh">原生手感的界面</span></b> — <span data-l="en">the explorer is 39,926 lines of TSX in a system webview. The core&#x27;s language never touches that frame.</span><span data-l="zh">explorer 是 39,926 行 TSX，跑在系统 webview 里。内核用什么语言，碰不到那一帧。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Zed · GPUI</h3><span class="outcome">SHIPPED</span></div><p><span data-l="en">A Rust desktop editor with its own GPU UI framework shipped, and shipped fast: third-party numbers put it around 58ms end-to-end against VS Code&#x27;s 97ms. The catch is in how they got there. No Rust GUI framework met the bar, so they wrote one.</span><span data-l="zh">一个 Rust 桌面编辑器，带自己的 GPU UI 框架，发出来了，而且够快：第三方数据大概是端到端 58ms 对 VS Code 的 97ms。代价在于他们怎么走到那一步——没有现成的 Rust GUI 框架够用，于是自己写了一个。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a Mac-first Rust desktop app where perceived speed is the product</span><span data-l="zh">同样是 Mac 优先的 Rust 桌面应用，同样把感知速度当产品</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Zed owns its render path; Spacedrive&#x27;s UI is 39,926 lines of TSX in a webview, and its gpui experiment is 322 lines commented out of the workspace</span><span data-l="zh">Zed 自己掌着渲染路径；Spacedrive 的界面是 webview 里 39,926 行 TSX，它的 gpui 实验是 322 行，还被注释出了 workspace</span></div><a class="ref mono" href="https://zed.dev/blog/videogame">third-party · unaudited</a></article>
+<article class="precedent"><div class="top"><h3>Prisma · Rust query engine removed</h3><span class="outcome">REVERSED</span></div><p><span data-l="en">Prisma deleted its Rust query engine and got faster: findMany on 25k rows went from 185ms to 55ms. Their diagnosis was the boundary, not the language. This is the same Prisma whose Rust engine deprecation the Spacedrive retrospective names as a cause of V1&#x27;s collapse.</span><span data-l="zh">Prisma 把自己的 Rust query engine 删了，然后变快了：25k 行的 findMany 从 185ms 到 55ms。他们的诊断是边界的问题，不是语言的问题。而 Spacedrive 的回顾里，把 V1 崩掉的原因之一记成了这同一个 Prisma 的 Rust engine 被弃用。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the exact dependency Spacedrive built on and then got stranded by</span><span data-l="zh">Spacedrive 当年就架在这个依赖上，后来被它甩在半路</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Prisma&#x27;s boundary was crossed per query from JavaScript; Spacedrive&#x27;s core is the process, not a callee</span><span data-l="zh">Prisma 的边界是每次查询从 JavaScript 穿过去；Spacedrive 的内核就是进程本身，不是被调用方</span></div><a class="ref mono" href="https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Linear · sync engine</h3><span class="outcome">STAYED</span></div><p><span data-l="en">Local-first sync with sub-50ms page loads and working offline, built in TypeScript against a local object graph. The hard part was the design of the sync protocol. The language was never the lever.</span><span data-l="zh">本地优先的同步，页面加载 50ms 以内，离线可用，用 TypeScript 架在一张本地对象图上。难的是同步协议怎么设计，语言从来不是那个杠杆。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">local-first sync as a product feature, which is what Spacedrive&#x27;s 36,463 lines are for</span><span data-l="zh">把本地优先同步当产品特性，Spacedrive 那 36,463 行就是干这个的</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Linear syncs a SaaS object graph through a server; Spacedrive is leaderless P2P across user devices with pairing and NAT traversal</span><span data-l="zh">Linear 是通过服务端同步一张 SaaS 对象图；Spacedrive 是用户设备之间无主的 P2P，还要配对和NAT 穿透</span></div><a class="ref mono" href="https://linear.app/now/scaling-the-linear-sync-engine">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Servo as a Gecko replacement</h3><span class="outcome">CANCELLED</span></div><p><span data-l="en">A full engine replacement was priced at thousands of engineer-years against a handful of heads. The team was laid off in 2020. What shipped was the extraction: Stylo and WebRender went into Firefox, and the replacement goal did not.</span><span data-l="zh">整个引擎的替换被算成几千人年，而手上只有几个人。2020 年团队被裁。真正发出去的是抽出来的部分：Stylo 和 WebRender 进了 Firefox，替换这个目标没有。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">scope economics against available heads, and R&amp;D that was still worth doing</span><span data-l="zh">范围经济性对上手里的人头，而那些研发本身仍然值得做</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Mozilla had a shipping product to fall back on; Spacedrive&#x27;s V1 was retired and V2 is the only thing there is</span><span data-l="zh">Mozilla 还有一个在发的产品可以退守；Spacedrive 的 V1 已经退役，V2 是唯一的东西</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · blog + public record</a></article>
+<article class="precedent"><div class="top"><h3>Fixie · Rust at a startup</h3><span class="outcome">CAUTIONARY</span></div><p><span data-l="en">A CEO and ex-Google systems researcher wrote it plainly: &quot;Rust is awesome, for certain things. But think twice before picking it up for a startup that needs to move fast.&quot; His specific complaint was that Rust makes roughing out new features hard.</span><span data-l="zh">一位 CEO、前 Google 系统研究员写得很直白：&quot;Rust is awesome, for certain things. But think twice before picking it up for a startup that needs to move fast.&quot; 他具体的抱怨是，Rust 让新功能的粗胚很难打。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a VC-funded startup pre-product-market-fit, which is where Spacedrive spent 2022-2025</span><span data-l="zh">拿了 VC、还没找到 PMF 的创业公司，Spacedrive 2022 到 2025 就在这个位置</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">one account about a backend CRUD product; Spacedrive&#x27;s requirement does include five native targets</span><span data-l="zh">那是关于一个后端 CRUD 产品的单一叙述；Spacedrive 的需求里确实包含五个原生目标</span></div><a class="ref mono" href="https://mdwdotla.medium.com/using-rust-at-a-startup-a-cautionary-tale-42ab823d9454">first-party · essay</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Open the file once</span><span data-l="zh">文件只 open 一次</span></h3><p><span data-l="en">Whoever owns core/src/domain and core/src/volume holds a single File handle across the six ranged reads in the sampled hash, instead of opening the file inside each one. Then re-run shape_large content-identification on the same recipe and the same host. The step passes when the recorded files/s rises and the hash output is byte-identical for the same tree. If wall clock does not move, publish the flame graph: the time is somewhere else and this report is wrong about where. Backing out is a git revert, and the hash algorithm is never touched.</span><span data-l="zh">core/src/domain 和 core/src/volume 的负责人，在抽样哈希的六次范围读之间只拿一个 File 句柄，别在每次读里重新 open。然后在同一份 recipe、同一台机器上重跑 shape_large 的 content-identification。通过标准是：记录下来的 files/s 上升，且同一棵树的哈希输出逐字节不变。如果墙钟没动，就把 flame graph 发出来——时间在别处，这份报告猜错了位置。回退就是一次 git revert，哈希算法全程不动。</span></p></div><span class="cost"><span data-l="en">days</span><span data-l="zh">数天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Benchmark Deep mode before saying anything about media</span><span data-l="zh">先给 Deep 模式做基准，再谈媒体</span></h3><p><span data-l="en">Whoever wants to argue about thumbnail performance adds a Deep-mode scenario to core/benchmarks and splits its wall clock two ways: time inside Spacedrive&#x27;s own pipeline, and time inside ffmpeg-sys, libheif and pdfium. The two shares have to sum to the measured wall clock on a recipe someone else can regenerate. If most of it is inside the C libraries, the media performance track closes and nobody spends another week on it. This step moves no product code.</span><span data-l="zh">想争论缩略图性能的人，先在 core/benchmarks 里加一个 Deep 模式场景，把它的墙钟时间拆成两块：在 Spacedrive 自己流水线里的时间，和在 ffmpeg-sys、libheif、pdfium 里的时间。两块之和要对得上实测墙钟，recipe 要能被别人重新生成。如果大部分在 C 库里，媒体性能这条线就关掉，没人再花一周在上面。这一步不动产品代码。</span></p></div><span class="cost"><span data-l="en">1-2 weeks</span><span data-l="zh">1–2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Put the sync subsystem behind a flag and ship a 1.0</span><span data-l="zh">把 sync 子系统放到 flag 后面，发一个 1.0</span></h3><p><span data-l="en">The maintainer feature-gates core/src/service/network and core/src/service/sync so the default build excludes them, then publishes a release without the prerelease bit. 36,463 lines come off the 1.0 critical path and stay in the tree. The step passes when that release exists and the gated code still compiles under its flag. If the flag cannot be cut without breaking the on-disk schema, say so in writing and re-price the subsystem as core rather than optional. Flipping the flag back on is the rollback.</span><span data-l="zh">维护者给 core/src/service/network 和 core/src/service/sync 加 feature gate，让默认构建不含它们，然后发一个不带 prerelease 标记的版本。36,463 行离开 1.0 的关键路径，但留在树里。通过标准是：那个版本存在，且被 gate 的代码在自己的 flag 下仍能编过。如果这个 flag 切不出来、不破坏磁盘上的 schema 就切不动，那就写下来，把这个子系统重新定价成核心而不是可选。回滚就是把 flag 打开。</span></p></div><span class="cost"><span data-l="en">weeks</span><span data-l="zh">数周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Attach a regime to every published number, or delete it</span><span data-l="zh">每个公开数字都配上工况，否则删掉</span></h3><p><span data-l="en">Whoever maintains docs/ puts hardware, configuration and recipe next to every files/s and millisecond figure, or removes the figure. Today history.mdx:242 says 8,500 files/second with no hardware named, indexing.mdx:388 says ~1K files/sec for Content mode, and the committed benchmark says 74.58. That is a 13.4x spread inside one repository. The step passes when no performance figure in docs/ lacks a regime and none contradicts core/benchmarks/results. Deleting an unsupported number is the preferred outcome, and it is documentation-only either way.</span><span data-l="zh">docs/ 的维护者给每个 files/s 和毫秒数字配上硬件、配置和 recipe，配不上就删掉。现在 history.mdx:242 写 8,500 files/second，没说硬件；indexing.mdx:388 写 Content 模式 ~1K files/sec；而提交进来的基准写 74.58。同一个仓库里 13.4 倍的落差。通过标准是：docs/ 里没有一个性能数字缺工况，也没有一个和 core/benchmarks/results 相矛盾。删掉没有依据的数字是更好的结果，而且这一步只动文档。</span></p></div><span class="cost"><span data-l="en">days</span><span data-l="zh">数天</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">Of the four performance numbers the project advertises, search belongs to SQLite FTS5, transfer belongs to Iroh, and the memory figure has no artifact. The one that is Spacedrive&#x27;s own is 13.4x off Spacedrive&#x27;s own benchmark.</span><span data-l="zh">项目宣传的四个性能数字里，搜索归 SQLite FTS5，传输归 Iroh，内存那个没有依据。唯一属于 Spacedrive 自己的那个，和 Spacedrive 自己的基准差 13.4 倍。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></b> — <span data-l="en">Traversal is 4.5% of a Content-mode index, so the ceiling from optimizing it is 1.047x. The documentation asks for 13.4x. The reach argument is not available.</span><span data-l="zh">遍历占 Content 模式索引的 4.5%，优化它的上限是 1.047×。文档要 13.4×。影响面这条论证根本拿不出来。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与工况</span></b> — <span data-l="en">The one committed benchmark tree is generated sparse: an 8 KB header, four 10 KB samples, an 8 KB footer, then set_len. Real disks return real blocks. So 13.4 ms per file is the optimistic figure, not the pessimistic one.</span><span data-l="zh">唯一提交进来的基准目录树是稀疏生成的：8 KB 头、四个 10 KB 采样、8 KB 尾，然后 set_len。真实磁盘返回真实块。所以每个文件 13.4 ms 是乐观值，不是悲观值。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被漏掉的成本</span></b> — <span data-l="en">prisma-client-rust, rspc and a 4,835-line task system were all written because Rust lacked them. Two became unmaintainable and the retrospective says so. That cost belongs in the price of the language, not outside it.</span><span data-l="zh">prisma-client-rust、rspc，还有 4,835 行的 task system，都是因为 Rust 里没有才自己写的。其中两个后来维护不下去，回顾里写了。这笔钱要算进语言的价格里，不能挂在外面。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">1,256 of the last 1,504 commits on main carry a single author name, and 87 more come from an agent account. A 240,726-line codebase with one active author is a capacity fact, whatever the language.</span><span data-l="zh">main 上最近 1,504 个 commit 里，1,256 个来自同一个作者名，另有 87 个来自一个 agent 账号。240,726 行代码只有一个活跃作者，这是产能事实，跟语言无关。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有人投入的对照方案</span></b> — <span data-l="en">A days-long in-stack change aims at 95.5% of the measured wall clock: hold one file handle instead of opening six times per file. Nobody has tried it yet.</span><span data-l="zh">一个几天的栈内改动，正对着实测墙钟的 95.5%：拿一个文件句柄用，别每个文件开六次。这件事还没有人做过。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Cutting the sync subsystem out of 1.0 costs the product its headline feature. That is a real loss and the report does not pretend otherwise. It is priced against a four-year-ten-month record whose highest non-prerelease tag is still 0.4.3.</span><span data-l="zh">把 sync 子系统从 1.0 里砍出去，产品就少了最响的那个卖点。这是实在的损失，报告不假装它不存在。它的对价是四年十个月里，不带 prerelease 的最高标签还停在 0.4.3。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The report credits the distribution win at G1 and D8 and keeps the scope word at STAY. It never claims Rust was the wrong language for this product.</span><span data-l="zh">报告在 G1 和 D8 上认下分发这个收益，范围词保持 STAY。它没有说 Rust 是这个产品的错误选择。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏的不安全面</span></b> — <span data-l="en">220 unsafe occurrences across 39 files and 51 -sys crates are disclosed, and the decode boundary is priced as identical under every option including the non-Rust ones.</span><span data-l="zh">39 个文件里 220 处 unsafe、51 个 -sys crate，都披露了；解码边界在每个方案下都按同一个成本计，包括非 Rust 的那几个。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">Step one carries its own falsifier. If holding one file handle does not move wall clock, the flame graph gets published and this report was wrong about where the time is.</span><span data-l="zh">第一步自带否证条件。如果拿一个句柄不改变墙钟，就把 flame graph 发出来，说明这份报告猜错了时间的位置。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">spacedriveapp/spacedrive at 6dfeccf · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">spacedriveapp/spacedrive @ 6dfeccf · 静态只读分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/spacedriveapp/spacedrive at commit 6dfeccf2113039e35f2ce735f945e70dc3e4ea45, shallow clone, 2,919 tracked files. Scope: the whole repository, with core/ as the assessed engine and core/src/service/{network,sync} as the subsystem under scope review. Sampling: 240,726 lines of Rust across 1,166 files, of which core/ is 197,230 across 901, crates/ 24,099 across 153, apps/ 16,084 across 74, extensions/ 1,293 and xtask/ 2,020. The UI is 48,279 lines of .tsx across 252 files and 23,674 of .ts across 153; the .ts files were checked and are TypeScript, not translation XML. 3,211 lines of Swift across 17 files, and 2,801 lines of Python across the 11 adapters under adapters/. Line counts are raw lines from `git ls-files -z &lt;glob&gt; | xargs -0 cat | wc -l`; comments and blanks are included and no vendored tree exists in this repository. The 36,463-line P2P and sync figure is core/src/service/{network,sync,file_sync,sidecar_sync} plus core/src/infra/sync plus core/src/ops/{network,sync,file_sync}, on the same raw-line basis as the 197,230 it is compared against; adding core/src/device and core/src/ops/{devices,redundancy} would make it 38,137. Unsafe counts are occurrences from `grep -o &#x27;\bunsafe\b&#x27;`, not matching lines, and comments were not excluded: 220 occurrences in 39 files, 109 of them in crates/ffmpeg. Performance evidence comes from artifacts the project committed itself under core/benchmarks/results: 18 JSON files across three scenarios and two disks, plus whitepaper_metrics.csv. The two runs this report turns on are shape_large on internal SSD, Apple M3 Max, 16 physical cores, 48 GB, 100,000 files and 16,507 directories: discovery-only total_s 60.15, content-identification total_s 1,340.8. The GB/s column in that CSV is total logical file size divided by duration, not bytes read; content_identity.rs reads at most 102,400 bytes per file, so the true read rate in that phase is at most 7.6 MB/s, about 1,160 times lower than the 8.86 GB/s the CSV reports. The benchmark tree is generated sparse, which makes those durations optimistic rather than pessimistic. Amdahl inputs: share 0.045 (60.15 / 1,340.8), kernel_speedup 10, boundary 0, target 13.4 (~1K files/sec at docs/core/indexing.mdx:388 over 74.58 measured), giving 1.042x end-to-end and a 1.047x ceiling. Commit, release and author history came from the GitHub REST API on the main branch: `gh api &quot;repos/spacedriveapp/spacedrive/commits?sha=main&amp;since=...&amp;until=...&quot;` with per-quarter windows, and `gh api repos/spacedriveapp/spacedrive/releases`. No build, test, benchmark or execution of the app was performed, and nothing was written inside the clone. Objective: no migration RFC was supplied, so the assessment takes the proposal the repository states about itself. User-supplied facts: none. G4 is UNKNOWN rather than FAIL because 858 commits landed in 2025Q4 and the repository is not archived; the decision turns on G2 and G3, which fail on measured artifacts the project published. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/spacedriveapp/spacedrive，commit 6dfeccf2113039e35f2ce735f945e70dc3e4ea45，shallow clone，2,919 个纳管文件。范围：整个仓库，被评估的引擎是 core/，被审视范围的子系统是 core/src/service/{network,sync}。采样：Rust 240,726 行、1,166 个文件，其中 core/ 197,230 行 901 个文件，crates/ 24,099 行 153 个文件，apps/ 16,084 行 74 个文件，extensions/ 1,293 行，xtask/ 2,020 行。界面是 252 个 .tsx 文件 48,279 行、153 个 .ts 文件 23,674 行；.ts 文件逐一确认过是 TypeScript，不是翻译用的 XML。Swift 17 个文件 3,211 行，adapters/ 下 11 个适配器共 2,801 行 Python。行数是 `git ls-files -z &lt;glob&gt; | xargs -0 cat | wc -l` 的原始行数，含注释和空行；这个仓库里没有内置的第三方源码树。36,463 行的 P2P 与 sync 口径是 core/src/service/{network,sync,file_sync,sidecar_sync} 加 core/src/infra/sync 加 core/src/ops/{network,sync,file_sync}，和用来对比的 197,230 行同一个原始行口径；如果再算上 core/src/device 和 core/src/ops/{devices,redundancy}，是 38,137 行。unsafe 是 `grep -o &#x27;\bunsafe\b&#x27;` 的出现次数，不是匹配行数，也没有剔除注释：39 个文件里 220 次，其中 109 次在 crates/ffmpeg。性能证据来自项目自己提交进 core/benchmarks/results 的材料：三个场景、两种盘，共 18 个 JSON，加一份 whitepaper_metrics.csv。决定性的一对是内置 SSD 上的 shape_large：Apple M3 Max、16 个物理核、48 GB，100,000 个文件、16,507 个目录，只做 discovery 的 total_s 是 60.15，做 content-identification 的 total_s 是 1,340.8。那份 CSV 里的 GB/s 列是文件逻辑总大小除以时长，不是实际读取字节；content_identity.rs 每个文件最多读 102,400 字节，所以这一阶段真实读取速率最高 7.6 MB/s，比 CSV 写的 8.86 GB/s 低大约 1,160 倍。基准目录树是稀疏生成的，所以这些时长是偏乐观而不是偏悲观。Amdahl 输入：share 0.045（60.15 / 1,340.8）、kernel_speedup 10、boundary 0、target 13.4（docs/core/indexing.mdx:388 的 ~1K files/sec 除以实测 74.58），得到端到端 1.042×、上限 1.047×。commit、release 和作者历史来自 GitHub REST API 的 main 分支：`gh api &quot;repos/spacedriveapp/spacedrive/commits?sha=main&amp;since=...&amp;until=...&quot;` 按季度取窗口，以及 `gh api repos/spacedriveapp/spacedrive/releases`。没有做任何构建、测试、基准，也没有运行这个应用，clone 里没有写入任何东西。目标：没有人给出迁移 RFC，因此按仓库自己陈述的方案评估。用户提供的事实：无。G4 记 UNKNOWN 而不是 FAIL，因为 2025Q4 有 858 个 commit 落地，而且仓库没有归档；决策落在 G2 和 G3 上，这两道门是在项目自己公布的实测材料上失败的。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A Deep-mode benchmark for the thumbnail path</span><span data-l="zh">缩略图路径的 Deep 模式基准</span></td><td><span data-l="en">Three scenarios are committed and none covers media. While that holds, the thumbnail half of G2 is UNKNOWN and no claim about media performance can be authorized in either direction.</span><span data-l="zh">提交进来的是三个场景，没有一个覆盖媒体。这种状态下，G2 里缩略图那一半是 UNKNOWN，关于媒体性能的主张两个方向都授权不了。</span></td></tr><tr><td><span data-l="en">Frame time and input latency for the explorer UI</span><span data-l="zh">explorer 界面的帧时间与输入延迟</span></td><td><span data-l="en">39,926 lines of TSX in a system webview decide what users call fast. Until someone measures it, the GPUI option stays UNKNOWN rather than excluded.</span><span data-l="zh">系统 webview 里 39,926 行 TSX，决定了用户口中的「快」。在有人量它之前，GPUI 那个方案停在 UNKNOWN，不是被排除。</span></td></tr><tr><td><span data-l="en">A benchmark on a tree with real bytes</span><span data-l="zh">在真实字节的目录树上跑一次基准</span></td><td><span data-l="en">The committed recipe writes sparse files, so 13.4 ms per file is measured against holes. Real blocks would raise the absolute cost and shrink the traversal share further.</span><span data-l="zh">提交的 recipe 写的是稀疏文件，所以每文件 13.4 ms 是对着空洞测出来的。真实块会把绝对开销抬上去，把遍历那部分的占比压得更小。</span></td></tr><tr><td><span data-l="en">Whether the delivery capacity of 2025Q4 still exists</span><span data-l="zh">2025Q4 那种交付产能是否还在</span></td><td><span data-l="en">858 commits in one quarter is real capacity, eight months ago. 36 commits in four months is real too. G4 stays UNKNOWN because the repository cannot settle which one describes now.</span><span data-l="zh">一个季度 858 个 commit 是实在的产能，但那是八个月前。四个月 36 个 commit 也是实在的。G4 停在 UNKNOWN，因为仓库判不出哪一个描述的是现在。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 6dfeccf · history from the GitHub REST API · no build, benchmark or execution of the app</span><span data-l="zh">公开仓库 · 在 commit 6dfeccf 上做静态分析 · 历史来自 GitHub REST API · 没有构建、基准，也没有运行这个应用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-02",
+  "repository": {
+    "path": "https://github.com/spacedriveapp/spacedrive",
+    "commit": "6dfeccf2113039e35f2ce735f945e70dc3e4ea45",
+    "scope": "whole repository; core/ is the assessed engine, packages/interface is the assessed UI surface, and core/src/service/{network,sync} is the subsystem under scope review",
+    "sampling": "shallow clone; 2,919 tracked files enumerated; core/, crates/, apps/, packages/, adapters/, docs/ and core/benchmarks/results measured; commit, release and author history from the GitHub REST API; no build, test or benchmark was run against the project"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis plus the GitHub REST API for commit, release and author history; no build, benchmark, or execution of the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A Deep-mode benchmark for the thumbnail path",
+      "Frame time and input latency for the explorer UI",
+      "A benchmark on a tree with real bytes",
+      "Whether the delivery capacity of 2025Q4 still exists"
+    ]
+  },
+  "objective": {
+    "driver": "mixed performance, distribution and scope economics",
+    "requirement": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+    "baseline": "committed benchmark: 1,662.5 files/s discovery and 74.58 files/s content identification on 100,000 files, Apple M3 Max, internal SSD; the highest non-prerelease release is 0.4.3 from 2025-03-24, and the two 2.0.0 releases are prereleases",
+    "target": "docs/core/indexing.mdx:388 states ~1K files/sec for Content mode; no other threshold in the repository carries a stated regime"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "stay-rust-cut-scope",
+    "confidence": "MEDIUM",
+    "robustness": "CONDITIONAL",
+    "because": "A file manager spends its time on three things: filesystem I/O, thumbnail decode, database queries. Spacedrive has 240,726 lines of Rust. Its own committed benchmark puts content identification at 95.5% of index wall clock on 100,000 files. That phase costs 13.4 ms per file and reads at most 58 KB of each one. The cost is six File::open calls per file, awaited in sequence. No language fixes that.",
+    "change_trigger": "Two things reopen this. First, a Deep-mode profile that splits thumbnail wall clock between Spacedrive's own pipeline and the ffmpeg-sys, libheif and pdfium calls it makes. No such benchmark exists, so the thumbnail half of G2 is UNKNOWN rather than refuted. Second, one non-prerelease release shipping the sync subsystem. That would move G3 from FAIL to arguable."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "stay-rust-cut-scope",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "One Cargo workspace builds apps/tauri for desktop, apps/server, apps/cli at 9,808 lines, and apps/mobile/modules/sd-mobile-core for iOS and Android, alongside packages/swift-client. That distribution requirement is real and it is what Rust actually serves. The performance requirement is stated three ways and measured once: docs/overview/history.mdx:242 claims 8,500 files/second with no hardware or configuration, docs/core/indexing.mdx:388 claims ~1K files/sec for Content mode, and core/benchmarks/results records 74.58 files/s."
+    },
+    {
+      "id": "G2",
+      "option_id": "stay-rust-cut-scope",
+      "name": "rust-specific causality",
+      "state": "FAIL",
+      "evidence": "Thumbnail decode goes to ffmpeg-sys-next 7.1.3, libheif-sys 2.2.1+1.17.6, pdfium-render 0.8.27 and libwebp-sys 0.9.6. The advertised ~55ms search is SQLite FTS5, created in core/src/infra/db/migration/m20250120_000001_create_fts5_search_index.rs. Filesystem I/O is where Spacedrive's own Rust runs, and its dominant phase costs 13.4 ms per file to read at most 58 KB, because core/src/volume/backend/local.rs:133 opens the file on every one of six ranged reads. Rust is load-bearing for distribution. It is not load-bearing for any of the three."
+    },
+    {
+      "id": "G3",
+      "option_id": "stay-rust-cut-scope",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "core/src/service/{network,sync,file_sync,sidecar_sync} plus core/src/infra/sync plus core/src/ops/{network,sync,file_sync} come to 36,463 lines, 18.5% of core/. Device pairing alone is 2,629 lines and the sync peer is 3,038. The repository was created 2021-09-27. Across 28 releases the highest without the prerelease bit is 0.4.3, published 2025-03-24; the two 2.0.0 releases are both marked prerelease. The smaller option keeps every line of Rust and puts that subsystem behind a flag."
+    },
+    {
+      "id": "G4",
+      "option_id": "stay-rust-cut-scope",
+      "name": "delivery and reversibility",
+      "state": "UNKNOWN",
+      "evidence": "Commits on main: 858 in 2025Q4, 344 in 2026Q1, then 35 in April, 0 in May, 0 in June, 1 in July. Of 1,504 commits in the last twelve months, 1,256 carry a single author name. The repository is not archived and the newest commit is dated 2026-07-28, so stalled is supported by the evidence and abandoned is not. Capacity existed eight months ago. Whether it exists now cannot be read off the repository, which is why this gate is UNKNOWN and not FAIL."
+    }
+  ],
+  "options": [
+    {
+      "id": "stay-rust-cut-scope",
+      "name": "Keep the Rust core, defer P2P and sync",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+      "benefit_interval": "takes 36,463 lines off the 1.0 critical path",
+      "one_time_cost": "feature-flagging one subsystem",
+      "recurring_cost": "the flagged code still needs to compile",
+      "time_to_value": "weeks",
+      "compatibility": "no language change; the sync schema stays on disk",
+      "reversibility": "flip the flag back on",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "Keeps the whole Rust engine, including the parts the evidence credits, and removes the one subsystem whose predecessor the team's own retrospective blames for V1."
+    },
+    {
+      "id": "fix-io-loop",
+      "name": "Open each file once in the sampled hash",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+      "benefit_interval": "aims at 95.5% of index wall clock",
+      "one_time_cost": "days",
+      "recurring_cost": "none",
+      "time_to_value": "days",
+      "compatibility": "hash output unchanged",
+      "reversibility": "git revert",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "Six File::open calls per file, awaited in sequence, sit inside the phase that is 95.5% of the measured wall clock. One handle and six seeks is the cheapest change on the board."
+    },
+    {
+      "id": "stay-full-scope",
+      "name": "Carry on at the current scope",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+      "benefit_interval": "the product as pitched, if it ships",
+      "one_time_cost": "already spent",
+      "recurring_cost": "240,726 lines against one active author",
+      "time_to_value": "unbounded on this evidence",
+      "compatibility": "n/a — this is the status quo",
+      "reversibility": "n/a",
+      "evidence_strength": "MODERATE",
+      "disposition": "exclude",
+      "reason": "Four years ten months, 28 releases, the highest non-prerelease still 0.4.3, and 36 commits in the last four months. The scope has outrun the delivery capacity the repository can show."
+    },
+    {
+      "id": "rust-native-ui",
+      "name": "Replace the webview UI with Rust GPUI",
+      "implementation": "rust",
+      "scope": "component",
+      "target": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+      "benefit_interval": "unmeasured; no frame-time or input-latency data exists",
+      "one_time_cost": "39,926 lines of TSX to re-implement",
+      "recurring_cost": "a GUI framework the project does not own",
+      "time_to_value": "quarters",
+      "compatibility": "the whole visible product surface",
+      "reversibility": "keep both shells, at double cost",
+      "evidence_strength": "UNKNOWN",
+      "disposition": "retain",
+      "reason": "apps/gpui-photo-grid exists at 322 lines and is commented out of the workspace members list. The idea is live and entirely unmeasured, so it stays UNKNOWN rather than excluded."
+    },
+    {
+      "id": "swift-core-mac",
+      "name": "Swift core, Apple platforms only",
+      "implementation": "non-rust-native",
+      "scope": "full",
+      "target": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+      "benefit_interval": "same C decoders, same SQLite, one fewer toolchain",
+      "one_time_cost": "197,230 lines of core/ re-implemented",
+      "recurring_cost": "no Windows, Linux or Android story",
+      "time_to_value": "years",
+      "compatibility": "abandons the non-Apple targets in the workspace",
+      "reversibility": "none",
+      "evidence_strength": "MODERATE",
+      "disposition": "exclude",
+      "reason": "The strongest non-Rust native alternative on macOS. It fails the requirement the repository actually states, because apps/mobile, apps/server and the Windows build are in the tree."
+    },
+    {
+      "id": "ts-node-core",
+      "name": "TypeScript core calling the same C libraries",
+      "implementation": "external",
+      "scope": "full",
+      "target": "index and browse a user's own files fast across macOS, Windows, Linux, iOS and Android, and publish a release without the prerelease bit",
+      "benefit_interval": "hot paths unchanged; hiring and iteration get easier",
+      "one_time_cost": "197,230 lines of core/ re-implemented",
+      "recurring_cost": "a runtime shipped to every device",
+      "time_to_value": "years",
+      "compatibility": "loses the single native binary and the mobile cores",
+      "reversibility": "none",
+      "evidence_strength": "MODERATE",
+      "disposition": "exclude",
+      "reason": "Prisma made this exact move and got 3.4x by deleting a chatty boundary. Spacedrive's boundary is not chatty, and its distribution requirement is the one thing Rust is measured to serve."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "fix-io-loop",
+        "stay-rust-cut-scope"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Spacedrive owns the hot path, and the project measured it. On its own 100,000-file recipe, a discovery-only index finishes in 60.15 s. Turn content identification on and the same tree takes 1,340.8 s. So 95.5% of the work sits in one phase of Spacedrive's own code.",
+      "source": "core/benchmarks/results/shape_large-{indexing_discovery,content_identification}-ssd.json",
+      "baseline_regime": "shape_large recipe, Apple M3 Max, 16 physical cores, 48 GB, internal SSD",
+      "caveat": "The same ratio holds on the smaller recipes: 2.0% for 5,000 files and 2.8% for 20,000. The benchmark tree is generated sparse, so these are optimistic durations.",
+      "change_trigger": "A run on a tree with real bytes would move the absolute times; the share would move against Spacedrive's own code, not for it."
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "stay-full-scope"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "Directory traversal is 4.5% of a full Content-mode index. Make it ten times faster and the index gets 1.042× faster; make it infinitely fast and the ceiling is 1.047×. The project's own docs ask for 13.4× over its own measurement. The gap does not live in the traversal code.",
+      "source": "share 0.045 from the two committed shape_large runs; target 13.4 = ~1K files/sec at docs/core/indexing.mdx:388 over 74.58 files/s measured",
+      "baseline_regime": "Amdahl on measured wall clock, same host and recipe",
+      "caveat": "The kernel speedup of 10 is generous for code that already uses a work-stealing parallel walker on half the cores.",
+      "change_trigger": "If a profile relocated the time into traversal, the share and the ceiling both change."
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [
+        "rust-native-ui"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "The explorer a user actually looks at is 39,926 lines of TSX in a system webview. Nobody has published a frame time or an input latency for it. Whatever the Rust core does about garbage collection, it does not reach the surface where people decide whether an app feels fast.",
+      "source": "packages/interface · 191 .tsx files, 39,926 lines; 77 .ts files, 6,837 lines",
+      "baseline_regime": "n/a — the measurement is absent",
+      "caveat": "Tauri's own maintainers have said WebKitGTK on Linux is getting worse each release; on Windows WebView2 is Chromium. Neither is Spacedrive's code.",
+      "change_trigger": "A frame-time and input-latency measurement of the explorer grid would make the GPUI option assessable."
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "This is a desktop app. It runs on hardware the user already paid for, so there is no instance count, no utilization and no hourly price to compare across options.",
+      "source": "apps/tauri · apps/mobile · desktop and mobile targets",
+      "baseline_regime": "n/a",
+      "caveat": "apps/server exists for self-hosting, but no deployment or cost data is published for it.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [
+        "stay-rust-cut-scope",
+        "stay-full-scope"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Two native binaries come out of core/: spacedrive and sd-daemon. A desktop file manager gets launched and killed all day, and there is no runtime to boot first. That property is worth something and it is the kind of thing Rust gives you for free.",
+      "source": "core/Cargo.toml [[bin]] spacedrive, sd-daemon · core/src/bin (4 files, 698 lines)",
+      "baseline_regime": "structural, from the manifest",
+      "caveat": "No cold-start number is published. The ~150MB-for-1M-files figure in docs has no artifact behind it either.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Rust removes memory-unsafety from 240,726 lines, and that is a real property. It is not a distinctive one here. Swift is memory-safe, TypeScript is memory-safe, and the code that parses hostile image and video bytes is C under every option.",
+      "source": "220 unsafe occurrences across 39 .rs files; 109 of them in crates/ffmpeg (2,672 lines)",
+      "baseline_regime": "occurrence count from grep -o, not line count; comments not excluded",
+      "caveat": "crates/ffmpeg is a hand-written FFI wrapper around ffmpeg-sys-next, so the densest unsafe in the tree sits exactly at the untrusted-input boundary.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "stay-rust-cut-scope"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The indexer uses a work-stealing walker on half the available cores and a memory-mapped arena for the ephemeral index, 3,623 lines of it. Doing that in a language with real threads and no collector is easier. The property is genuine.",
+      "source": "core/src/ops/indexing/ephemeral/ (arena.rs, index.rs, writer.rs, snapshot.rs) · docs/core/indexing.mdx:395",
+      "baseline_regime": "structural, from the implementation",
+      "caveat": "It did not prevent the defect that dominates the measurement: content_identity.rs awaits six separate read_range calls per file and local.rs:133 opens the file inside each one.",
+      "change_trigger": "Fixing that loop is the test of whether the concurrency design is as good as the structure suggests."
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "stay-rust-cut-scope",
+        "stay-full-scope"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "One workspace ships a desktop app, a headless server, a 9,808-line CLI, and iOS and Android cores. This is the requirement Rust is measurably serving. Swift does not reach Windows or Android, and a Node core does not produce a single native binary for five targets.",
+      "source": "Cargo.toml members: apps/server, apps/cli, apps/tauri/src-tauri, apps/mobile/modules/sd-mobile-core/core, core, crates/*",
+      "baseline_regime": "workspace manifest at this commit",
+      "caveat": "packages/swift-client (10 .swift files) and packages/ts-client are generated by specta from the Rust types, so the binding surface is a maintenance cost as well as a benefit.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "stay-full-scope",
+        "stay-rust-cut-scope"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The team's own retrospective names the bill. They wrote prisma-client-rust and rspc because Rust had neither, then could not maintain either. Prisma's Rust engine was deprecated under them. libp2p was replaced by Iroh. This is what a thin ecosystem costs, and it is priced in years.",
+      "source": "docs/overview/history.mdx:82-92 — \"The team built prisma-client-rust and rspc out of necessity, then couldn't maintain them\"",
+      "baseline_regime": "first-party retrospective committed to the repository",
+      "caveat": "They also wrote crates/task-system, 4,835 lines of their own scheduler on top of tokio. The pattern the retrospective warns about is still in the tree.",
+      "change_trigger": "sea-orm and iroh are both maintained by others; if they hold, this lens weakens over time."
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "stay-rust-cut-scope",
+        "stay-full-scope",
+        "fix-io-loop",
+        "rust-native-ui",
+        "swift-core-mac",
+        "ts-node-core"
+      ],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Every option links the same C. Cargo.lock resolves 1,272 crates, 51 of them -sys bindings: SQLite, FFmpeg, libheif, libwebp, zstd, whisper.cpp. A Swift core would call the same FFmpeg. So would a Node core. The decode boundary is a constant, not a variable.",
+      "source": "Cargo.lock · libsqlite3-sys 0.30.1, ffmpeg-sys-next 7.1.3, libheif-sys 2.2.1+1.17.6, libwebp-sys 0.9.6, whisper-rs-sys 0.14.1, pdfium-render 0.8.27",
+      "baseline_regime": "static dependency inventory at this commit",
+      "caveat": "pdfium-render points at a spacedriveapp fork pinned to rev 983f8d8, so one of the decoders is already a maintained-by-us dependency.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "stay-full-scope"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "240,726 lines of Rust, 36,463 of them distributed systems, and 1,256 of the last 1,504 commits from one author name. 28 releases in four years ten months and none non-prerelease is still 0.4.3. core/src/service/watcher_old carries 5,559 lines kept for reference and not compiled.",
+      "source": "gh api repos/spacedriveapp/spacedrive/{commits,releases} · core/src/service/mod.rs:22",
+      "baseline_regime": "GitHub REST API, commits on main branch, and file counts at this commit",
+      "caveat": "The engineering discipline is not in question: 63 test files and 30,959 lines in core/tests, 711 test attributes repo-wide, and committed benchmark artifacts. This is a capacity finding, not a quality one.",
+      "change_trigger": "A non-prerelease release, or a second sustained contributor, moves this lens."
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "fix-io-loop"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "There is an in-stack change worth days that aims at 95.5% of the measured wall clock. Hold one file handle instead of opening six times per file. Any argument that Spacedrive needs a different language for speed has to beat that first, and nobody has tried it.",
+      "source": "core/src/domain/content_identity.rs:224,235,247 · core/src/volume/backend/local.rs:133",
+      "baseline_regime": "code reading against the committed benchmark",
+      "caveat": "The gain is not quantified here, because that would require running the benchmark and this analysis is read-only.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": {
+      "kernel_share": 0.045,
+      "kernel_speedup": 10.0,
+      "boundary_cost_share": 0.0,
+      "end_to_end_speedup": 1.0422094841063054,
+      "infinite_kernel_ceiling": 1.0471204188481675,
+      "target_speedup": 13.4,
+      "target_physically_possible": false,
+      "target_met_by_candidate": false,
+      "inputs_note": "share 0.045 is 60.15 s discovery-only against 1,340.8 s with content identification, shape_large on internal SSD, same host and recipe; kernel_speedup 10 is generous for code that already runs a work-stealing parallel walker; target 13.4 is the ~1K files/sec at docs/core/indexing.mdx:388 divided by the measured 74.58 files/s"
+    },
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Zed · GPUI",
+      "outcome": "SHIPPED",
+      "match": "a Mac-first Rust desktop app where perceived speed is the product",
+      "mismatch": "Zed owns its render path; Spacedrive's UI is 39,926 lines of TSX in a webview, and its gpui experiment is 322 lines commented out of the workspace",
+      "workload_regime": "third-party unaudited editor latency measurements",
+      "source_class": "third-party · unaudited",
+      "url": "https://zed.dev/blog/videogame"
+    },
+    {
+      "name": "Prisma · Rust query engine removed",
+      "outcome": "REVERSED",
+      "match": "the exact dependency Spacedrive built on and then got stranded by",
+      "mismatch": "Prisma's boundary was crossed per query from JavaScript; Spacedrive's core is the process, not a callee",
+      "workload_regime": "first-party benchmarks, Prisma 6.16 GA",
+      "source_class": "first-party · engineering blog",
+      "url": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm"
+    },
+    {
+      "name": "Linear · sync engine",
+      "outcome": "STAYED",
+      "match": "local-first sync as a product feature, which is what Spacedrive's 36,463 lines are for",
+      "mismatch": "Linear syncs a SaaS object graph through a server; Spacedrive is leaderless P2P across user devices with pairing and NAT traversal",
+      "workload_regime": "first-party product measurements",
+      "source_class": "first-party · engineering blog",
+      "url": "https://linear.app/now/scaling-the-linear-sync-engine"
+    },
+    {
+      "name": "Mozilla · Servo as a Gecko replacement",
+      "outcome": "CANCELLED",
+      "match": "scope economics against available heads, and R\u0026D that was still worth doing",
+      "mismatch": "Mozilla had a shipping product to fall back on; Spacedrive's V1 was retired and V2 is the only thing there is",
+      "workload_regime": "first-party account and public record",
+      "source_class": "first-party · blog + public record",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Fixie · Rust at a startup",
+      "outcome": "CAUTIONARY",
+      "match": "a VC-funded startup pre-product-market-fit, which is where Spacedrive spent 2022-2025",
+      "mismatch": "one account about a backend CRUD product; Spacedrive's requirement does include five native targets",
+      "workload_regime": "first-party velocity account, n=1",
+      "source_class": "first-party · essay",
+      "url": "https://mdwdotla.medium.com/using-rust-at-a-startup-a-cautionary-tale-42ab823d9454"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Open the file once",
+      "owner": "whoever owns core/src/domain and core/src/volume",
+      "cost_range": "days",
+      "artifact": "a re-run of shape_large content-identification on the committed recipe, with one File handle per file instead of six opens",
+      "acceptance": "recorded files/s rises and the hash output is byte-identical for the same tree",
+      "deadline_or_stop": "if wall clock does not move, publish the flame graph — the time is elsewhere and this report is wrong about where",
+      "rollback": "git revert; the hash algorithm is untouched"
+    },
+    {
+      "step": 2,
+      "title": "Benchmark Deep mode before saying anything about media",
+      "owner": "whoever proposes media performance work",
+      "cost_range": "1-2 weeks",
+      "artifact": "a Deep-mode benchmark scenario splitting wall clock between Spacedrive's pipeline and time inside ffmpeg-sys, libheif and pdfium",
+      "acceptance": "the two shares sum to measured wall clock on a recipe a third party can regenerate",
+      "deadline_or_stop": "close the media performance track if most of the time is inside the C libraries",
+      "rollback": "measurement only; no product code changes"
+    },
+    {
+      "step": 3,
+      "title": "Put the sync subsystem behind a flag and ship a 1.0",
+      "owner": "the maintainer",
+      "cost_range": "weeks",
+      "artifact": "a release without the prerelease bit whose default build excludes core/src/service/{network,sync}",
+      "acceptance": "the release is published and the gated code still compiles under its feature flag",
+      "deadline_or_stop": "if the flag cannot be cut without breaking the on-disk schema, re-price the subsystem as core and say so in writing",
+      "rollback": "flip the feature flag back on"
+    },
+    {
+      "step": 4,
+      "title": "Attach a regime to every published number, or delete it",
+      "owner": "whoever maintains docs/",
+      "cost_range": "days",
+      "artifact": "hardware, configuration and recipe attached to every files/s and millisecond figure in docs/, or the figure removed",
+      "acceptance": "no performance figure in docs/ lacks a regime and none contradicts core/benchmarks/results",
+      "deadline_or_stop": "delete rather than defend any figure with no artifact behind it",
+      "rollback": "documentation only"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at 6dfeccf2113039e35f2ce735f945e70dc3e4ea45 represents the shipped tree, and the JSON and CSV files under core/benchmarks/results are read as the project's own measurements of its own code.",
+    "The read-volume upper bound assumes no file can produce a read larger than MINIMUM_FILE_SIZE, which follows from content_identity.rs:180-186: files at or below 102,400 bytes are read whole and larger files are sampled at roughly 57,344 bytes.",
+    "Author names 'Jamie Pine' and 'James Pine' are treated as one person, since the GitHub login is jamiepine and the benchmark host path is /Users/jamespine. The 1,256-of-1,504 figure uses 'Jamie Pine' alone, so the conclusion does not depend on that reading.",
+    "No migration RFC was supplied, so the proposal assessed is the one the repository states about itself: a Rust core for a cross-device file manager at the scope currently on main.",
+    "Commit counts come from the GitHub commits endpoint restricted to sha=main, so work living only on unmerged branches is not counted."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "Of the four performance numbers the project advertises, search belongs to SQLite FTS5, transfer belongs to Iroh, and the memory figure has no artifact. The one that is Spacedrive's own is 13.4x off Spacedrive's own benchmark.",
+        "evidence": "docs/overview/history.mdx:240-245 vs core/benchmarks/results"
+      },
+      {
+        "id": "M2",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "Traversal is 4.5% of a Content-mode index, so the ceiling from optimizing it is 1.047x. The documentation asks for 13.4x. The reach argument is not available.",
+        "evidence": "D2 · Amdahl share 0.045, ceiling 1.047x, target 13.4x"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The one committed benchmark tree is generated sparse: an 8 KB header, four 10 KB samples, an 8 KB footer, then set_len. Real disks return real blocks. So 13.4 ms per file is the optimistic figure, not the pessimistic one.",
+        "evidence": "core/benchmarks/src/generator/filesystem.rs:94-135 · recipes/shape_large.yaml"
+      },
+      {
+        "id": "M4",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "prisma-client-rust, rspc and a 4,835-line task system were all written because Rust lacked them. Two became unmaintainable and the retrospective says so. That cost belongs in the price of the language, not outside it.",
+        "evidence": "docs/overview/history.mdx:82-92 · crates/task-system"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "HIT",
+        "claim": "1,256 of the last 1,504 commits on main carry a single author name, and 87 more come from an agent account. A 240,726-line codebase with one active author is a capacity fact, whatever the language.",
+        "evidence": "gh api repos/spacedriveapp/spacedrive/commits?since=2025-08-01"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "A days-long in-stack change aims at 95.5% of the measured wall clock: hold one file handle instead of opening six times per file. Nobody has tried it yet.",
+        "evidence": "D12 · content_identity.rs:224,235,247 · local.rs:133"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Cutting the sync subsystem out of 1.0 costs the product its headline feature. That is a real loss and the report does not pretend otherwise. It is priced against a four-year-ten-month record whose highest non-prerelease tag is still 0.4.3.",
+        "evidence": "G3 · 36,463 lines · gh api releases, 28 releases, highest non-prerelease 0.4.3"
+      },
+      {
+        "id": "S3",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The report credits the distribution win at G1 and D8 and keeps the scope word at STAY. It never claims Rust was the wrong language for this product.",
+        "evidence": "D8 · Cargo.toml workspace members across five targets"
+      },
+      {
+        "id": "S4",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "220 unsafe occurrences across 39 files and 51 -sys crates are disclosed, and the decode boundary is priced as identical under every option including the non-Rust ones.",
+        "evidence": "D6, D10 · Cargo.lock 1,272 crates, 51 -sys"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "Step one carries its own falsifier. If holding one file handle does not move wall clock, the flame graph gets published and this report was wrong about where the time is.",
+        "evidence": "reversible path step 1"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

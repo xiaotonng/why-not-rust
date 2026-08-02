@@ -171,10 +171,81 @@ block using `json_for_html`; do not hand-roll a script-closer replacement.
 | REJECT | `a-reject` | a gate failed or a cheaper option wins |
 | DEFER–MEASURE | `a-defer` | a decisive gate is unknown; collect named evidence |
 
+## How the prose should read
+
+A senior engineer wrote this memo for colleagues who are busy and skeptical. It is not
+a specification, a compliance filing, or a press release. Precision is mandatory;
+stiffness is not.
+
+**Structure a paragraph like this:** state the fact, then what it means. Put the caveat
+in its own sentence, and only where it changes the reader's action.
+
+**Sentence rhythm is the main tell.** Vary length deliberately. Every paragraph should
+contain at least one sentence under eight words. Keep the longest under about
+thirty-five words; if a sentence needs a nested clause to survive, it is two sentences.
+At most one em-dash per paragraph, never nested.
+
+**Banned constructions** — these are the machine-written tells:
+
+- `That is why…`, `which is exactly why…`, `This is not X. It is Y.` as a recurring beat
+- Titles built on `not X, but Y`. One per report at most, and only if it is the actual finding.
+- Padding adjectives asserting the quality of your own analysis: `genuinely`, `honest`,
+  `decisive`, `material`, `real` (when it just means "true"), `careful`, `rigorous`
+- `It is worth noting`, `It should be emphasized`, `Importantly`, `Notably`
+- Appending a hedge to every claim. Three caveats in a section is plenty; twelve is noise.
+- Perfectly parallel bullet lists where every item has the same grammatical shape and
+  roughly the same length
+
+**Let the numbers carry the weight.** `The event loop is 516 lines` beats `The event
+loop is remarkably small at only 516 lines`. Delete adjectives that a figure already
+implies.
+
+**Titles are sentences a person would say out loud.** "The event loop is 516 lines"
+works. "On the question of bottleneck ownership and its implications" does not.
+
+Before and after, from a real report:
+
+> ✗ Both halves of the usual proposal fail on evidence this repository supplies. The
+> performance half has no public profile at all, and the code it targets is tiny: the
+> event loop is 516 lines. The safety half cannot be delivered by a Rust rewrite,
+> because Redis vendors 141,130 lines of C and headers, of which 73,227 — jemalloc's src
+> and include trees plus lua/src, the interpreter EVAL semantics depend on — compile
+> into the binary.
+
+> ✓ Two things get proposed here: make Redis faster, make it memory-safe. Neither
+> survives the repository. On speed, nobody has published a profile, and the file people
+> picture rewriting is 516 lines. On safety, Redis compiles 73,227 lines of other
+> people's C into the binary — jemalloc, and the Lua interpreter that EVAL is defined
+> by. Rewrite all 209,442 lines of Redis and that C is still there.
+
+Same facts, same citations, same verdict. Half the clause depth.
+
+**What must not change for the sake of voice:** every number, `file:line` citation, URL,
+source caveat, gate state, evidence-strength label, and verdict word. Voice is how the
+evidence reads, never which evidence survives.
+
+## Bilingual reports
+
+Any visible string may ship as an `(english, chinese)` pair. Both languages live in the
+document; a root `data-lang` attribute selects one and the masthead button flips it. No
+new `<script>` is introduced — the toggle is an inline handler, exactly like the theme
+button.
+
+- Translate meaning, not word order. If the Chinese reads like a translation, rewrite it.
+- Keep in English inside Chinese prose: verdict and authorization words, evidence states
+  (`SUPPORTS` / `UNKNOWN` / `STRONG` …), identifiers, file paths, URLs, gate ids, product
+  and project names, and units.
+- Register: 工程评审，不是营销，也不是论文。短句优先。
+- 禁用：「值得注意的是」「众所周知」「不难看出」「综上所述」「在……的情况下」，以及任何把一句话拆成
+  「不是 A，而是 B」的固定句式重复出现。
+- 数字后面不要再加形容词。`事件循环 516 行` 就够了，不要 `仅仅只有 516 行之小`。
+- The machine-readable assessment record always stores the English side.
+
 ## Labels
 
 | Token | English | Chinese |
 |---|---|---|
+| `L_LANG` | EN / 中文 | EN / 中文 |
 | `L_KICKER` | RUST ADOPTION DECISION | RUST 采用决策 |
 | `L_AUTH` | Authorization | 授权状态 |
 | `L_CONFIDENCE` | Confidence | 置信度 |

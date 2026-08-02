@@ -24,6 +24,12 @@ It is not a Rust rejection generator. It is equally willing to say “migrate th
 unsafe parser,” “extract the hot kernel,” “adopt the existing Rust library,” or “the
 time is in SQL; keep the application where it is.”
 
+See it decide: **[twenty real projects, twenty verdicts](https://xiaotonng.github.io/why-not-rust/)** — ten
+desktop applications whose teams bet on a Rust rewrite (Zed, fish, Ghostty, remacs,
+xi-editor, Lapce, Spacedrive, Signal Desktop, Bitwarden, KeePassXC), and ten systems and
+tooling projects (curl, SQLite, OpenSSL, FFmpeg, Redis, esbuild, flake8, prisma-engines,
+uutils/coreutils, Bun).
+
 ## Install with skills.sh
 
 The current `skills` CLI requires Node.js 22.20 or newer. Inspect the package first,
@@ -142,12 +148,62 @@ The report is a single dark/light HTML file with:
 
 [Open the full sample report](examples/sample-report.html).
 
+## Twenty real projects, twenty decisions
+
+The [case gallery](examples/README.md) runs twenty well-known repositories through the
+same four gates. Static read-only analysis at a named commit; no build, test, benchmark,
+or network call was run against any target. Each report ships English and 中文 in one
+file, with light and dark themes.
+
+### Desktop applications
+
+Apps — mostly Mac apps — whose teams believed a Rust rewrite was the answer. Six of the
+ten already bet on Rust: two are dead, two have stalled, two are thriving.
+
+| Project | Stack | Scope | Authorization | The finding |
+|---|---|---|---|---|
+| [remacs](examples/remacs-why-not-rust.html) | Rust → dead | `STAY` | `REJECT` | 47% of Emacs' Lisp primitives moved, 8% of the code; 5 of 126 C files retired in 4 years |
+| [xi-editor](examples/xi-editor-why-not-rust.html) | Rust → dead | `EXTRACT` | `APPROVE` | The cross-process boundary grew to 2.46× the editing code it carried |
+| [Lapce](examples/lapce-why-not-rust.html) | Rust | `EXTRACT` | `APPROVE` | 4.4% of Zed's size in the same language; a 54,002-line GUI toolkit written on the side |
+| [Spacedrive](examples/spacedrive-why-not-rust.html) | Rust + Tauri | `STAY` | `REJECT` | Its own benchmark: 95.5% of index time in a phase that reopens each file six times |
+| [Zed](examples/zed-why-not-rust.html) | Rust + GPUI | `MIGRATE` | `APPROVE` | An 8.33 ms budget compiled in — but leaving the web view bought the frame rate, not Rust |
+| [fish](examples/fish-shell-why-not-rust.html) | C++ → Rust | `MIGRATE` | `APPROVE` | 78,532 lines of C++ to zero files; the plan guessed six months and it took 761 days |
+| [Ghostty](examples/ghostty-why-not-rust.html) | Zig + Swift | `STAY` | `REJECT` | The praised part is 32,377 lines of Swift; a safe build already ships, unmeasured |
+| [Bitwarden](examples/bitwarden-desktop-why-not-rust.html) | Electron + Rust | `STAY` | `REJECT` | 28,301 lines of Rust behind 38 functions — the smallest sufficient option, already taken |
+| [Signal Desktop](examples/signal-desktop-why-not-rust.html) | Electron | `STAY` | `REJECT` | 308 lines of own native code against ~36M lines of bundled Chromium |
+| [KeePassXC](examples/keepassxc-why-not-rust.html) | C++ / Qt | `STAY` | `REJECT` | Frames 2,003 lines of the KDBX path itself; Qt, zlib and Botan parse the rest |
+
+### Systems and developer tooling
+
+| Project | Language | Scope | Authorization | The finding |
+|---|---|---|---|---|
+| [curl](examples/curl-why-not-rust.html) | C | `EXTRACT` | `APPROVE` | The Rust TLS backend that shipped is 1,468 lines; the deeper HTTP attempt was deleted in 8.12.0 |
+| [SQLite](examples/sqlite-why-not-rust.html) | C | `STAY` | `REJECT` | Gates 1 and 2 pass; 590× test-to-source and a 2050 compatibility promise end it |
+| [OpenSSL](examples/openssl-why-not-rust.html) | C | `STAY` | `DEFER–MEASURE` | 6,357 exported symbols, and no published per-component advisory attribution to size any scope |
+| [FFmpeg](examples/ffmpeg-why-not-rust.html) | C + asm | `PARTIAL` | `APPROVE` | Authorize the 72,465-line demux and parser layer; 194,278 lines of hand-written asm rule out the rest |
+| [Redis](examples/redis-why-not-rust.html) | C | `STAY` | `REJECT` | 73,227 lines of vendored C still compile into the binary, so it misses its own safety objective |
+| [esbuild](examples/esbuild-why-not-rust.html) | Go | `STAY` | `REJECT` | All four documented speed factors were obtained with a garbage collector |
+| [flake8](examples/flake8-why-not-rust.html) | Python | `STAY` | `REJECT` | Real 10× gap; 4,741-line orchestrator caps at a 1.43× ceiling, so adopt instead |
+| [prisma-engines](examples/prisma-engines-why-not-rust.html) | Rust | `STAY` | `REJECT` | Boundary cost was 2.36× the baseline's whole runtime; removing Rust was the fix |
+| [uutils/coreutils](examples/coreutils-why-not-rust.html) | Rust | `PARTIAL` | `APPROVE` | 275 `unsafe` blocks in 251,003 lines; the failed gate is per-utility acceptance |
+| [Bun](examples/bun-why-not-rust.html) | Zig → Rust | `MIGRATE` | `APPROVE` | Approved on the bug class, not on the 2.2–4.8% benchmark delta |
+
+Across the twenty: eight `APPROVE`, eleven `REJECT`, one `DEFER–MEASURE`, and all four
+scope words. Each report carries its own evidence gaps, and several decline to give a
+clean answer where the decisive measurement does not exist. Two of the approvals qualify
+themselves — Zed's says the frame rate came from leaving the web view rather than from
+Rust, and fish's bills the project for the RFC goal that justified the port and still has
+not shipped.
+
 ## Repository map
 
 - [Skill instructions](skills/why-not-rust/SKILL.md)
 - [Evidence framework and proof gates](skills/why-not-rust/references/dimensions.md)
 - [52-case source library](skills/why-not-rust/references/case-library.md)
 - [Report style contract](skills/why-not-rust/references/report-style.md)
+- [Case gallery — desktop applications](examples/README.md)
+- [Case gallery — systems and developer tooling](examples/README-systems.md)
+- [Case sources and renderer](examples/build_cases.py)
 - [Machine-readable assessment schema](skills/why-not-rust/assets/assessment-template.json)
 - [HTML report template](skills/why-not-rust/assets/report-template.html)
 - [Decision math calculator](skills/why-not-rust/scripts/decision_math.py)

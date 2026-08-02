@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · sqlite/sqlite</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">sqlite/sqlite</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">C · embedded SQL engine · 182,029 lines of core C, 1,021,321 lines of in-repo tests</span><span data-l="zh">C · 嵌入式 SQL 引擎 · 核心 C 代码 182,029 行，仓库内测试 1,021,321 行</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">keep the C engine; the verification programme is what actually ships</span><span data-l="zh">保留 C 引擎；真正交付出去的是那套验证体系</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">Gates 1 and 2 pass. SQLite is C that parses untrusted SQL and untrusted database files, and Rust would remove that defect class from any line it replaced. Gates 3 and 4 fail. Behind those 182,029 lines of C sit 100% branch and MC/DC coverage and 590 times as much test material as source. There is also a written promise: the C API and on-disk format stay backwards compatible through 2050. That is the asset. A rewrite inherits the source and none of it.</span><span data-l="zh">G1 与 G2 通过。SQLite 用 C 解析不受信任的 SQL 和不受信任的数据库文件，Rust 换掉哪一行，就在那一行消灭这类缺陷。G3 与 G4 不通过。这 182,029 行 C 背后，是 100% 分支与 MC/DC 覆盖，以及 590 倍于源码的测试材料。还有一份书面承诺：C API 与磁盘格式向后兼容到 2050 年。资产就是这些东西。重写继承得到源码，这些一样都拿不到。</span></p>
+      <p class="trigger"><span data-l="en">Stable. This flips only when a Rust engine shows equivalent verification: 100% MC/DC on its own core, plus byte-identical on-disk behaviour. Even then the question for consumers is whether to adopt it. The SQLite project still would not be rewriting anything.</span><span data-l="zh">判断稳定。只有当某个 Rust 引擎拿出对等的验证证据——自己内核上 100% MC/DC，加上字节级一致的磁盘行为——这个结论才会翻。就算那天到了，使用方要决定的也只是采不采用。SQLite 项目仍然不必重写任何东西。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep the C core; consumers who want Rust adopt an existing Rust engine</span><span data-l="zh">保留 C 内核；想要 Rust 的使用方去采用现成的 Rust 引擎</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">security-parser · embedded library with a 2050 compatibility promise</span><span data-l="zh">安全解析器 · 承诺兼容到 2050 年的嵌入式库</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">C parses untrusted SQL text and untrusted database files.</span><span data-l="zh">C 代码解析不受信任的 SQL 文本和不受信任的数据库文件。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">C→Rust removes the memory-unsafety class by construction.</span><span data-l="zh">C→Rust 从构造上消除内存不安全这一类缺陷。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">92,053.1 KSLOC of tests carry the reliability, and they do not port.</span><span data-l="zh">可靠性靠的是 92,053.1 KSLOC 测试代码，这部分搬不过去。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">A written promise of C-API and on-disk compatibility through 2050.</span><span data-l="zh">C API 与磁盘格式兼容的书面承诺，一直到 2050 年。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Test code per line of source</span><span data-l="zh">每行源码对应的测试代码</span></div><div class="value mono">590<span class="unit"><span data-l="en">×</span><span data-l="zh">×</span></span></div><div class="note"><span data-l="en">sqlite.org/testing.html · 155.8 vs 92,053.1 KSLOC</span><span data-l="zh">sqlite.org/testing.html · 155.8 对 92,053.1 KSLOC</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Branch and MC/DC coverage</span><span data-l="zh">分支与 MC/DC 覆盖率</span></div><div class="value mono">100<span class="unit"><span data-l="en">%</span><span data-l="zh">%</span></span></div><div class="note"><span data-l="en">TH3 harness on the core, measured with gcov</span><span data-l="zh">TH3 在内核上运行，用 gcov 测量</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">In-repo test material</span><span data-l="zh">仓库内的测试材料</span></div><div class="value mono">1,021,321<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">test/ · 1,294 tracked files, this commit</span><span data-l="zh">test/ · 本次提交，1,294 个受控文件</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Core C measured here</span><span data-l="zh">此处测得的核心 C</span></div><div class="value mono">182,029<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">src/ excluding test harness · 102 files</span><span data-l="zh">src/ 排除测试脚手架 · 102 个文件</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Compatibility horizon</span><span data-l="zh">兼容承诺的期限</span></div><div class="value mono">2050<span class="unit"><span data-l="en">year</span><span data-l="zh">年</span></span></div><div class="note"><span data-l="en">written C-API and on-disk format promise</span><span data-l="zh">C API 与磁盘格式的书面承诺</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust engine already shipped</span><span data-l="zh">已经在跑的 Rust 引擎</span></div><div class="value mono">23.6k<span class="unit"><span data-l="en">stars</span><span data-l="zh">stars</span></span></div><div class="note"><span data-l="en">tursodatabase/turso · ground-up rewrite, pre-1.0</span><span data-l="zh">tursodatabase/turso · 从零重写，pre-1.0</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option answers the same objective: remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships.</span><span data-l="zh">每个方案对的都是同一个目标：在不削弱 SQLite 现有保证水平的前提下，从 SQL 与数据库文件解析中消除内存不安全这一类缺陷。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Keep C + the verification programme</span><span data-l="zh">保留 C 与那套验证体系</span></span><span class="source"><span data-l="en">recommended · the assurance is the product</span><span data-l="zh">推荐 · 保证水平本身就是产品</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">class remains possible, incidence held very low</span><span data-l="zh">缺陷类仍然可能出现，发生率压得很低</span></td><td><span data-l="en">none new; existing test + fuzz budget</span><span data-l="zh">无新增；沿用现有测试与 fuzz 预算</span></td><td><span data-l="en">in effect today</span><span data-l="zh">今天已经生效</span></td><td><span data-l="en">native · nothing to roll back</span><span data-l="zh">原生 · 没有东西需要回滚</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Consumers adopt a Rust engine</span><span data-l="zh">使用方改用 Rust 引擎</span></span><span class="source"><span data-l="en">retain · the answer for callers who want Rust</span><span data-l="zh">保留 · 想要 Rust 的调用方该走这条</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">class removed for that consumer</span><span data-l="zh">这一缺陷类在该使用方处消失</span></td><td><span data-l="en">per consumer; pre-1.0 dependency</span><span data-l="zh">每个使用方各付各的；依赖一个 pre-1.0 项目</span></td><td><span data-l="en">days per project</span><span data-l="zh">每个项目几天</span></td><td><span data-l="en">SQLite-compatible · caller-side rollback</span><span data-l="zh">SQLite 兼容 · 调用方侧可回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust tokenizer/parser behind the C API</span><span data-l="zh">C API 背后换成 Rust 词法/语法分析器</span></span><span class="source"><span data-l="en">retain · the only Rust scope worth re-examining later</span><span data-l="zh">保留 · 以后唯一值得再看一眼的 Rust 范围</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">class removed in one front-end component</span><span data-l="zh">一个前端组件内消除这一缺陷类</span></td><td><span data-l="en">coverage rebuild; second toolchain everywhere</span><span data-l="zh">覆盖率要重建；处处多一条工具链</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">byte-exact parse behaviour · hard rollback</span><span data-l="zh">解析行为要字节级一致 · 回滚困难</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rewrite SQLite in Rust</span><span data-l="zh">用 Rust 重写 SQLite</span></span><span class="source"><span data-l="en">exclude · fails G3 and G4</span><span data-l="zh">排除 · G3、G4 不通过</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">class removed; assurance level unproven</span><span data-l="zh">缺陷类消除；保证水平未经证明</span></td><td><span data-l="en">re-earn 92,053.1 KSLOC of tests; 2050 obligation</span><span data-l="zh">92,053.1 KSLOC 测试重新挣一遍；还背着 2050 义务</span></td><td><span data-l="en">years</span><span data-l="zh">数年</span></td><td><span data-l="en">whole promise · no rollback</span><span data-l="zh">整份承诺 · 无法回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Sandbox the engine in the host</span><span data-l="zh">在宿主里把引擎沙箱化</span></span><span class="source"><span data-l="en">retain · caller-side mitigation the report must present</span><span data-l="zh">保留 · 调用方侧的缓解手段，报告必须列出</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">contains the class instead of removing it</span><span data-l="zh">把这一缺陷类圈住，没有消除</span></td><td><span data-l="en">host-side; boundary overhead</span><span data-l="zh">宿主侧付出；有边界开销</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">unchanged engine · trivial rollback</span><span data-l="zh">引擎不动 · 回滚很容易</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">States are option-scoped evidence. They do not add up. Repository line counts come from the commit named in the methodology; published ratios keep their source and date.</span><span data-l="zh">每条状态都是针对某个方案的证据。它们不能相加。仓库行数来自方法一节写明的提交；引用的比值保留其来源与日期。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">SQLite parses untrusted SQL text and untrusted database files in C. The project funds a dedicated database-file fuzzer against exactly that surface.</span><span data-l="zh">SQLite 用 C 解析不受信任的 SQL 文本和不受信任的数据库文件。项目专门出钱养了一个针对这块面的数据库文件 fuzzer。</span></div><div class="source mono">src/tokenize.c · src/btree.c · dbsqlfuzz, ~1e9 mutations/day (sqlite.org/testing.html)</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">This decision asserts no performance requirement. No Amdahl calculation is performed, because the only way to produce one here would be to invent it from line counts.</span><span data-l="zh">这个决策没有提出任何性能要求。因此不做 Amdahl 计算——真要做，只能拿行数硬凑一个出来。</span></div><div class="source mono">objective is safety, not latency</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">There is no managed runtime or collector in the engine, so no runtime mechanism exists in any tail to remove.</span><span data-l="zh">引擎里没有托管运行时，也没有回收器，尾部就没有可以拿掉的运行时机制。</span></div><div class="source mono">C library, no GC</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The engine runs inside the caller&#x27;s process; this decision changes no fleet density.</span><span data-l="zh">引擎跑在调用方进程里，这个决策不改变任何机队密度。</span></div><div class="source mono">embedded linkage model</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Library initialization is not a stated constraint for any consumer in this decision.</span><span data-l="zh">这个决策里没有任何使用方把库的初始化列为约束。</span></div><div class="source mono">no startup requirement asserted</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Replacing manual-lifetime C removes the memory-unsafety class from whatever it replaces. That much is causal. No benchmark needed.</span><span data-l="zh">把手工管理生命周期的 C 换掉，换掉多少，就在多少代码里消除内存不安全这一类缺陷。这一步是因果关系。不需要跑基准。</span></div><div class="source mono">language property, applied at the scope of each option</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Concurrency is governed by file locking and WAL semantics that every option must reproduce identically; no option is better placed to encode them.</span><span data-l="zh">并发由文件锁和 WAL 语义决定，每个方案都得原样复现；没有哪个方案在表达这些语义上更占优。</span></div><div class="source mono">src/pager.c · src/os_unix.c locking model</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">SQLite&#x27;s portability claim is that it runs on any platform with an 8-bit byte, 32/64-bit two&#x27;s-complement integers and a C compiler. A Rust component narrows that set.</span><span data-l="zh">SQLite 的可移植性主张是：只要平台有 8-bit byte、32/64-bit 二进制补码整数和一个 C 编译器，它就能跑。加一个 Rust 组件，这个集合就变小。</span></div><div class="source mono">https://www.sqlite.org/lts.html — &quot;Cross-platform Code&quot;</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · adopt-rust-engine</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">A ground-up Rust engine already exists: SQLite dialect, on-disk format and C-API compatibility, 23.6k stars, reported production use. Consumers who want Rust do not need SQLite to change.</span><span data-l="zh">从零写的 Rust 引擎已经有了：SQLite 方言、磁盘格式、C API 都对上，23.6k stars，也有生产使用的报告。想要 Rust 的使用方，不需要 SQLite 改任何东西。</span></div><div class="source mono">https://github.com/tursodatabase/turso — repository README</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The compatibility surface has three parts: the C API, the byte-level on-disk format, and legacy behavioural quirks. All three are promised backwards compatible.</span><span data-l="zh">兼容面有三块：C API、字节级磁盘格式，以及历史遗留的行为怪癖。三块都写进了向后兼容的承诺。</span></div><div class="source mono">https://www.sqlite.org/lts.html — API and on-disk format promise</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The verification programme is the majority of the project&#x27;s cost: 92,053.1 KSLOC of test material, 100% branch and MC/DC coverage, and roughly one billion daily fuzz mutations. None of it transfers to a new implementation.</span><span data-l="zh">验证体系占了项目成本的大头：92,053.1 KSLOC 测试材料、100% 分支与 MC/DC 覆盖、每天约十亿次 fuzz 变异。换一套实现，这些一样都带不走。</span></div><div class="source mono">https://www.sqlite.org/testing.html · in-repo test/ measured at 1,021,321 lines</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实对照</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-verified, sandbox</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The current-stack answer is funded and already running at unusual intensity. Callers exposed to untrusted database files can isolate the engine without any language change.</span><span data-l="zh">现有技术栈这条路已经有人出钱，而且强度很不寻常。要面对不受信任数据库文件的调用方，不换语言也能把引擎隔离起来。</span></div><div class="source mono">dbsqlfuzz + TH3 + 51,445 TCL cases (sqlite.org/testing.html); host-side sandboxing</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">Three lenses are N/A: D3 tail latency, D4 fleet footprint, D5 startup shape. The engine links into the caller&#x27;s process and carries no runtime of its own. None of them bears on memory safety.</span><span data-l="zh">三个维度记为 N/A：D3 尾延迟、D4 机队占用、D5 启动形态。引擎链进调用方进程，自己没有运行时。这三条都够不着内存安全。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">The asset is the verification, not the source</span><span data-l="zh">资产是那套验证体系，不是源码</span></h3><p><span data-l="en">SQLite reports 155.8 KSLOC of library code against 92,053.1 KSLOC of test code and scripts, with 100% branch and MC/DC coverage on the core. A rewrite copies the design. The assurance programme restarts at zero.</span><span data-l="zh">SQLite 公布的数字是 155.8 KSLOC 库代码，对 92,053.1 KSLOC 测试代码与脚本，内核上分支与 MC/DC 覆盖率 100%。重写能抄走设计。保证体系要从零重来。</span></p><span class="ref mono">sqlite.org/testing.html · 590× ratio, 2023 figures onward</span></div>
+<div class="card current"><h3><span data-l="en">This commit alone carries 1,021,321 lines of tests</span><span data-l="zh">光这一个提交就带着 1,021,321 行测试</span></h3><p><span data-l="en">Exclude the proprietary MC/DC harness and the public tree still ships 5.6 lines of test material for every line of core C. That ratio is what a rewrite proposal has to price. None has.</span><span data-l="zh">把闭源的 MC/DC 脚手架排除在外，公开代码树里每一行核心 C 仍然配着 5.6 行测试材料。这个比值是重写提案必须先报价的东西。目前没有一份报过。</span></p><span class="ref mono">test/ · 1,294 tracked files vs src/ 182,029 lines</span></div>
+<div class="card current"><h3><span data-l="en">The 2050 promise is in writing</span><span data-l="zh">2050 年那份承诺是白纸黑字</span></h3><p><span data-l="en">The project promises the C API and on-disk format stay fully backwards compatible, and plans support through 2050. Re-implementing that promise has no rollback. The installed base is already holding the files.</span><span data-l="zh">项目承诺 C API 与磁盘格式保持完全向后兼容，并计划支持到 2050 年。重新实现这份承诺没有回滚路径。文件已经在装机量手里了。</span></p><span class="ref mono">sqlite.org/lts.html · API and on-disk format commitment</span></div>
+<div class="card rust"><h3><span data-l="en">The Rust version already exists, and says what it still lacks</span><span data-l="zh">Rust 版本已经存在，也说了自己还差什么</span></h3><p><span data-l="en">A ground-up Rust engine with dialect, format and C-API compatibility has 23.6k stars and reports production deployments. Its own README says compatibility is not yet complete. Completing it is a prerequisite for 1.0. That is the adoption path for callers who want Rust.</span><span data-l="zh">有一个从零写起的 Rust 引擎，方言、格式、C API 都对齐，23.6k stars，也有生产部署的报告。它自己的 README 写着兼容性还没做完。做完是 1.0 的前置条件。想要 Rust 的调用方，走的就是这条采用路径。</span></p><span class="ref mono">github.com/tursodatabase/turso · 18,966 commits, pre-1.0</span></div>
+<div class="card rust"><h3><span data-l="en">The safety requirement here holds up</span><span data-l="zh">这里的安全需求是站得住的</span></h3><p><span data-l="en">SQLite parses untrusted SQL and untrusted database files in C, and funds a fuzzer at roughly one billion mutations per day against that surface. Gates 1 and 2 pass. The rewrite loses on gates 3 and 4, not on the premise.</span><span data-l="zh">SQLite 用 C 解析不受信任的 SQL 和不受信任的数据库文件，并出钱在这块面上跑每天约十亿次变异的 fuzzer。G1 与 G2 通过。重写栽在 G3 和 G4 上，前提本身没问题。</span></p><span class="ref mono">src/tokenize.c · src/btree.c · dbsqlfuzz</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Class elimination in whatever it replaces</span><span data-l="zh">换到哪里，哪里就没有这一类缺陷</span></b> — <span data-l="en">any Rust component stops being able to produce a memory-unsafety defect in its own code.</span><span data-l="zh">Rust 组件在自己这段代码里，不再可能产出内存不安全缺陷。</span></li><li><b><span data-l="en">A viable path for callers</span><span data-l="zh">调用方有一条走得通的路</span></b> — <span data-l="en">an application that needs a memory-safe embedded engine can adopt one today without SQLite changing.</span><span data-l="zh">需要内存安全嵌入式引擎的应用，今天就能采用一个，SQLite 不用改。</span></li><li><b><span data-l="en">A defensible future extraction</span><span data-l="zh">将来抽一块出来，说得过去</span></b> — <span data-l="en">if a Rust front-end component ever reaches equivalent coverage, the tokenizer/parser is the seam with the smallest compatibility share.</span><span data-l="zh">如果哪天某个 Rust 前端组件做到对等覆盖率，词法/语法分析器是兼容面占比最小的那道缝。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Any of the existing assurance</span><span data-l="zh">现有的保证水平，一点也买不到</span></b> — <span data-l="en">100% MC/DC coverage, 51,445 TCL cases and roughly one billion daily fuzz mutations, all published at sqlite.org/testing.html. Those attach to the current implementation, not to the language.</span><span data-l="zh">100% MC/DC 覆盖、51,445 个 TCL 用例、每天约十亿次 fuzz 变异，数字都公布在 sqlite.org/testing.html。它们长在当前这份实现上，跟语言无关。</span></li><li><b><span data-l="en">Freedom from the compatibility promise</span><span data-l="zh">从兼容承诺里脱身</span></b> — <span data-l="en">the C API, the byte-level format and the legacy quirks are the contract; a rewrite owes all of it, forever.</span><span data-l="zh">C API、字节级格式、历史怪癖，这些就是合同。重写全都要背，一直背下去。</span></li><li><b><span data-l="en">Protection from the defect classes that dominate here</span><span data-l="zh">挡住这里真正占多数的缺陷类</span></b> — <span data-l="en">logic, isolation and storage-corruption bugs are what the testing programme mostly hunts, and Rust does not remove them.</span><span data-l="zh">测试体系主要在抓逻辑、隔离和存储损坏这三类 bug，Rust 不消除它们。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>tursodatabase/turso</h3><span class="outcome">GREENFIELD</span></div><p><span data-l="en">An independent team is rewriting SQLite in Rust from scratch rather than forking it. 18,966 commits, with reported production users. Full SQLite compatibility is the stated prerequisite for 1.0. It is not there yet.</span><span data-l="zh">一支独立团队在用 Rust 从零重写 SQLite，而不是 fork。18,966 个提交，有生产用户的报告。完整的 SQLite 兼容是它自己写明的 1.0 前置条件。目前还没做到。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">identical target, identical language pair, explicit compatibility goal</span><span data-l="zh">目标相同，语言对相同，兼容目标也写明了</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a new project choosing its own reliability bar, not the SQLite project accepting a migration</span><span data-l="zh">这是一个新项目自己定可靠性标准，而非 SQLite 项目接受了一次迁移</span></div><a class="ref mono" href="https://github.com/tursodatabase/turso">third-party · project README</a></article>
+<article class="precedent"><div class="top"><h3>jaq vs jq</h3><span class="outcome">ADOPTED</span></div><p><span data-l="en">A Rust reimplementation of a widely used C tool arrived from outside the original project, carrying its own test suite and audits. The original&#x27;s maintainers had nothing to do.</span><span data-l="zh">一个广泛使用的 C 工具，它的 Rust 重实现是从原项目外面冒出来的，自带测试套件和审计。原项目的维护者什么都不用做。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the ecosystem shipping the Rust option instead of the incumbent rewriting</span><span data-l="zh">由生态提供 Rust 选项，原项目自己不动手</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">jq&#x27;s compatibility surface is a CLI, not a byte-level storage format promised to 2050</span><span data-l="zh">jq 的兼容面是一个 CLI，不是承诺到 2050 年的字节级存储格式</span></div><a class="ref mono" href="https://github.com/01mf02/jaq">third-party · project README</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Servo as Gecko replacement</h3><span class="outcome">CANCELLED</span></div><p><span data-l="en">A whole-engine replacement was estimated at thousands of engineer-years, against a team of a handful. It was cancelled. The component extractions shipped instead.</span><span data-l="zh">整机引擎替换的估算是几千工程师年，而团队只有几个人。项目被取消。最后交付的是拆出来的那几个组件。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">replacement scope defeated by the size of the existing verified implementation</span><span data-l="zh">替换范围被现有已验证实现的体量拖垮</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a browser engine with far more churn than a storage format designed to be frozen</span><span data-l="zh">浏览器引擎的变动远多于一个设计上就要冻结的存储格式</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineer account</a></article>
+<article class="precedent"><div class="top"><h3>AWS · S3 ShardStore</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">A storage node was rewritten in Rust. The correctness claim came with roughly nine months of dedicated formal-methods work: executable reference models, property tests, Loom. That work caught 16 issues before production.</span><span data-l="zh">一个存储节点用 Rust 重写。正确性的说法背后是大约九个月专门的形式化方法工作：可执行参考模型、性质测试、Loom。这些工作在上生产前抓出 16 个问题。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">shows what assurance a storage rewrite actually costs</span><span data-l="zh">说明存储系统重写要为保证水平付出多少</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">40,000 lines with a private interface, not 182,029 lines under a public 2050 promise</span><span data-l="zh">那是 40,000 行、私有接口；这里是 182,029 行，压着一份到 2050 年的公开承诺</span></div><a class="ref mono" href="https://www.cs.utexas.edu/~bornholt/papers/shardstore-sosp21.pdf">first-party · peer-reviewed paper</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Say what the requirement actually is</span><span data-l="zh">先把需求说清楚</span></h3><p><span data-l="en">The proposer writes down which exposure is unacceptable: untrusted SQL, untrusted database files, or a specific deployment&#x27;s threat model. The statement passes only if it names a concrete scenario the current assurance programme does not cover. If the answer is &#x27;C is unsafe in general&#x27;, stop here. That is not a requirement. No codebase has changed yet.</span><span data-l="zh">提出重写的人写下一份说明：哪一种暴露不能接受——不受信任的 SQL、不受信任的数据库文件，还是某个具体部署的威胁模型。这份说明必须点名一个当前保证体系覆盖不到的具体场景，否则不算过。如果答案是「C 总体上不安全」，到此为止。那不是需求。此时任何代码库都还没动过。</span></p></div><span class="cost"><span data-l="en">1 day</span><span data-l="zh">1 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Contain the exposure at the caller</span><span data-l="zh">先在调用方把暴露圈住</span></h3><p><span data-l="en">The application team runs the engine inside a process or wasm sandbox on the untrusted-file paths, and measures the boundary cost. It passes when untrusted files are opened only inside the sandbox and the overhead fits the application&#x27;s budget. If the boundary cost blows that budget, stop and go back to comparing options. Rolling back is easy. Delete the sandbox; the engine was never modified.</span><span data-l="zh">应用团队把引擎放进进程沙箱或 wasm 沙箱，专门跑处理不受信任文件的那条路径，并测量边界开销。通过的标准是：不受信任的文件只在沙箱里打开，开销在应用预算之内。开销超预算就停下来，回到方案对比。回滚很轻。删掉沙箱就行，引擎从头到尾没改过。</span></p></div><span class="cost"><span data-l="en">1–3 weeks</span><span data-l="zh">1–3 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Evaluate the existing Rust engine on your own workload</span><span data-l="zh">拿自己的负载去试现成的 Rust 引擎</span></h3><p><span data-l="en">Same team, different question. Point the Rust engine at the application&#x27;s own schemas, queries and existing database files, then write up what matched. Acceptance is byte-level format compatibility and query-result parity across that corpus, with the gaps documented. Any parity failure that touches data integrity ends the evaluation. Reverting is a dependency change. The database files are unchanged by design.</span><span data-l="zh">还是应用团队，换一个问题。把 Rust 引擎接到应用自己的 schema、查询和现有数据库文件上，再把对得上的部分写成报告。验收看两条：这份语料上的字节级格式兼容，以及查询结果一致；差异逐条记录在案。只要有一处不一致碰到数据完整性，评估就结束。回退只是换回依赖。数据库文件按设计本来就不变。</span></p></div><span class="cost"><span data-l="en">1–2 weeks</span><span data-l="zh">1–2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Re-open the engine decision only on verification evidence</span><span data-l="zh">再提这个决策，只看验证证据</span></h3><p><span data-l="en">Whoever proposes a rewrite next brings a comparison of assurance level, not of language: coverage measured the same way, fuzzing intensity, format-compatibility evidence. Nothing counts until the challenger publishes MC/DC-equivalent coverage on its own core and byte-identical on-disk behaviour. Without that evidence, no proposal proceeds. The C engine and its testing programme continue either way.</span><span data-l="zh">下一个提重写的人，带来的材料要比保证水平，别比语言：用同样方法测出的覆盖率、fuzz 强度、格式兼容的证据。挑战者不在自己内核上公布与 MC/DC 对等的覆盖率、不给出字节级一致的磁盘行为，就都不算数。拿不出这些证据，提案就不往下走。无论如何，C 引擎和它的测试体系照常运行。</span></p></div><span class="cost"><span data-l="en">1 day per review</span><span data-l="zh">每次评审 1 天</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></b> — <span data-l="en">No performance claim is made. D2 is left N/A rather than filled with a line-share standing in for a time-share.</span><span data-l="zh">报告没有提出性能主张。D2 保持 N/A，没有拿行数占比冒充时间占比去填。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The safety delta is attributed to the language property alone, at the scope of each option, with no redesign credited to Rust.</span><span data-l="zh">安全收益只归因于语言属性本身，按每个方案各自的范围计算，没有把任何重新设计算到 Rust 头上。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与口径</span></b> — <span data-l="en">The 590× ratio counts generated and parameterized test material, so raw line comparisons overstate the gap. The coverage claim is the load-bearing one.</span><span data-l="zh">590× 这个比值把生成的和参数化的测试材料都算了进去，按原始行数比会夸大差距。真正承重的是覆盖率那一条。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">The compatibility surface is stated in full: the C API, the byte-level on-disk format, and legacy quirks. An API alone would understate it.</span><span data-l="zh">兼容面是完整列出来的：C API、字节级磁盘格式、历史怪癖。只说 API 会低估它。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The report names the missing artifact: MC/DC-equivalent coverage on a challenger core. It does not assert that a rewrite is impossible.</span><span data-l="zh">报告点名了缺的那份材料：挑战者内核上与 MC/DC 对等的覆盖率。它没有断言重写不可能。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有钱在投的反事实对照</span></b> — <span data-l="en">TH3, 51,445 TCL cases and a billion daily fuzz mutations are already funded and running. The staying option is not a hypothetical.</span><span data-l="zh">TH3、51,445 个 TCL 用例、每天十亿次 fuzz 变异，都已经在花钱、在跑。「不动」这个方案不是假设。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不作为的代价</span></b> — <span data-l="en">Staying in C keeps the memory-unsafety class reachable in code that parses attacker-supplied SQL and database files. Testing intensity lowers incidence, not possibility.</span><span data-l="zh">继续用 C，就意味着在解析攻击者提供的 SQL 和数据库文件的代码里，内存不安全这一类缺陷始终可达。测试强度降低的是发生率，不是可能性。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏不安全面</span></b> — <span data-l="en">The report grants gates 1 and 2 to the Rust options rather than hiding the unsafe surface behind the project&#x27;s reputation.</span><span data-l="zh">报告把 G1 和 G2 判给了 Rust 方案，没有拿项目声誉去挡住那块不安全面。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The existing Rust engine is recorded as a retained option for consumers, with its own stated pre-1.0 caveats.</span><span data-l="zh">现成的 Rust 引擎被记为使用方可用的保留方案，并附上它自己声明的 pre-1.0 保留条件。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The decision has a named reopening condition: published MC/DC-equivalent coverage and byte-identical format behaviour. This is not a permanent veto.</span><span data-l="zh">这个决策写明了重启条件：公布与 MC/DC 对等的覆盖率，以及字节级一致的格式行为。它不是永久否决。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">sqlite/sqlite at f034d51 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">sqlite/sqlite @ f034d51 · 只读静态分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/sqlite/sqlite at commit f034d51, shallow clone, 2,221 tracked files. Scope: the whole repository, with the core engine in src/ as the migration candidate. Sampling: tracked files only. src/ holds 47 test-harness files (44 .c translation units plus 3 headers); the 102 files left after excluding them carry 182,029 lines of core C. test/ carries 1,021,321 lines across 1,294 files, and ext/ carries 326,793. No build, test, benchmark or network call was run against the project. The proprietary TH3 harness behind the 100% MC/DC figure is not in this repository. That number and the 590× test-to-source ratio come from sqlite.org/testing.html and carry its 2023-onward release regime. Objective: remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships. User-supplied facts: none. No Amdahl calculation appears, because no performance requirement is asserted; treating a line share as a time share would be a method error, so D2 is recorded N/A. Gates 1 and 2 pass, gates 3 and 4 fail. The gates are non-compensatory, so a safety requirement that clears G1 and G2 still does not survive an option whose cost is the project&#x27;s own assurance programme. The framework is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/sqlite/sqlite，提交 f034d51，浅克隆，2,221 个受控文件。范围：整个仓库，其中 src/ 里的核心引擎是迁移候选。采样：只统计受控文件。src/ 里有 47 个测试脚手架文件（44 个 .c 编译单元加 3 个头文件）；排除之后剩下的 102 个文件是 182,029 行核心 C。test/ 是 1,294 个文件、1,021,321 行，ext/ 是 326,793 行。没有对项目执行任何构建、测试、基准或网络调用。产出 100% MC/DC 这个数字的闭源 TH3 脚手架不在本仓库里。那个数字和 590× 的测试源码比来自 sqlite.org/testing.html，口径是它 2023 年起的发布版本。目标：在不削弱 SQLite 现有保证水平的前提下，从 SQL 与数据库文件解析中消除内存不安全这一类缺陷。用户提供的事实：无。报告里没有 Amdahl 计算，因为没有提出性能要求；把行数占比当成时间占比是方法错误，所以 D2 记为 N/A。G1、G2 通过，G3、G4 不通过。四道门不可互相补偿，所以一个已经过了 G1 和 G2 的安全需求，仍然扛不住一个代价等于项目自身保证体系的方案。这套框架是结构化的决策协议，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">Root-cause classification of SQLite&#x27;s advisory history</span><span data-l="zh">SQLite 历史安全公告的根因分类</span></td><td><span data-l="en">Without it, the share of past defects Rust would have eliminated by construction stays an argument rather than a measurement. It would move G1&#x27;s strength. The G3 and G4 failures stand.</span><span data-l="zh">没有这份分类，Rust 本可以从构造上消除掉多少历史缺陷，就只是个说法，不是测量结果。它会影响 G1 的证据强度。G3 和 G4 的失败照旧。</span></td></tr><tr><td><span data-l="en">Assurance level of any Rust challenger</span><span data-l="zh">任何 Rust 挑战者的保证水平</span></td><td><span data-l="en">If a Rust engine publishes MC/DC-equivalent coverage on its own core and byte-identical on-disk behaviour, the adoption option strengthens for consumers. The extraction option becomes re-examinable.</span><span data-l="zh">如果某个 Rust 引擎公布了自己内核上与 MC/DC 对等的覆盖率，以及字节级一致的磁盘行为，采用方案对使用方就更有说服力。抽取方案也值得重新看一遍。</span></td></tr><tr><td><span data-l="en">Cost of rebuilding coverage for one extracted component</span><span data-l="zh">为抽出来的单个组件重建覆盖率要多少钱</span></td><td><span data-l="en">Unpriced. Until someone estimates it, the tokenizer/parser extraction stays retained-but-unselected rather than recommended.</span><span data-l="zh">没人报过价。在有人估出来之前，词法/语法分析器的抽取方案只能保留待议，进不了推荐。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit f034d51 · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在提交 f034d51 上做静态分析 · 无构建、无基准、无网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/sqlite/sqlite",
+    "commit": "f034d515b4208e1c9325271aef3dc4901f24e216",
+    "scope": "whole repository; the core engine in src/ is the migration candidate",
+    "sampling": "shallow clone; 2,221 tracked files enumerated; src/, test/ and ext/ measured; the proprietary TH3 harness is not part of this repository"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "Root-cause classification of SQLite's advisory history",
+      "Assurance level of any Rust challenger",
+      "Cost of rebuilding coverage for one extracted component"
+    ]
+  },
+  "objective": {
+    "driver": "safety",
+    "requirement": "remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships",
+    "baseline": "182,029 lines of core C under 100% branch and MC/DC coverage with roughly 1e9 daily fuzz mutations",
+    "target": "equal-or-better assurance, with the C API and on-disk format promise intact"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "stay-verified",
+    "confidence": "HIGH",
+    "robustness": "STABLE",
+    "because": "Gates 1 and 2 pass. SQLite is C that parses untrusted SQL and untrusted database files, and Rust would remove that defect class from any line it replaced. Gates 3 and 4 fail. Behind those 182,029 lines of C sit 100% branch and MC/DC coverage and 590 times as much test material as source. There is also a written promise: the C API and on-disk format stay backwards compatible through 2050. That is the asset. A rewrite inherits the source and none of it.",
+    "change_trigger": "Stable. This flips only when a Rust engine shows equivalent verification: 100% MC/DC on its own core, plus byte-identical on-disk behaviour. Even then the question for consumers is whether to adopt it. The SQLite project still would not be rewriting anything."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "stay-verified",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "The engine's input is attacker-reachable in both directions; the project runs a dedicated fuzzer (dbsqlfuzz) at roughly one billion mutations per day, which is direct evidence the surface produces findings."
+    },
+    {
+      "id": "G2",
+      "option_id": "stay-verified",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "No redesign, algorithm or storage-format change is needed to obtain the safety delta; it follows from replacing manual-lifetime C."
+    },
+    {
+      "id": "G3",
+      "option_id": "stay-verified",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "SQLite reports 155.8 KSLOC of library code against 92,053.1 KSLOC of test code and scripts — a 590× ratio — plus 100% branch and MC/DC coverage from a proprietary harness. A rewrite starts that investment at zero, and consumers who want a Rust engine can already adopt one."
+    },
+    {
+      "id": "G4",
+      "option_id": "stay-verified",
+      "name": "delivery and reversibility",
+      "state": "FAIL",
+      "evidence": "The project promises to keep the C API and on-disk format fully backwards compatible and plans support through 2050. There is no dual-run or rollback story for re-implementing that promise across the installed base."
+    }
+  ],
+  "options": [
+    {
+      "id": "stay-verified",
+      "name": "Keep C + the verification programme",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships",
+      "benefit_interval": "class remains possible, incidence held very low",
+      "one_time_cost": "none",
+      "recurring_cost": "the existing test and fuzz investment",
+      "time_to_value": "in effect today",
+      "compatibility": "native",
+      "reversibility": "n/a",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "Only option that preserves 100% MC/DC coverage and the 2050 compatibility promise."
+    },
+    {
+      "id": "adopt-rust-engine",
+      "name": "Consumers adopt a Rust engine",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships",
+      "benefit_interval": "class removed for that consumer",
+      "one_time_cost": "per consumer integration",
+      "recurring_cost": "tracks a pre-1.0 project",
+      "time_to_value": "days per project",
+      "compatibility": "self-declared, not yet complete",
+      "reversibility": "swap the dependency back",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Meets the objective for an individual application without asking SQLite to rewrite anything."
+    },
+    {
+      "id": "rust-parser-extract",
+      "name": "Rust tokenizer/parser behind the C API",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships",
+      "benefit_interval": "class removed in one front-end component",
+      "one_time_cost": "rebuild coverage for the component",
+      "recurring_cost": "second toolchain in every build",
+      "time_to_value": "months",
+      "compatibility": "must match legacy quirks exactly",
+      "reversibility": "build flag, if kept dual",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "Plausible in shape, but it forfeits MC/DC coverage for the replaced component and adds a Rust toolchain to a project whose portability claim is 'any platform with a C compiler'."
+    },
+    {
+      "id": "rust-full",
+      "name": "Rewrite SQLite in Rust",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships",
+      "benefit_interval": "class removed; assurance level unproven",
+      "one_time_cost": "the entire verification programme, again",
+      "recurring_cost": "compatibility obligation to 2050",
+      "time_to_value": "years",
+      "compatibility": "C API + on-disk format + legacy quirks",
+      "reversibility": "none at the installed base",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "The cost is the asset. An independent team has been building exactly this for 18,966 commits and still lists full SQLite compatibility as a prerequisite for its 1.0."
+    },
+    {
+      "id": "sandbox",
+      "name": "Sandbox the engine in the host",
+      "implementation": "non-rust-native",
+      "scope": "adopt",
+      "target": "remove the memory-unsafety class from SQL and database-file parsing without weakening the assurance level SQLite currently ships",
+      "benefit_interval": "contains the class instead of removing it",
+      "one_time_cost": "host-side, per application",
+      "recurring_cost": "process or wasm boundary",
+      "time_to_value": "weeks",
+      "compatibility": "unchanged SQL and format",
+      "reversibility": "remove the sandbox",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "For applications opening untrusted database files, isolation addresses the same exposure without touching the engine."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-parser-extract",
+        "rust-full",
+        "adopt-rust-engine"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "SQLite parses untrusted SQL text and untrusted database files in C. The project funds a dedicated database-file fuzzer against exactly that surface.",
+      "source": "src/tokenize.c · src/btree.c · dbsqlfuzz, ~1e9 mutations/day (sqlite.org/testing.html)",
+      "baseline_regime": "project testing programme, 2023 figures onward",
+      "caveat": "Exposure is structural; the advisory history is not broken down by root cause on the testing page.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "This decision asserts no performance requirement. No Amdahl calculation is performed, because the only way to produce one here would be to invent it from line counts.",
+      "source": "objective is safety, not latency",
+      "baseline_regime": "n/a",
+      "caveat": "Line share is not time share; substituting one for the other would be a method error.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "There is no managed runtime or collector in the engine, so no runtime mechanism exists in any tail to remove.",
+      "source": "C library, no GC",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "The engine runs inside the caller's process; this decision changes no fleet density.",
+      "source": "embedded linkage model",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Library initialization is not a stated constraint for any consumer in this decision.",
+      "source": "no startup requirement asserted",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-parser-extract",
+        "rust-full",
+        "adopt-rust-engine"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Replacing manual-lifetime C removes the memory-unsafety class from whatever it replaces. That much is causal. No benchmark needed.",
+      "source": "language property, applied at the scope of each option",
+      "baseline_regime": "structural",
+      "caveat": "It says nothing about logic, isolation or storage-corruption defects, which dominate SQLite's own testing effort.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Concurrency is governed by file locking and WAL semantics that every option must reproduce identically; no option is better placed to encode them.",
+      "source": "src/pager.c · src/os_unix.c locking model",
+      "baseline_regime": "storage concurrency contract",
+      "caveat": "A Rust rewrite would have to match the same externally observable locking behaviour, not a nicer one.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-parser-extract",
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "SQLite's portability claim is that it runs on any platform with an 8-bit byte, 32/64-bit two's-complement integers and a C compiler. A Rust component narrows that set.",
+      "source": "https://www.sqlite.org/lts.html — \"Cross-platform Code\"",
+      "baseline_regime": "stated long-term support design constraint",
+      "caveat": "Rust's target list is large and growing; it is still a strict subset of 'has a C compiler'.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "adopt-rust-engine"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "A ground-up Rust engine already exists: SQLite dialect, on-disk format and C-API compatibility, 23.6k stars, reported production use. Consumers who want Rust do not need SQLite to change.",
+      "source": "https://github.com/tursodatabase/turso — repository README",
+      "baseline_regime": "third-party project self-description, pre-1.0",
+      "caveat": "Its own README states compatibility is \"not at 100% yet\" and that full compatibility is a prerequisite for 1.0.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The compatibility surface has three parts: the C API, the byte-level on-disk format, and legacy behavioural quirks. All three are promised backwards compatible.",
+      "source": "https://www.sqlite.org/lts.html — API and on-disk format promise",
+      "baseline_regime": "written project commitment",
+      "caveat": "A component extraction inherits a smaller share of this surface, which is why it is retained and the full rewrite is not.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The verification programme is the majority of the project's cost: 92,053.1 KSLOC of test material, 100% branch and MC/DC coverage, and roughly one billion daily fuzz mutations. None of it transfers to a new implementation.",
+      "source": "https://www.sqlite.org/testing.html · in-repo test/ measured at 1,021,321 lines",
+      "baseline_regime": "first-party testing disclosure plus this commit's tree",
+      "caveat": "The 590× ratio counts generated and parameterized test material, which inflates raw line comparisons; the coverage claim does not depend on it.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "stay-verified",
+        "sandbox"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The current-stack answer is funded and already running at unusual intensity. Callers exposed to untrusted database files can isolate the engine without any language change.",
+      "source": "dbsqlfuzz + TH3 + 51,445 TCL cases (sqlite.org/testing.html); host-side sandboxing",
+      "baseline_regime": "existing practice plus standard host isolation",
+      "caveat": "Sandboxing contains rather than eliminates the class, and carries its own boundary cost.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "tursodatabase/turso",
+      "outcome": "GREENFIELD",
+      "match": "identical target, identical language pair, explicit compatibility goal",
+      "mismatch": "a new project choosing its own reliability bar, not the SQLite project accepting a migration",
+      "workload_regime": "third-party self-description, pre-1.0",
+      "source_class": "third-party · project README",
+      "url": "https://github.com/tursodatabase/turso"
+    },
+    {
+      "name": "jaq vs jq",
+      "outcome": "ADOPTED",
+      "match": "the ecosystem shipping the Rust option instead of the incumbent rewriting",
+      "mismatch": "jq's compatibility surface is a CLI, not a byte-level storage format promised to 2050",
+      "workload_regime": "author-run benchmarks, drop-in \"in most cases\"",
+      "source_class": "third-party · project README",
+      "url": "https://github.com/01mf02/jaq"
+    },
+    {
+      "name": "Mozilla · Servo as Gecko replacement",
+      "outcome": "CANCELLED",
+      "match": "replacement scope defeated by the size of the existing verified implementation",
+      "mismatch": "a browser engine with far more churn than a storage format designed to be frozen",
+      "workload_regime": "2012–2020 programme outcome",
+      "source_class": "first-party · engineer account",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "AWS · S3 ShardStore",
+      "outcome": "MIGRATED",
+      "match": "shows what assurance a storage rewrite actually costs",
+      "mismatch": "40,000 lines with a private interface, not 182,029 lines under a public 2050 promise",
+      "workload_regime": "SOSP'21 paper",
+      "source_class": "first-party · peer-reviewed paper",
+      "url": "https://www.cs.utexas.edu/~bornholt/papers/shardstore-sosp21.pdf"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Say what the requirement actually is",
+      "owner": "the proposer",
+      "cost_range": "1 day",
+      "artifact": "a written statement of which exposure is unacceptable: untrusted SQL, untrusted database files, or a specific deployment's threat model",
+      "acceptance": "the statement names a concrete scenario the current assurance programme does not cover",
+      "deadline_or_stop": "stop here if the answer is 'C is unsafe in general' — that is not a requirement",
+      "rollback": "no change to any codebase"
+    },
+    {
+      "step": 2,
+      "title": "Contain the exposure at the caller",
+      "owner": "the application team",
+      "cost_range": "1–3 weeks",
+      "artifact": "the engine running in a process or wasm sandbox for untrusted-file paths, with the boundary cost measured",
+      "acceptance": "untrusted files are opened only inside the sandbox, and the measured overhead is acceptable to the application",
+      "deadline_or_stop": "stop if the boundary cost exceeds the application's budget; escalate to option comparison again",
+      "rollback": "remove the sandbox; the engine is unmodified"
+    },
+    {
+      "step": 3,
+      "title": "Evaluate the existing Rust engine on your own workload",
+      "owner": "the application team",
+      "cost_range": "1–2 weeks",
+      "artifact": "a compatibility and correctness report against the application's real schemas, queries and existing database files",
+      "acceptance": "byte-level format compatibility and query-result parity on the application's own corpus, with a documented gap list",
+      "deadline_or_stop": "stop if any parity failure touches data integrity",
+      "rollback": "revert the dependency; database files are unchanged by design"
+    },
+    {
+      "step": 4,
+      "title": "Re-open the engine decision only on verification evidence",
+      "owner": "whoever proposes a rewrite next",
+      "cost_range": "1 day per review",
+      "artifact": "a comparison of assurance level — coverage measured the same way, fuzzing intensity, format-compatibility evidence — rather than a comparison of language",
+      "acceptance": "the challenger publishes MC/DC-equivalent coverage on its own core and byte-identical on-disk behaviour",
+      "deadline_or_stop": "no rewrite proposal proceeds without that evidence",
+      "rollback": "the C engine and its testing programme continue unchanged"
+    }
+  ],
+  "assumptions": [
+    "The published 155.8 KSLOC / 92,053.1 KSLOC figures describe a 2023-onward release and are used as a ratio, not as this commit's exact counts.",
+    "The shallow clone at the named commit represents the shipped public tree; the proprietary TH3 harness is not in it and was not inspected.",
+    "No performance or footprint requirement is attached to this decision."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "PASS",
+        "claim": "No performance claim is made. D2 is left N/A rather than filled with a line-share standing in for a time-share.",
+        "evidence": "D2 record"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "The safety delta is attributed to the language property alone, at the scope of each option, with no redesign credited to Rust.",
+        "evidence": "D6 record"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The 590× ratio counts generated and parameterized test material, so raw line comparisons overstate the gap. The coverage claim is the load-bearing one.",
+        "evidence": "sqlite.org/testing.html"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "The compatibility surface is stated in full: the C API, the byte-level on-disk format, and legacy quirks. An API alone would understate it.",
+        "evidence": "sqlite.org/lts.html"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The report names the missing artifact: MC/DC-equivalent coverage on a challenger core. It does not assert that a rewrite is impossible.",
+        "evidence": "reversible path step 4"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "TH3, 51,445 TCL cases and a billion daily fuzz mutations are already funded and running. The staying option is not a hypothetical.",
+        "evidence": "sqlite.org/testing.html"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying in C keeps the memory-unsafety class reachable in code that parses attacker-supplied SQL and database files. Testing intensity lowers incidence, not possibility.",
+        "evidence": "D1 and D6 records"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The report grants gates 1 and 2 to the Rust options rather than hiding the unsafe surface behind the project's reputation.",
+        "evidence": "G1 and G2 states"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The existing Rust engine is recorded as a retained option for consumers, with its own stated pre-1.0 caveats.",
+        "evidence": "D9 · github.com/tursodatabase/turso"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The decision has a named reopening condition: published MC/DC-equivalent coverage and byte-identical format behaviour. This is not a permanent veto.",
+        "evidence": "change trigger"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · oven-sh/bun</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-migrate a-approve">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">oven-sh/bun</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Rust · JavaScript runtime and toolchain · 1,008,327 lines of Rust across 1,496 files, and zero Zig</span><span data-l="zh">Rust · JavaScript 运行时与工具链 · 1,496 个文件、1,008,327 行 Rust，Zig 归零</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">MIGRATE</div>
+      <div class="scope-sub"><span data-l="en">the migration that shipped, approved for the reason it actually had</span><span data-l="zh">已经上线的迁移，按它真正的理由批准</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · APPROVE</div>
+      <p class="why"><span data-l="en">Bun&#x27;s own account names the motive: a persistent stream of use-after-free, double-free and leak defects across roughly 535,496 lines of Zig. Zig has no compile-time ownership or borrowing to stop that class. And the class was everywhere — manual lifetime management ran through the whole runtime, not through one component behind an interface. So no extraction reached it and no module-by-module scope reached it either; gate 3 takes the whole layer. Speed was never the argument. Selected first-party benchmarks moved 2.2–4.8%, and a performance-motivated version of this same migration fails gate 3 on the project&#x27;s own numbers. At this commit the tree holds 1,008,327 lines of Rust, zero .zig files and no build.zig. This report grades something that already shipped.</span><span data-l="zh">Bun 自己给出的动机是：Zig 实现里长期不断冒出 use-after-free、double-free 和内存泄漏，代码量约 535,496 行。Zig 没有编译期的所有权与借用检查，拦不住这一类缺陷。而这类缺陷是散开的——手动生命周期管理贯穿整个运行时，并不藏在某个接口后面的组件里。所以抽取够不着，逐模块迁移也够不着；gate 3 只能取整层。速度从来不是论据。厂商自选的 first-party 基准只动了 2.2–4.8%，同一次迁移若改用性能理由，用项目自己的数字就过不了 gate 3。当前 commit 下，树里有 1,008,327 行 Rust、0 个 .zig 文件、没有 build.zig。这份报告评的是已经上线的东西。</span></p>
+      <p class="trigger"><span data-l="en">One measurement reopens this. Count the incidence of use-after-free, double-free and leak defects over a stated window after the port, then print it beside the same-length window before it, with release cadence and triage rules held comparable. Nobody has done that. Until someone does, 10,257 opening unsafe blocks and 751 of 1,496 Rust files touching unsafe say the class was reduced by construction and not eliminated. If the measurement lands and the class did not move, the remedy failed — the requirement still stands. Treat the block count as a coarse proxy in both directions: a block encapsulated behind a safe API is not the same risk as one whose invariants leak to callers.</span><span data-l="zh">重开这个决策只需要一项测量：迁移后某个明确窗口内 use-after-free、double-free、内存泄漏的发生率，与迁移前同等长度的窗口并排列出，发布节奏和缺陷分类规则保持可比。没人做过。在此之前，10,257 个 unsafe 起始块、1,496 个 Rust 文件里有 751 个碰到 unsafe，说明这一类缺陷是被结构性削减，不是被消除。如果测量做出来、这一类没有下降，那么失效的是这套疗法，需求本身仍然成立。块数在两个方向上都是粗糙的代理指标：被安全 API 封住的 unsafe 块，和把不变量泄漏给调用方的 unsafe 块，风险并不相同。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">the whole Zig host-runtime layer, replaced in Rust</span><span data-l="zh">整个 Zig 宿主运行时层，用 Rust 重写</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>MEDIUM</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>CONDITIONAL</b></span>
+        <span><span data-l="en">cli-longtask · JavaScript runtime whose host layer was written in a manually memory-managed native language</span><span data-l="zh">cli-longtask · JavaScript 运行时，宿主层原本用手动管理内存的原生语言写成</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">A documented, recurring use-after-free, double-free and leak stream.</span><span data-l="zh">有记录、反复出现的 use-after-free、double-free 与内存泄漏。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Zig has no ownership-and-borrowing enforcement; Rust does.</span><span data-l="zh">Zig 没有所有权与借用的强制检查，Rust 有。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">The class was distributed, so no smaller scope reached it.</span><span data-l="zh">缺陷散布在整层，更小的范围够不着。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">It shipped; 19 regressions found and since fixed; releases are the rollback.</span><span data-l="zh">已上线；报出 19 个回归，都已修复；回滚就是钉住旧版本。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Zig left in the tree</span><span data-l="zh">树里还剩多少 Zig</span></div><div class="value mono">0<span class="unit"><span data-l="en">files</span><span data-l="zh">个文件</span></span></div><div class="note"><span data-l="en">no build.zig · Cargo.toml present · port complete at f91d5c95</span><span data-l="zh">没有 build.zig · 有 Cargo.toml · 迁移在 f91d5c95 已完成</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust now shipping</span><span data-l="zh">现在发布的 Rust</span></div><div class="value mono">1,008,327<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">1,496 files · 1,005,761 lines under src/</span><span data-l="zh">1,496 个文件 · 1,005,761 行在 src/ 下</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Zig it replaced</span><span data-l="zh">它替掉的 Zig</span></div><div class="value mono">~535,496<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">first-party figure · bun.com/blog/bun-in-rust</span><span data-l="zh">first-party 数字 · bun.com/blog/bun-in-rust</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Opening unsafe blocks</span><span data-l="zh">unsafe 起始块</span></div><div class="value mono">10,257<span class="unit"><span data-l="en">blocks</span><span data-l="zh">块</span></span></div><div class="note"><span data-l="en">roughly one per 98 lines of Rust — class reduced, not removed</span><span data-l="zh">约每 98 行 Rust 一个 · 这一类被削减，没有清除</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust files touching unsafe</span><span data-l="zh">碰到 unsafe 的 Rust 文件</span></div><div class="value mono">50.2<span class="unit">%</span></div><div class="note"><span data-l="en">751 of 1,496 files · Android reports ~4% of lines unsafe</span><span data-l="zh">1,496 个文件中的 751 个 · Android 报告约 4% 的行是 unsafe</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Measured end-to-end delta</span><span data-l="zh">实测端到端差值</span></div><div class="value mono">2.2–4.8<span class="unit">%</span></div><div class="note"><span data-l="en">selected first-party benchmarks · never the reason</span><span data-l="zh">厂商自选的 first-party 基准 · 从来不是迁移的理由</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option is scored against one objective: eliminate the recurring use-after-free, double-free and leak class in Bun&#x27;s runtime implementation, without regressing shipped performance or JavaScript-facing behaviour.</span><span data-l="zh">所有方案对着同一个目标打分：消除 Bun 运行时实现中反复出现的 use-after-free、double-free、内存泄漏这一类缺陷，同时不让已发布的性能和面向 JavaScript 的行为退化。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class=""><td><span class="option-name"><span data-l="en">Stay in Zig, harden it</span><span data-l="zh">留在 Zig，把它加固</span></span><span class="source"><span data-l="en">retain · the counterfactual nobody ever priced</span><span data-l="zh">保留 · 从来没人给它算过账的反事实方案</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">lowers incidence; cannot remove the class</span><span data-l="zh">能压低发生率；消不掉这一类</span></td><td><span data-l="en">instrumentation work; permanent review load</span><span data-l="zh">插桩工作量；长期的评审负担</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">native · nothing to change</span><span data-l="zh">原生 · 无需改动</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class="selected"><td><span class="option-name"><span data-l="en">Port the whole Zig layer to Rust</span><span data-l="zh">把整个 Zig 层迁到 Rust</span></span><span class="source"><span data-l="en">recommended · already executed; 0 .zig files at this commit</span><span data-l="zh">推荐 · 已经做完；当前 commit 下 0 个 .zig 文件</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">class removed by construction wherever the code is safe Rust</span><span data-l="zh">只要代码是 safe Rust，这一类缺陷在结构上就不存在</span></td><td><span data-l="en">~11 days, ~$165k API spend; unsafe blocks need owners</span><span data-l="zh">约 11 天、约 $165k API 花费；unsafe 块需要有人认领</span></td><td><span data-l="en">shipped</span><span data-l="zh">已上线</span></td><td><span data-l="en">19 regressions, since fixed · pin a pre-port release</span><span data-l="zh">19 个回归，都已修复 · 回滚就钉住迁移前的版本</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Port module by module over years</span><span data-l="zh">按模块迁移，做上几年</span></span><span class="source"><span data-l="en">exclude · a distributed class is not contained by a module boundary</span><span data-l="zh">排除 · 模块边界关不住一类散开的缺陷</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">class removed in ported modules only; live in the remainder</span><span data-l="zh">只在已迁的模块里消除；其余部分照旧</span></td><td><span data-l="en">multi-year; dual-stack boundary throughout</span><span data-l="zh">多年；全程维护双栈边界</span></td><td><span data-l="en">per module</span><span data-l="zh">按模块逐个见效</span></td><td><span data-l="en">internal boundary churn · per-module revert</span><span data-l="zh">内部边界反复变动 · 按模块回退</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">The same port, justified on speed</span><span data-l="zh">同一次迁移，改用速度当理由</span></span><span class="source"><span data-l="en">exclude · this migration is the natural experiment that refutes it</span><span data-l="zh">排除 · 这次迁移本身就是推翻它的自然实验</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">1.048x end-to-end at the best selected figure; a 1.5x target is missed</span><span data-l="zh">用最好的自选数字算，端到端 1.048x；1.5x 目标达不到</span></td><td><span data-l="en">same cost; benefit does not meet the target</span><span data-l="zh">成本相同；收益够不到目标</span></td><td><span data-l="en">never — the target is not met</span><span data-l="zh">永远不会——目标本就达不到</span></td><td><span data-l="en">same as selected · same rollback</span><span data-l="zh">与选定方案相同 · 回滚方式相同</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">A consumer adopts a Rust-cored runtime</span><span data-l="zh">下游改用 Rust 内核的运行时</span></span><span class="source"><span data-l="en">retain · valid for a consumer, not a decision Bun can make</span><span data-l="zh">保留 · 对下游成立，但不是 Bun 能替他们做的决定</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">requirement met for that one consumer</span><span data-l="zh">只满足那一个下游自己的需求</span></td><td><span data-l="en">per consumer; different compatibility target</span><span data-l="zh">每个下游各付各的；兼容目标不同</span></td><td><span data-l="en">days to weeks per project</span><span data-l="zh">每个项目数天到数周</span></td><td><span data-l="en">different API surface · consumer&#x27;s own revert</span><span data-l="zh">API 面不同 · 由下游自己回退</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is evidence scoped to a named option. Nothing here adds up to a score. D6 appears twice: the mechanism and the measured outcome point different ways, and merging them would bury the one that sets robustness. Repository claims were measured on the commit named in the methodology. Amdahl figures come from scripts/decision_math.py, with the inputs disclosed there.</span><span data-l="zh">每一条状态都是绑定到具体方案的证据，不能相加成分数。D6 出现了两次：机制和实测结果指向不同方向，合并会把决定 robustness 的那一条盖掉。仓库类结论测于方法学里注明的那个 commit。Amdahl 数字来自 scripts/decision_math.py，输入在那里公开。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The unmet requirement is a recurring defect class: use-after-free, double-free, leak. It lives entirely in code Bun owns — the runtime implementation itself, roughly 535,496 lines of Zig before the port.</span><span data-l="zh">未满足的需求是一类反复出现的缺陷：use-after-free、double-free、内存泄漏。它完全落在 Bun 自己的代码里——运行时实现本身，迁移前约 535,496 行 Zig。</span></div><div class="source mono">https://bun.com/blog/bun-in-rust</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-for-speed</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The whole program is the candidate kernel. Share is 1.00, the infinite-kernel ceiling is unbounded, and there is no Amdahl wall to hit. What stops it is the measured delta. Feed the best selected first-party figure in as the kernel speedup and end-to-end is 1.048x, so a 1.5x target is physically possible and this candidate misses it.</span><span data-l="zh">候选内核就是整个程序。share 为 1.00，无限加速上限是 unbounded，没有 Amdahl 墙可撞。挡住它的是实测差值。把厂商自选数字里最好的那个当内核加速比代进去，端到端是 1.048x；1.5x 目标物理上做得到，这个候选方案够不到。</span></div><div class="source mono">scripts/decision_math.py · share=1.00, kernel=1.048, boundary=0, target=1.5 · https://bun.com/blog/bun-in-rust</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Nobody asserted a tail-latency requirement for this decision. Neither host-layer implementation introduces or removes a managed collector. 311,915 lines of C and 290,842 of C++ remain in the tree at this commit, untouched by the port.</span><span data-l="zh">这次决策没有人提出尾延迟需求。宿主层的两个实现都没有引入或去掉托管回收器。当前 commit 下，树里仍有 311,915 行 C 和 290,842 行 C++，迁移没碰它们。</span></div><div class="source mono">measured at f91d5c95 · 122 .c files, 605 .cpp files</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机群占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Neither implementation states or publishes a fleet-density objective, a per-instance memory delta, or a break-even.</span><span data-l="zh">两个实现都没有提出或公布机群密度目标、单实例内存差值或回本点。</span></div><div class="source mono">objective is a defect class, not a cost model</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动特征</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Both the Zig baseline and the Rust port are ahead-of-time compiled native binaries with no managed runtime in the host layer. No startup mechanism separates them.</span><span data-l="zh">Zig 基线和 Rust 迁移版都是提前编译的原生二进制，宿主层没有托管运行时。没有任何启动机制能把两者分开。</span></div><div class="source mono">https://bun.com/blog/bun-in-rust — next build +4.5%</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">This mechanism is the whole case. Zig maintains lifetimes by discipline; Rust enforces ownership and borrowing at compile time. Wherever the ported code is safe Rust, the named class is unreachable by construction rather than by review.</span><span data-l="zh">这个机制就是整个论据。Zig 靠纪律维持生命周期，Rust 在编译期强制所有权与借用。凡是迁移后代码属于 safe Rust 的地方，这一类缺陷是结构上到不了，而不是靠人评审挡住。</span></div><div class="source mono">https://bun.com/blog/bun-in-rust · https://blog.google/security/rust-in-android-move-fast-fix-things/</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness — measured outcome</span><span data-l="zh">安全与正确性——实测结果</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-migrate-complete</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">The outcome this migration existed to produce has not been measured. 10,257 opening unsafe blocks remain, alongside 1,235 unsafe fn, 399 unsafe impl and 966 unsafe extern. 751 of 1,496 Rust files contain at least one of those four forms. No one has published the post-port incidence of use-after-free, double-free or leak defects.</span><span data-l="zh">这次迁移为之存在的结果，至今没有被测量过。树里还有 10,257 个 unsafe 起始块，以及 1,235 个 unsafe fn、399 个 unsafe impl、966 个 unsafe extern。1,496 个 Rust 文件里，751 个至少含这四种形式之一。迁移后 use-after-free、double-free、内存泄漏的发生率，没有任何人公布过。</span></div><div class="source mono">measured at f91d5c95 · roughly one opening unsafe block per 98 lines of Rust (1,008,327 / 10,257 = 98.3)</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Rust encodes ownership handoff and thread-safety in the type system. The closest comparable whole-project port says which property settled it, and it was not performance: &#x27;the killer feature of Rust, from fish-shell&#x27;s perspective, is Send and Sync&#x27;.</span><span data-l="zh">Rust 把所有权交接和线程安全编码进类型系统。最接近的整项目迁移先例明说了是哪条属性定的调，而且不是性能：&#x27;the killer feature of Rust, from fish-shell&#x27;s perspective, is Send and Sync&#x27;。</span></div><div class="source mono">https://fishshell.com/blog/rustport/ · https://bun.com/blog/bun-in-rust</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-migrate-complete</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">First-party reports binaries roughly 20% smaller after the port. For a runtime shipped as one downloadable binary, that is a distribution benefit.</span><span data-l="zh">first-party 报告迁移后二进制体积小了约 20%。对一个以单个可下载二进制发布的运行时来说，这是分发上的收益。</span></div><div class="source mono">https://bun.com/blog/bun-in-rust</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · adopt-rust-runtime</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">A Rust-cored JavaScript runtime already exists. That is evidence the Rust ecosystem carries this workload. It also means a consumer whose own requirement is runtime-layer memory safety has an option today, independent of what Bun decides.</span><span data-l="zh">以 Rust 为内核的 JavaScript 运行时已经存在。这说明 Rust 生态扛得住这类负载。同时也意味着，如果某个下游自己的需求是运行时层的内存安全，它今天就有选择，不必等 Bun 表态。</span></div><div class="source mono">https://en.wikipedia.org/wiki/Deno_(software)</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-incremental</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Manual lifetime management is a discipline spread across the runtime, not a component behind an interface. So a module-by-module port carries a Zig-Rust boundary for its whole duration, and the target class stays live in everything not yet ported. Ending Zig ends the boundary question. 0 .zig files and no build.zig at this commit.</span><span data-l="zh">手动生命周期管理是一种散布在整个运行时里的纪律，不是接口后面的一个组件。所以逐模块迁移全程都要维护 Zig-Rust 边界，而目标缺陷类在尚未迁移的部分里继续活着。Zig 归零，边界问题也就结束了。当前 commit 下 0 个 .zig 文件，没有 build.zig。</span></div><div class="source mono">measured at f91d5c95 · https://bun.com/blog/bun-in-rust</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-migrate-complete</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Roughly 535,496 lines of Zig were ported in about 11 days. Roughly 64 parallel agents did it, at about $165k in API spend. The result is in released versions, with 19 regressions reported and since fixed.</span><span data-l="zh">约 535,496 行 Zig 在大约 11 天内完成迁移。执行方是大约 64 个并行 agent，API 花费约 $165k。结果已经进入发布版本，报出 19 个回归，都已修复。</span></div><div class="source mono">https://bun.com/blog/bun-in-rust · https://www.theregister.com/devops/2026/07/14/zig-creator-calls-buns-claude-rust-rewrite-unreviewed-slop/5270743</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实对照</span></div><div class="tags"><span class="dir-tag current">DISFAVORS · zig-harden</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The in-language counterfactual cannot reach the same target. Zig checks lifetimes with discipline and tooling, not with the compiler, so hardening lowers incidence without removing the class. The documented defect stream is what that discipline produced over the life of the Zig implementation.</span><span data-l="zh">留在语言内的反事实方案够不到同一个目标。Zig 靠纪律和工具检查生命周期，不靠编译器，所以加固只能压低发生率，消不掉这一类缺陷。有记录的那条缺陷流，正是这套纪律在 Zig 实现的整个生命周期里产出的东西。</span></div><div class="source mono">https://bun.com/blog/bun-in-rust</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">One N/A row. D4 fleet footprint carries no part of a defect-class objective, and neither implementation publishes a per-instance memory delta, a fleet break-even or a cost model. The leak fixes in the first-party account would push steady-state memory the right way. There is no figure to cite.</span><span data-l="zh">只有一条 N/A。D4 机群占用与「消除某类缺陷」这个目标无关，两个实现都没有公布单实例内存差值、机群回本点或成本模型。first-party 提到的那些泄漏修复，会把稳态内存往好的方向推。但没有数字可引。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card rust"><h3><span data-l="en">There is no Zig left in the tree</span><span data-l="zh">树里已经没有 Zig 了</span></h3><p><span data-l="en">At f91d5c95 the tree carries 1,008,327 lines of Rust across 1,496 files, 1,005,761 of them under src/. Zero .zig files. No build.zig, and Cargo.toml is present. The decision this report authorizes has already been executed, so read the case as evidence rather than as a forecast.</span><span data-l="zh">在 f91d5c95 上，树里有 1,008,327 行 Rust，分布在 1,496 个文件中，其中 1,005,761 行在 src/ 下。.zig 文件为 0。没有 build.zig，Cargo.toml 在。这份报告授权的决策已经执行完毕，所以它可以当证据读，不必当预测读。</span></p><span class="ref mono">measured at f91d5c95 · 19,034 tracked files</span></div>
+<div class="card current"><h3><span data-l="en">Speed was never the reason, and the numbers say so</span><span data-l="zh">速度从来不是理由，数字也是这么说的</span></h3><p><span data-l="en">Selected first-party benchmarks moved 2.2–4.8%: Bun.serve +4.8%, next build +4.5%. Put the best of those through the same Amdahl calculation, with the whole program as the kernel, and end-to-end is 1.048x. Share is 1.00, so the ceiling is unbounded and a 1.5x target is physically possible at this scope. The candidate still misses it. This port is the natural experiment against performance-motivated native-to-native rewrites.</span><span data-l="zh">厂商自选的 first-party 基准只动了 2.2–4.8%：Bun.serve +4.8%，next build +4.5%。把其中最好的一个代进同一套 Amdahl 计算，内核取整个程序，端到端是 1.048x。share 是 1.00，所以上限 unbounded，1.5x 目标在这个范围上物理可达。候选方案照样够不到。这次迁移就是针对「原生换原生求性能」这套做法的自然实验。</span></p><span class="ref mono">https://bun.com/blog/bun-in-rust · decision_math.py share=1.00 kernel=1.048 boundary=0 target=1.5</span></div>
+<div class="card unknown"><h3><span data-l="en">10,257 unsafe blocks: the class was reduced, not eliminated</span><span data-l="zh">10,257 个 unsafe 块：这一类被削减，没有被消除</span></h3><p><span data-l="en">751 of 1,496 Rust files contain at least one of those four forms, which is 50.2%. Alongside them sit 1,235 unsafe fn, 399 unsafe impl and 966 unsafe extern, roughly one opening unsafe block per 98 lines of Rust (1,008,327 / 10,257 = 98.3). Android&#x27;s programme reports about 4% of its Rust lines as unsafe. The two are counted differently: share of lines there, block count per line here. Treat that comparison as directional. And nobody has published a post-port measurement of Bun&#x27;s target defect class.</span><span data-l="zh">1,496 个 Rust 文件里有 751 个至少含这四种形式之一，占 50.2%。同时还有 1,235 个 unsafe fn、399 个 unsafe impl、966 个 unsafe extern，平均约每 98 行 Rust 一个 unsafe 起始块（1,008,327 / 10,257 = 98.3）。Android 的项目报告其 Rust 代码约 4% 的行是 unsafe。两边口径不同：那边是行占比，这边是每行的块数。这个对比只能看方向。而且迁移后 Bun 目标缺陷类的测量，没有任何人公布过。</span></p><span class="ref mono">measured at f91d5c95 · https://blog.google/security/rust-in-android-move-fast-fix-things/</span></div>
+<div class="card current"><h3><span data-l="en">19 regressions, reported and fixed</span><span data-l="zh">19 个回归，报出来，修掉了</span></h3><p><span data-l="en">The first-party account reports 19 regressions, since fixed, next to significant leak fixes. Read that as evidence about acceptance and rollback. Released versions are the rollback path. A migration this size that ships, breaks 19 things and repairs them is behaving like a delivery process rather than an accident. A published third-party account contested the port&#x27;s production-readiness at publication, recorded here as a quality signal in neutral terms.</span><span data-l="zh">first-party 的说法是 19 个回归，都已修复，同时有明显的泄漏修复。把它当成关于验收和回滚的证据来读。回滚路径就是已发布的版本。这个体量的迁移上线、弄坏 19 处、再修好，表现出来的是一套交付流程，不是一次事故。有一篇第三方报道在发布时质疑了这次迁移的生产就绪度，这里以中性措辞记为质量信号。</span></p><span class="ref mono">https://bun.com/blog/bun-in-rust · theregister.com, 14 Jul 2026</span></div>
+<div class="card current"><h3><span data-l="en">The Zig layer was migrated; the tree was not</span><span data-l="zh">换掉的只是 Zig 层，树里其他语言还在</span></h3><p><span data-l="en">1,008,327 lines of Rust replaced roughly 535,496 lines of Zig. State the ratio and stop there. Line counts across languages measure neither effort nor quality, and a mechanical translation inflates them for reasons unrelated to both. Meanwhile 311,915 lines of C, 290,842 of C++ and 825,147 of TypeScript are still in the tree at this commit.</span><span data-l="zh">1,008,327 行 Rust 替掉了约 535,496 行 Zig。这个比例说一句就够，不必解读。跨语言的行数既不衡量工作量，也不衡量质量，而机械翻译会因为跟这两者都无关的原因把它抬高。与此同时，当前 commit 下树里还有 311,915 行 C、290,842 行 C++、825,147 行 TypeScript。</span></p><span class="ref mono">measured at f91d5c95 · Zig figure from bun.com/blog/bun-in-rust</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Compile-time enforcement of the lifetime discipline</span><span data-l="zh">生命周期纪律的编译期强制</span></b> — <span data-l="en">the class Bun&#x27;s own account names (use-after-free, double-free, leak) moves from reviewer discipline to a checked property everywhere the code is safe Rust.</span><span data-l="zh">Bun 自己点名的那一类缺陷（use-after-free、double-free、内存泄漏），从「靠评审人把关」变成一条被检查的属性，只要代码是 safe Rust 就成立。</span></li><li><b><span data-l="en">A single-language host layer with no dual-stack boundary</span><span data-l="zh">单一语言的宿主层，没有双栈边界</span></b> — <span data-l="en">0 .zig files and no build.zig at this commit. There is no Zig-Rust seam to maintain — the cost a module-by-module port would have carried for years.</span><span data-l="zh">当前 commit 下 0 个 .zig 文件，也没有 build.zig。没有 Zig-Rust 接缝要维护——那正是逐模块迁移要背上好几年的成本。</span></li><li><b><span data-l="en">Smaller shipped binaries</span><span data-l="zh">发布的二进制更小</span></b> — <span data-l="en">first-party reports binaries roughly 20% smaller after the port. Useful for a runtime distributed as one download, and no part of the requirement.</span><span data-l="zh">first-party 报告迁移后二进制小了约 20%。对以单个下载分发的运行时有用，但不属于需求的一部分。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Speed</span><span data-l="zh">速度</span></b> — <span data-l="en">selected first-party benchmarks moved 2.2–4.8%. At share 1.00 and the 4.8% best case, end-to-end is 1.048x and a 1.5x target is missed. Frame this migration as a performance project and it fails gate 3 on the project&#x27;s own numbers.</span><span data-l="zh">厂商自选的 first-party 基准只动了 2.2–4.8%。取 share 1.00 和 4.8% 的最好情形，端到端是 1.048x，1.5x 目标达不到。把这次迁移包装成性能项目，用项目自己的数字就过不了 gate 3。</span></li><li><b><span data-l="en">Elimination of the memory-safety class</span><span data-l="zh">把内存安全这一类彻底消除</span></b> — <span data-l="en">10,257 opening unsafe blocks remain, with 1,235 unsafe fn, 399 unsafe impl and 966 unsafe extern, and 50.2% of Rust files contain at least one of those forms. Where the code is safe, the class is unreachable by construction. It is not gone.</span><span data-l="zh">树里还剩 10,257 个 unsafe 起始块，另有 1,235 个 unsafe fn、399 个 unsafe impl、966 个 unsafe extern，50.2% 的 Rust 文件至少含其中一种。代码是 safe 的地方，这一类缺陷结构上到不了。但它没有消失。</span></li><li><b><span data-l="en">A verified safety outcome</span><span data-l="zh">一个经过验证的安全结果</span></b> — <span data-l="en">no measurement of the post-port incidence of the target class exists. The migration is approved on a documented requirement and an enforced mechanism, not on a demonstrated result.</span><span data-l="zh">迁移后目标缺陷类的发生率，没有任何测量。这次迁移获批，靠的是一条有记录的需求和一套被强制执行的机制，不是靠已经展示出来的结果。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>fish shell 4.0</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">A whole-project C++ to Rust port. Its own maintainers reported performance &#x27;usually slightly better in terms of time taken&#x27;, with memory use showing a slightly higher floor and a lower ceiling. What settled it for them was Send and Sync, not speed. The &#x27;handwaving, half a year&#x27; estimate became roughly two years.</span><span data-l="zh">一次整项目的 C++ 到 Rust 迁移。维护者自己给出的性能说法是 &#x27;usually slightly better in terms of time taken&#x27;，内存占用下限略高、上限更低。真正定调的是 Send 和 Sync，不是速度。当初 &#x27;handwaving, half a year&#x27; 的估计，最后变成了大约两年。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">whole-project native-to-Rust migration with a near-neutral performance lens and safety plus invariants as the motive</span><span data-l="zh">同为整项目的原生到 Rust 迁移，性能维度近乎中性，动机是安全加不变量</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">57k lines of C++ ported by a volunteer project over about two years, against roughly 535,496 lines of Zig in about 11 days of agent work — the schedule regimes are not comparable</span><span data-l="zh">那边是志愿者项目用大约两年迁移 57k 行 C++，这边是约 535,496 行 Zig 在约 11 天的 agent 工作里完成——两种进度体制不可比</span></div><a class="ref mono" href="https://fishshell.com/blog/rustport/">first-party · project blog</a></article>
+<article class="precedent"><div class="top"><h3>Google · Android memory-safety program</h3><span class="outcome">INCREMENTAL</span></div><p><span data-l="en">Memory safety&#x27;s share of Android vulnerabilities fell from 76% to below 20%. No mass rewrite. New code went into safe languages and the old C/C++ was left to decay. Rust against C/C++ runs roughly 0.2 against 1,000 vulnerabilities per million lines, with about 4% of Rust lines reported as unsafe.</span><span data-l="zh">Android 漏洞中内存安全类的占比从 76% 降到 20% 以下。没有做大规模重写。新代码用安全语言写，旧的 C/C++ 留着自然衰减。每百万行漏洞数上，Rust 对 C/C++ 约为 0.2 对 1,000，其中约 4% 的 Rust 行被报告为 unsafe。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the same defect class, and the only large published post-migration measurement of it — the measurement this port still lacks</span><span data-l="zh">同一类缺陷，而且是唯一一份大规模、公开的迁移后测量——正是这次迁移还缺的那一份</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">an operating system and a multi-year programme; the vulnerability comparison is C/C++-relative, and Android&#x27;s ~4% is a share of lines while the figure measured here is opening-block count per line, so it is directional only</span><span data-l="zh">那边是操作系统和一个跨年项目；漏洞对比是相对 C/C++ 的，而且 Android 的约 4% 是行占比，这里测的是每行的起始块数，所以只能看方向</span></div><a class="ref mono" href="https://blog.google/security/rust-in-android-move-fast-fix-things/">first-party · vendor security blog</a></article>
+<article class="precedent"><div class="top"><h3>AWS · S3 ShardStore</h3><span class="outcome">VERIFIED</span></div><p><span data-l="en">A Rust rewrite of a storage node. Its correctness claim arrived with roughly nine months of lightweight formal-methods work: executable reference models, property tests, Loom, Crux. That work caught 16 issues before production. The rewrite alone would not have found them.</span><span data-l="zh">一个存储节点的 Rust 重写。它的正确性主张背后是大约九个月的轻量形式化方法工作：可执行参考模型、property test、Loom、Crux。这些工作在上生产前抓到了 16 个问题。光靠重写本身找不出来。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">what substantiating a correctness claim for a Rust rewrite actually costs, which is the counterweight to an unmeasured safety outcome</span><span data-l="zh">给一次 Rust 重写的正确性主张做实证究竟要付多少代价——这正是「安全结果未测量」的对照</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">more than 40K lines and one storage-node type rather than a whole language runtime, and no schedule comparable to an 11-day port</span><span data-l="zh">那边是 40K 行以上、一种存储节点类型，不是整个语言运行时；进度上也没有能和 11 天迁移相比的对象</span></div><a class="ref mono" href="https://www.cs.utexas.edu/~bornholt/papers/shardstore-sosp21.pdf">peer-reviewed venue · first-party authors</a></article>
+<article class="precedent"><div class="top"><h3>uutils coreutils</h3><span class="outcome">SHIPPED WITH REGRESSIONS</span></div><p><span data-l="en">A GNU C userland reimplemented in Rust, shipped as an Ubuntu 25.10 default, with measured regressions. cksum ran up to 17x slower on large files and was later patched. base64 got slower, then faster. md5sum behaviour differences broke self-extracting installers.</span><span data-l="zh">把 GNU 的 C 用户态工具集用 Rust 重新实现，作为 Ubuntu 25.10 的默认发布，并测出了回归。cksum 在大文件上一度慢到 17x，后来打了补丁。base64 先变慢，再变快。md5sum 的行为差异弄坏了自解压安装包。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a native-to-Rust replacement at whole-project scope, motivated by resilience rather than speed, that shipped with regressions and then fixed them</span><span data-l="zh">同为整项目范围的原生换 Rust，动机是韧性而非速度，带着回归上线，然后把回归修掉</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">hundreds of small independent tools instead of one runtime, and a distribution&#x27;s default choice instead of a project&#x27;s own release</span><span data-l="zh">那边是几百个互相独立的小工具，不是一个运行时；决定权在发行版的默认选择，不在项目自己的发布</span></div><a class="ref mono" href="https://www.phoronix.com/news/Ubuntu-Rust-Coreutils-Perf">third-party · trade press</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Measure the defect class the port existed to remove</span><span data-l="zh">去测那个迁移为之存在的缺陷类</span></h3><p><span data-l="en">Bun maintainers publish the incidence rate of use-after-free, double-free and leak defects for a stated window after the port, printed next to the same-length window before it, with release cadence and triage rules held comparable. It passes when the two windows are comparable and the direction of the class is stated publicly, whichever way it points. If triage labels cannot separate this class from other defect types, publish the method&#x27;s limits instead of a number. Nothing here touches code.</span><span data-l="zh">由 Bun maintainers 公布迁移后某个明确窗口内 use-after-free、double-free、内存泄漏的发生率，并把迁移前同等长度窗口的数字并排放上，发布节奏和缺陷分类规则保持可比。两个窗口可比、并且公开说明这一类缺陷的走向，无论走向如何，这一步就算过。如果分类标签分不开这一类和其他缺陷类型，就公布方法的边界，而不是硬给一个数字。这一步不碰代码。</span></p></div><span class="cost"><span data-l="en">2–4 weeks</span><span data-l="zh">2–4 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Classify the 10,257 unsafe blocks and name their owners</span><span data-l="zh">给 10,257 个 unsafe 块分类，并指定负责人</span></h3><p><span data-l="en">Each subsystem names a Rust owner. Together they split the opening unsafe blocks into four buckets: FFI boundary, engine embedding, performance-critical, unclassified. Every cluster gets a documented invariant and a safe wrapper. It passes when each cluster has an owner and a written invariant, and the unclassified bucket reaches zero. Once encapsulation is documented, stop using raw block count as the metric — a wrapped block behind a safe API is not the same risk as one whose invariants leak to callers. Documentation and refactoring only; no behavioural change.</span><span data-l="zh">每个子系统指定一名 Rust 负责人。他们一起把 unsafe 起始块分成四桶：FFI 边界、引擎嵌入、性能关键、未分类。每一簇都要有写下来的不变量和一层 safe 封装。每一簇都有负责人和成文不变量、未分类那一桶清零，这一步才算过。封装一旦记录在案，就别再拿原始块数当指标——被 safe API 包住的块，和把不变量泄漏给调用方的块，风险不是一回事。只做文档和重构，不改行为。</span></p></div><span class="cost"><span data-l="en">ongoing</span><span data-l="zh">持续进行</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Keep the regression channel as the acceptance gate</span><span data-l="zh">把回归通道继续当验收门</span></h3><p><span data-l="en">Release engineering triages regressions on every release after the port and names the pinnable pre-port release in the notes. A release passes when each reported regression is either fixed or carries a documented fallback version a user can pin. Hold the release if a known regression has neither. The rollback is the pin itself.</span><span data-l="zh">release engineering 对迁移后的每个发布做回归分类，并在发布说明里点名可以钉住的迁移前版本。每个报出来的回归要么已修，要么有一个用户能钉住的成文回退版本，这个发布才算过。已知回归两样都没有，就压住不发。回滚方式就是钉版本本身。</span></p></div><span class="cost"><span data-l="en">per release</span><span data-l="zh">每个发布周期</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Do not reuse this port as a performance precedent</span><span data-l="zh">别把这次迁移当性能先例引用</span></h3><p><span data-l="en">Anyone citing this case re-runs the D2 calculation with their own measured kernel share and kernel speedup, never Bun&#x27;s. Their numbers decide whether a performance-motivated migration clears their target. When the predicted end-to-end speedup lands below that target, stop the performance track — here it is 1.048x against 1.5x. No code was written, so there is nothing to undo.</span><span data-l="zh">凡是引用这个案例的人，都要用自己实测的内核占比和内核加速比重跑一遍 D2 计算，不要用 Bun 的。性能驱动的迁移能不能达标，由他们自己的数字决定。预测的端到端加速比低于目标，就停掉性能这条线——这里是 1.048x 对 1.5x。没有写过代码，也就没有什么要撤销的。</span></p></div><span class="cost"><span data-l="en">1 day per review</span><span data-l="zh">每次评审 1 天</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></b> — <span data-l="en">The report claims class reduction by construction only where the code is safe Rust, and names both the 10,257 opening unsafe blocks and the C, C++ and TypeScript layers the port never touched.</span><span data-l="zh">报告只在代码为 safe Rust 的范围内主张结构性削减，并且点明了 10,257 个 unsafe 起始块，以及迁移根本没碰的 C、C++、TypeScript 各层。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">No performance benefit is credited to Rust: the measured delta is 2.2–4.8% on selected first-party benchmarks, and the report states that a performance-motivated version of this same migration fails gate 3.</span><span data-l="zh">没有把任何性能收益记在 Rust 头上：厂商自选的 first-party 基准上实测差值是 2.2–4.8%，报告也写明同一次迁移若改用性能理由会过不了 gate 3。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与测量体制</span></b> — <span data-l="en">The benchmark figures are vendor-selected first-party runs on the vendor&#x27;s own workloads, and the defect-class motive is a first-party description with no published counts or rates on either side of the port.</span><span data-l="zh">基准数字是厂商自选的 first-party 跑分，跑的是厂商自己的负载；缺陷类这个动机也是 first-party 的描述，迁移前后都没有公布过计数或发生率。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被略去的成本</span></b> — <span data-l="en">The ~$165k figure is API spend; the human review, triage and 19-regression work around it is not priced anywhere this report can cite, and a third-party account contested review quality at publication.</span><span data-l="zh">约 $165k 只是 API 花费；围绕它的人工评审、缺陷分类和 19 个回归的处理，本报告找不到任何可引的计价，而且发布时有第三方报道质疑了评审质量。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The port is in released versions with 19 regressions reported and since fixed, and pinning a pre-port release is an available rollback rather than a promised one.</span><span data-l="zh">迁移已经进入发布版本，报出 19 个回归且都已修复；钉住迁移前的版本是一条现成可用的回滚路径，不是口头承诺。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有预算的反事实方案</span></b> — <span data-l="en">Nobody priced a funded Zig hardening programme against the port: sanitizer coverage, allocator instrumentation, review gates. So &#x27;be more careful in Zig&#x27; is an unfunded counterfactual rather than a compared option.</span><span data-l="zh">没有人把一套有预算的 Zig 加固方案拿来和迁移比价——sanitizer 覆盖、分配器插桩、评审门禁。所以「在 Zig 里更小心一点」是一个没有预算的反事实方案，不是被真正比较过的选项。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying in Zig keeps lifetime management manual, which is precisely the condition that produced the documented stream of use-after-free, double-free and leak defects.</span><span data-l="zh">留在 Zig 就意味着生命周期继续手动管理，而这正是产出那条有记录的 use-after-free、double-free、内存泄漏缺陷流的条件。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">Zig&#x27;s performance is recorded as parity, not as a deficiency: the port moved selected benchmarks by 2.2–4.8%, and the report treats that as evidence against a speed rationale rather than against Zig.</span><span data-l="zh">Zig 的性能被记为持平，而不是短板：迁移让自选基准动了 2.2–4.8%，报告把这当成反对「速度理由」的证据，不是反对 Zig 的证据。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Status-quo bias</span><span data-l="zh">现状偏好</span></b> — <span data-l="en">The report does not defend the incumbent language on familiarity grounds. It grants that the class is structural to manual lifetime management and authorizes the migration — the only MIGRATE plus APPROVE in this set.</span><span data-l="zh">报告没有拿「熟悉」当理由替原有语言辩护。它承认这一类缺陷是手动生命周期管理的结构性产物，并授权了迁移——这是本组案例里唯一一个 MIGRATE 加 APPROVE。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The staying case is not left as an open-ended &#x27;optimize Zig first&#x27;. The stop condition is attached instead to the migration&#x27;s own claim: publish the defect-class measurement, or the safety outcome stays unverified and robustness stays CONDITIONAL.</span><span data-l="zh">留守方案没有被放成一句开放式的「先优化 Zig」。停止条件挂在迁移自己的主张上：公布缺陷类的测量结果，否则安全结果就一直未经验证，robustness 也一直是 CONDITIONAL。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">oven-sh/bun at f91d5c95 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">oven-sh/bun 于 f91d5c95 · 只读静态分析 · why-not-rust method 2.0</span></h3><p><span data-l="en">Repository: github.com/oven-sh/bun at commit f91d5c95, shallow clone, 19,034 tracked files. Scope: the whole repository, with the ported host-runtime layer as the assessed target. Sampling: 1,008,327 lines of Rust across 1,496 files, 1,005,761 of them under src/; zero .zig files and no build.zig; Cargo.toml present; 311,915 lines of C across 122 files, 290,842 of C++ across 605 files, 105,026 of headers across 808 files, and 825,147 of TypeScript across 3,073 files. Unsafe surface was counted by pattern across tracked .rs files: 10,257 opening unsafe blocks, 1,235 unsafe fn, 399 unsafe impl, 966 unsafe extern, with 751 of 1,496 files (50.2%) containing at least one of those four forms. A bare substring search returns 786 instead; it also matches identifiers such as unsafe_code and prose in comments, so the narrower four-form count is the one reported. Derived: roughly one opening unsafe block per 98 lines of Rust (1,008,327 / 10,257 = 98.3). No build, test, benchmark or network call was run against the project, and deleted history was not inspected, so the roughly 535,496-line pre-port Zig figure is the first-party one from https://bun.com/blog/bun-in-rust rather than a measurement taken here. Objective: eliminate the recurring use-after-free, double-free and leak class without regressing shipped performance or JavaScript-facing behaviour. User-supplied facts: none. Amdahl inputs, in baseline-time units: share=1.00 because the whole program is the candidate kernel, kernel speedup=1.048 from the best selected first-party figure (Bun.serve +4.8%), boundary=0, target=1.5 → end-to-end 1.048x, infinite-kernel ceiling unbounded, target physically possible and NOT met by the candidate. Read that pair carefully. With the whole program as the kernel there is no Amdahl wall at all, so the wall is empirical: the measured native-to-native delta of 4.8% at best. On the speed axis this same migration fails gate 3; on the safety axis it passes. The axis decides it, not the scope. Why the selected option is the smallest sufficient step: the defect class is a property of manual lifetime management throughout the runtime rather than of one component behind an interface. No extraction reaches it. A module-by-module port would pay a Zig-Rust boundary for years while leaving the requirement unmet in the unported remainder. Evidence gaps and their effect: no post-port measurement of the target defect class has been published, which holds confidence at MEDIUM and robustness at CONDITIONAL; the 10,257 opening unsafe blocks are unclassified, so residual unsafety is unquantified; and the benchmark figures are vendor-selected. A third-party account contested the port&#x27;s production-readiness at publication (https://www.theregister.com/devops/2026/07/14/zig-creator-calls-buns-claude-rust-rewrite-unreviewed-slop/5270743); it is recorded as a contested-quality signal in neutral terms, with no claim about anyone&#x27;s motives. Line counts across languages are not treated as comparable measures of effort or quality: 1,008,327 lines of Rust replacing roughly 535,496 of Zig is a ratio, not a verdict. The framework compares explicit options through four non-compensatory gates and is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/oven-sh/bun，commit f91d5c95，shallow clone，19,034 个受管理文件。范围：整个仓库，被评估的目标是已迁移的宿主运行时层。采样：1,008,327 行 Rust，分布在 1,496 个文件中，其中 1,005,761 行在 src/ 下；0 个 .zig 文件，没有 build.zig；Cargo.toml 存在；311,915 行 C 分布在 122 个文件，290,842 行 C++ 分布在 605 个文件，105,026 行头文件分布在 808 个文件，825,147 行 TypeScript 分布在 3,073 个文件。unsafe 面通过模式匹配在受管理的 .rs 文件上统计：10,257 个 unsafe 起始块、1,235 个 unsafe fn、399 个 unsafe impl、966 个 unsafe extern，1,496 个文件里有 751 个（50.2%）至少含这四种形式之一。直接做子串搜索会得到 786，那个数字还会命中 unsafe_code 之类的标识符和注释里的文字，所以报告采用范围更窄的四形式计数。推导：约每 98 行 Rust 一个 unsafe 起始块（1,008,327 / 10,257 = 98.3）。没有对项目跑过任何 build、test、benchmark 或网络调用，也没有查被删除的历史，所以迁移前约 535,496 行 Zig 这个数字来自 first-party 的 https://bun.com/blog/bun-in-rust，不是在这里测出来的。目标：消除反复出现的 use-after-free、double-free、内存泄漏这一类缺陷，同时不让已发布的性能和面向 JavaScript 的行为退化。用户提供的事实：无。Amdahl 输入，单位为基线时间：share=1.00，因为候选内核就是整个程序；kernel speedup=1.048，取自厂商自选数字里最好的一个（Bun.serve +4.8%）；boundary=0；target=1.5 → 端到端 1.048x，无限内核上限 unbounded，目标物理可达，但候选方案 NOT met。这一对要一起读。内核取整个程序时根本没有 Amdahl 墙，所以墙是经验性的：实测的原生到原生差值，最好也就 4.8%。走速度这条轴，同一次迁移过不了 gate 3；走安全那条轴，它过。决定结果的是轴，不是范围。为什么选定方案是最小充分步骤：这一类缺陷是手动生命周期管理贯穿整个运行时的产物，不是接口后面某个组件的产物。抽取够不着它。而逐模块迁移要为 Zig-Rust 边界付上好几年，同时让需求在尚未迁移的部分里一直落空。证据缺口及其影响：迁移后目标缺陷类的测量没有公布过，这把 confidence 钉在 MEDIUM，把 robustness 钉在 CONDITIONAL；10,257 个 unsafe 起始块尚未分类，残余不安全面没有量化；基准数字由厂商自选。发布时有第三方报道质疑了这次迁移的生产就绪度（https://www.theregister.com/devops/2026/07/14/zig-creator-calls-buns-claude-rust-rewrite-unreviewed-slop/5270743），这里以中性措辞记为质量存争议的信号，不对任何人的动机作判断。跨语言的行数不被当作可比的工作量或质量度量：1,008,327 行 Rust 替掉约 535,496 行 Zig，这是一个比例，不是一个结论。本框架把明确列出的方案放进四道非补偿性的门里比较，它是一套结构化决策协议，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">Post-port incidence of the target defect class</span><span data-l="zh">迁移后目标缺陷类的发生率</span></td><td><span data-l="en">The entire decision rests on this measurement, and no one has published it. Its absence holds confidence at MEDIUM and robustness at CONDITIONAL. It does not change the selected scope. It decides whether anyone can claim the migration worked.</span><span data-l="zh">整个决策就压在这项测量上，而没有人公布过。它的缺席把 confidence 钉在 MEDIUM，把 robustness 钉在 CONDITIONAL。它不改变选定的范围。它决定「这次迁移奏效了」这句话能不能说。</span></td></tr><tr><td><span data-l="en">Classification and encapsulation of the 10,257 unsafe blocks</span><span data-l="zh">10,257 个 unsafe 块的分类与封装</span></td><td><span data-l="en">Block count is a coarse proxy for risk. Without a split into FFI boundary, engine embedding and performance-critical clusters, each with a documented invariant, the residual unsafety of the selected option stays unquantified.</span><span data-l="zh">块数是衡量风险的粗糙代理。不把它们拆成 FFI 边界、引擎嵌入、性能关键几簇，并且每簇配一条成文不变量，选定方案的残余不安全面就一直没有量化。</span></td></tr><tr><td><span data-l="en">An independent same-workload benchmark</span><span data-l="zh">一次同负载的独立基准</span></td><td><span data-l="en">The 2.2–4.8% figures are vendor-selected first-party runs. An independent comparison would firm up the parity reading in both directions. This is the report&#x27;s main quantitative performance claim, and nobody outside the vendor has checked it.</span><span data-l="zh">2.2–4.8% 这些数字是厂商自选的 first-party 跑分。一次独立对比可以在两个方向上把「持平」这个判断坐实。这是报告里主要的量化性能主张，而厂商之外没有人核过它。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit f91d5c95 · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在 commit f91d5c95 上做静态分析 · 未运行 build、benchmark 或网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/oven-sh/bun",
+    "commit": "f91d5c95c9e235d65977e6c42446f4f6e7d3ae78",
+    "scope": "whole repository; the ported host-runtime layer — Rust at this commit, Zig before it — is the assessed target",
+    "sampling": "shallow clone; 19,034 tracked files enumerated; per-extension line and file counts across tracked .rs, .zig, .c, .cpp, .h and .ts files, plus pattern counts of unsafe forms in .rs; no build, test, benchmark or network call was run; deleted history not inspected, so the pre-port Zig size comes from the first-party account rather than from this clone"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "Post-port incidence of the target defect class",
+      "Classification and encapsulation of the 10,257 unsafe blocks",
+      "An independent same-workload benchmark"
+    ]
+  },
+  "objective": {
+    "driver": "safety",
+    "requirement": "eliminate the recurring use-after-free, double-free and leak defect class in Bun's runtime implementation without regressing shipped performance or JavaScript-facing behaviour",
+    "baseline": "roughly 535,496 lines of Zig whose lifetimes were maintained by discipline rather than by the compiler (https://bun.com/blog/bun-in-rust)",
+    "target": "the class unreachable by construction wherever the code is safe, at no worse than performance parity"
+  },
+  "decision": {
+    "authorization": "APPROVE",
+    "scope": "MIGRATE",
+    "selected_option_id": "rust-migrate-complete",
+    "confidence": "MEDIUM",
+    "robustness": "CONDITIONAL",
+    "because": "Bun's own account names the motive: a persistent stream of use-after-free, double-free and leak defects across roughly 535,496 lines of Zig. Zig has no compile-time ownership or borrowing to stop that class. And the class was everywhere — manual lifetime management ran through the whole runtime, not through one component behind an interface. So no extraction reached it and no module-by-module scope reached it either; gate 3 takes the whole layer. Speed was never the argument. Selected first-party benchmarks moved 2.2–4.8%, and a performance-motivated version of this same migration fails gate 3 on the project's own numbers. At this commit the tree holds 1,008,327 lines of Rust, zero .zig files and no build.zig. This report grades something that already shipped.",
+    "change_trigger": "One measurement reopens this. Count the incidence of use-after-free, double-free and leak defects over a stated window after the port, then print it beside the same-length window before it, with release cadence and triage rules held comparable. Nobody has done that. Until someone does, 10,257 opening unsafe blocks and 751 of 1,496 Rust files touching unsafe say the class was reduced by construction and not eliminated. If the measurement lands and the class did not move, the remedy failed — the requirement still stands. Treat the block count as a coarse proxy in both directions: a block encapsulated behind a safe API is not the same risk as one whose invariants leak to callers."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "rust-migrate-complete",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "The first-party account names a persistent stream of use-after-free, double-free and leak defects in the Zig implementation as the motive for the port, and reports significant leak fixes afterwards (https://bun.com/blog/bun-in-rust). No defect counts or rates are published in either direction, so the requirement is documented rather than quantified."
+    },
+    {
+      "id": "G2",
+      "option_id": "rust-migrate-complete",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "The defect class is manual-lifetime error. Rust's ownership and borrow checking are compile-time enforcement Zig does not provide, and the port was a same-architecture translation, so no algorithm, data-model or architecture change competes for the credit."
+    },
+    {
+      "id": "G3",
+      "option_id": "rust-migrate-complete",
+      "name": "economics and smallest sufficient option",
+      "state": "PASS",
+      "evidence": "Manual lifetimes were the discipline of the whole Zig runtime rather than of one component, so neither an extraction nor a module-by-module port reaches the class. The port cost about 11 days of roughly 64 parallel agents and about $165k in API spend (https://bun.com/blog/bun-in-rust); the closest comparable whole-project port, fish shell's 57k lines of C++, took a volunteer project about two years (https://fishshell.com/blog/rustport/)."
+    },
+    {
+      "id": "G4",
+      "option_id": "rust-migrate-complete",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "The port is in released versions and the tree at this commit contains no Zig; 19 regressions were reported and have since been fixed (https://bun.com/blog/bun-in-rust), and pinning a pre-port release is a real rollback. A third-party account contested the port's production-readiness at publication (https://www.theregister.com/devops/2026/07/14/zig-creator-calls-buns-claude-rust-rewrite-unreviewed-slop/5270743), recorded here as a quality signal rather than a measurement."
+    }
+  ],
+  "options": [
+    {
+      "id": "zig-harden",
+      "name": "Stay in Zig, harden it",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "eliminate the recurring use-after-free, double-free and leak defect class in Bun's runtime implementation without regressing shipped performance or JavaScript-facing behaviour",
+      "benefit_interval": "lowers incidence; cannot remove the class",
+      "one_time_cost": "sanitizer, allocator and lifetime-tooling work",
+      "recurring_cost": "permanent review discipline",
+      "time_to_value": "weeks",
+      "compatibility": "native",
+      "reversibility": "n/a",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "Zig checks lifetimes by discipline and tooling rather than by the compiler, so hardening lowers incidence without removing the class — and the documented bug stream is what that discipline produced over the life of the Zig implementation. Nobody funded or measured this programme against the port, which the challenge audit records as a hit against the staying case, not as a reason to dismiss it."
+    },
+    {
+      "id": "rust-migrate-complete",
+      "name": "Port the whole Zig layer to Rust",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "eliminate the recurring use-after-free, double-free and leak defect class in Bun's runtime implementation without regressing shipped performance or JavaScript-facing behaviour",
+      "benefit_interval": "class removed by construction wherever the code is safe Rust",
+      "one_time_cost": "~11 days, ~64 parallel agents, ~$165k API spend",
+      "recurring_cost": "one Rust host layer; 10,257 unsafe blocks still need owners",
+      "time_to_value": "shipped",
+      "compatibility": "behavioural, not an ABI: 19 regressions, since fixed",
+      "reversibility": "pin a pre-port release",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "The only option that reaches a defect class distributed across the whole runtime, at a one-time cost small against any conventional rewrite of that size. It is also done: the tree at f91d5c95 carries 1,008,327 lines of Rust and no Zig, which is why this case is evidence rather than a forecast."
+    },
+    {
+      "id": "rust-incremental",
+      "name": "Port module by module over years",
+      "implementation": "rust",
+      "scope": "partial",
+      "target": "eliminate the recurring use-after-free, double-free and leak defect class in Bun's runtime implementation without regressing shipped performance or JavaScript-facing behaviour",
+      "benefit_interval": "class removed in ported modules only; live in the remainder",
+      "one_time_cost": "multi-year, module by module",
+      "recurring_cost": "a Zig-Rust boundary for the whole duration",
+      "time_to_value": "per module",
+      "compatibility": "internal boundary churn",
+      "reversibility": "per module",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "Manual lifetime management was the discipline of the whole runtime, so no module boundary contains the class; the option pays a Zig-Rust boundary for years and still leaves the requirement unmet in whatever is not yet ported. It is the normally correct shape — Android and Stylo both won that way — and it is the wrong shape for a defect class that has no component to sit behind."
+    },
+    {
+      "id": "rust-for-speed",
+      "name": "The same port, justified on speed",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "eliminate the recurring use-after-free, double-free and leak defect class in Bun's runtime implementation without regressing shipped performance or JavaScript-facing behaviour",
+      "benefit_interval": "1.048x end-to-end at the best selected figure; a 1.5x target is missed",
+      "one_time_cost": "identical to the selected option",
+      "recurring_cost": "identical to the selected option",
+      "time_to_value": "never — the target is not met",
+      "compatibility": "same as the selected option",
+      "reversibility": "same as the selected option",
+      "evidence_strength": "MODERATE",
+      "disposition": "exclude",
+      "reason": "Selected first-party benchmarks moved 2.2–4.8%. With the whole program as the kernel, the best selected figure as the kernel speedup and no boundary cost, end-to-end is 1.048x against a 1.5x target, so gate 3 fails on this project's own numbers. The identical migration therefore passes on safety and fails on speed — the axis, not the scope, is what decides it."
+    },
+    {
+      "id": "adopt-rust-runtime",
+      "name": "A consumer adopts a Rust-cored runtime",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "eliminate the recurring use-after-free, double-free and leak defect class in Bun's runtime implementation without regressing shipped performance or JavaScript-facing behaviour",
+      "benefit_interval": "requirement met for that one consumer",
+      "one_time_cost": "per consumer migration",
+      "recurring_cost": "a different compatibility target to track",
+      "time_to_value": "days to weeks per project",
+      "compatibility": "different API and ecosystem surface",
+      "reversibility": "consumer-side",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "A Rust-cored JavaScript runtime already exists, so a consumer whose own requirement is memory safety in the runtime layer has an option today without waiting for anyone. It does nothing about Bun's own implementation, which is the subject of this decision."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-migrate-complete",
+        "rust-incremental"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The unmet requirement is a recurring defect class: use-after-free, double-free, leak. It lives entirely in code Bun owns — the runtime implementation itself, roughly 535,496 lines of Zig before the port.",
+      "source": "https://bun.com/blog/bun-in-rust",
+      "baseline_regime": "first-party account of a recurring defect class",
+      "caveat": "The account names the class and reports significant leak fixes but publishes no defect counts or rates, so the requirement is documented rather than sized.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-for-speed"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "The whole program is the candidate kernel. Share is 1.00, the infinite-kernel ceiling is unbounded, and there is no Amdahl wall to hit. What stops it is the measured delta. Feed the best selected first-party figure in as the kernel speedup and end-to-end is 1.048x, so a 1.5x target is physically possible and this candidate misses it.",
+      "source": "scripts/decision_math.py · share=1.00, kernel=1.048, boundary=0, target=1.5 · https://bun.com/blog/bun-in-rust",
+      "baseline_regime": "vendor-selected first-party benchmarks, same architecture, native to native",
+      "caveat": "1.048x is Bun's own best selected figure, not an independent same-workload measurement; the decision-relevant quantity is the single-digit order of the delta, not its third decimal.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Nobody asserted a tail-latency requirement for this decision. Neither host-layer implementation introduces or removes a managed collector. 311,915 lines of C and 290,842 of C++ remain in the tree at this commit, untouched by the port.",
+      "source": "measured at f91d5c95 · 122 .c files, 605 .cpp files",
+      "baseline_regime": "static file inventory of the shipped tree",
+      "caveat": "The leak fixes the first-party account reports are resource-lifetime fixes in the ported layer, not collector behaviour.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Neither implementation states or publishes a fleet-density objective, a per-instance memory delta, or a break-even.",
+      "source": "objective is a defect class, not a cost model",
+      "baseline_regime": "n/a",
+      "caveat": "Leak fixes plausibly lower steady-state memory, but no measurement exists to cite; if a footprint requirement is stated later, D4 must be recomputed against a real profile.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Both the Zig baseline and the Rust port are ahead-of-time compiled native binaries with no managed runtime in the host layer. No startup mechanism separates them.",
+      "source": "https://bun.com/blog/bun-in-rust — next build +4.5%",
+      "baseline_regime": "first-party selected benchmark, not a startup decomposition",
+      "caveat": "The published set never separates process start from total wall-clock; the one invocation-shaped figure sits inside the same single-digit band as the rest.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-migrate-complete",
+        "rust-incremental"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "This mechanism is the whole case. Zig maintains lifetimes by discipline; Rust enforces ownership and borrowing at compile time. Wherever the ported code is safe Rust, the named class is unreachable by construction rather than by review.",
+      "source": "https://bun.com/blog/bun-in-rust · https://blog.google/security/rust-in-android-move-fast-fix-things/",
+      "baseline_regime": "structural language property plus the one large published outcome for the same class",
+      "caveat": "Android's programme is the closest measured outcome — memory-safety share of vulnerabilities 76% to below 20%, and roughly 0.2 against 1,000 vulnerabilities per million lines — but that comparison is C/C++-relative and is not a prediction for this port.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness — measured outcome",
+      "option_ids": [
+        "rust-migrate-complete"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "The outcome this migration existed to produce has not been measured. 10,257 opening unsafe blocks remain, alongside 1,235 unsafe fn, 399 unsafe impl and 966 unsafe extern. 751 of 1,496 Rust files contain at least one of those four forms. No one has published the post-port incidence of use-after-free, double-free or leak defects.",
+      "source": "measured at f91d5c95 · roughly one opening unsafe block per 98 lines of Rust (1,008,327 / 10,257 = 98.3)",
+      "baseline_regime": "static pattern count on the shipped tree; no defect-rate data on either side",
+      "caveat": "Android reports about 4% of its Rust lines as unsafe; that is a share of lines while this is a block count per line, so the comparison is directional and not an equivalence. Block count is also a coarse proxy for risk: an encapsulated block behind a safe API is not the same exposure as one whose invariants leak to callers.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "rust-migrate-complete",
+        "rust-incremental"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Rust encodes ownership handoff and thread-safety in the type system. The closest comparable whole-project port says which property settled it, and it was not performance: 'the killer feature of Rust, from fish-shell's perspective, is Send and Sync'.",
+      "source": "https://fishshell.com/blog/rustport/ · https://bun.com/blog/bun-in-rust",
+      "baseline_regime": "first-party engineering judgement from two completed native-to-Rust ports",
+      "caveat": "Neither account publishes a race or ownership-defect count, so this is a mechanism claim supported by maintainer judgement, not a measured delta.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-migrate-complete"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "First-party reports binaries roughly 20% smaller after the port. For a runtime shipped as one downloadable binary, that is a distribution benefit.",
+      "source": "https://bun.com/blog/bun-in-rust",
+      "baseline_regime": "first-party build-size comparison",
+      "caveat": "Size is a side benefit, not part of the requirement, and the build stays multi-language either way: 311,915 lines of C, 290,842 of C++ and 825,147 of TypeScript remain in the tree at this commit.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "adopt-rust-runtime"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "A Rust-cored JavaScript runtime already exists. That is evidence the Rust ecosystem carries this workload. It also means a consumer whose own requirement is runtime-layer memory safety has an option today, independent of what Bun decides.",
+      "source": "https://en.wikipedia.org/wiki/Deno_(software)",
+      "baseline_regime": "shipped third-party runtime",
+      "caveat": "A different runtime with a different API surface and compatibility target; it is an option for a consumer, never a substitute for Bun's own implementation decision.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-incremental"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "Manual lifetime management is a discipline spread across the runtime, not a component behind an interface. So a module-by-module port carries a Zig-Rust boundary for its whole duration, and the target class stays live in everything not yet ported. Ending Zig ends the boundary question. 0 .zig files and no build.zig at this commit.",
+      "source": "measured at f91d5c95 · https://bun.com/blog/bun-in-rust",
+      "baseline_regime": "static inventory of the shipped tree plus first-party account",
+      "caveat": "The compatibility surface that actually bound here was behavioural rather than an ABI: 19 regressions were reported and have since been fixed.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-migrate-complete"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Roughly 535,496 lines of Zig were ported in about 11 days. Roughly 64 parallel agents did it, at about $165k in API spend. The result is in released versions, with 19 regressions reported and since fixed.",
+      "source": "https://bun.com/blog/bun-in-rust · https://www.theregister.com/devops/2026/07/14/zig-creator-calls-buns-claude-rust-rewrite-unreviewed-slop/5270743",
+      "baseline_regime": "first-party account of a completed port; production-readiness contested by a third-party account at publication",
+      "caveat": "The cost figure is API spend and does not price the human review, triage and regression work around it. The contested-quality signal is recorded in neutral terms as a signal, not as a measurement, and this report makes no claim about anyone's motives.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "zig-harden"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "The in-language counterfactual cannot reach the same target. Zig checks lifetimes with discipline and tooling, not with the compiler, so hardening lowers incidence without removing the class. The documented defect stream is what that discipline produced over the life of the Zig implementation.",
+      "source": "https://bun.com/blog/bun-in-rust",
+      "baseline_regime": "first-party account of the pre-port implementation",
+      "caveat": "Nobody priced a funded Zig hardening programme — sanitizer coverage, allocator instrumentation, review gates — against the port, so the comparison is structural rather than measured. The port's own outcome against the same class is likewise unmeasured, so neither side of this counterfactual has a number.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": {
+      "kernel_share": 1.0,
+      "kernel_speedup": 1.048,
+      "boundary_cost_share": 0.0,
+      "end_to_end_speedup": 1.048,
+      "infinite_kernel_ceiling": "unbounded",
+      "target_speedup": 1.5,
+      "target_physically_possible": true,
+      "target_met_by_candidate": false,
+      "inputs_note": "The whole program is the candidate kernel, so share=1.00 and there is no Amdahl wall: the infinite-kernel ceiling is unbounded. Kernel speedup is the best selected first-party figure, Bun.serve +4.8% (https://bun.com/blog/bun-in-rust). End-to-end comes out at 1.048x. A 1.5x target is therefore physically possible and still NOT met by this candidate. The wall is empirical rather than structural — the measured native-to-native delta. On that axis the same migration fails gate 3; on the safety axis it passes."
+    },
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "fish shell 4.0",
+      "outcome": "MIGRATED",
+      "match": "whole-project native-to-Rust migration with a near-neutral performance lens and safety plus invariants as the motive",
+      "mismatch": "57k lines of C++ ported by a volunteer project over about two years, against roughly 535,496 lines of Zig in about 11 days of agent work — the schedule regimes are not comparable",
+      "workload_regime": "first-party maintainer account, no benchmark table",
+      "source_class": "first-party · project blog",
+      "url": "https://fishshell.com/blog/rustport/"
+    },
+    {
+      "name": "Google · Android memory-safety program",
+      "outcome": "INCREMENTAL",
+      "match": "the same defect class, and the only large published post-migration measurement of it — the measurement this port still lacks",
+      "mismatch": "an operating system and a multi-year programme; the vulnerability comparison is C/C++-relative, and Android's ~4% is a share of lines while the figure measured here is opening-block count per line, so it is directional only",
+      "workload_regime": "2019–2025 vulnerability share",
+      "source_class": "first-party · vendor security blog",
+      "url": "https://blog.google/security/rust-in-android-move-fast-fix-things/"
+    },
+    {
+      "name": "AWS · S3 ShardStore",
+      "outcome": "VERIFIED",
+      "match": "what substantiating a correctness claim for a Rust rewrite actually costs, which is the counterweight to an unmeasured safety outcome",
+      "mismatch": "more than 40K lines and one storage-node type rather than a whole language runtime, and no schedule comparable to an 11-day port",
+      "workload_regime": "SOSP'21 paper",
+      "source_class": "peer-reviewed venue · first-party authors",
+      "url": "https://www.cs.utexas.edu/~bornholt/papers/shardstore-sosp21.pdf"
+    },
+    {
+      "name": "uutils coreutils",
+      "outcome": "SHIPPED WITH REGRESSIONS",
+      "match": "a native-to-Rust replacement at whole-project scope, motivated by resilience rather than speed, that shipped with regressions and then fixed them",
+      "mismatch": "hundreds of small independent tools instead of one runtime, and a distribution's default choice instead of a project's own release",
+      "workload_regime": "third-party post-ship benchmarking",
+      "source_class": "third-party · trade press",
+      "url": "https://www.phoronix.com/news/Ubuntu-Rust-Coreutils-Perf"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Measure the defect class the port existed to remove",
+      "owner": "Bun maintainers",
+      "cost_range": "2–4 weeks",
+      "artifact": "the incidence rate of use-after-free, double-free and leak defects over a stated window after the port, printed next to the same-length window before it, with the release cadence and triage rules held comparable",
+      "acceptance": "the two windows are comparable and the direction of the class is stated publicly, whichever way it points",
+      "deadline_or_stop": "if triage labels cannot separate this class from other defect types, publish the method's limits instead of a number",
+      "rollback": "measurement only; no code changes"
+    },
+    {
+      "step": 2,
+      "title": "Classify the 10,257 unsafe blocks and name their owners",
+      "owner": "named Rust owners per subsystem",
+      "cost_range": "ongoing",
+      "artifact": "a split of the opening unsafe blocks into FFI boundary, engine embedding, performance-critical and unclassified, with a documented invariant and a safe wrapper for each cluster",
+      "acceptance": "every cluster has an owner and a written invariant, and the unclassified bucket reaches zero",
+      "deadline_or_stop": "stop treating raw block count as the metric once encapsulation is documented — a wrapped block behind a safe API is not the same risk as one whose invariants leak to callers",
+      "rollback": "documentation and refactoring; no behavioural change"
+    },
+    {
+      "step": 3,
+      "title": "Keep the regression channel as the acceptance gate",
+      "owner": "release engineering",
+      "cost_range": "per release",
+      "artifact": "regression triage for every release after the port, with the pinnable pre-port release named in the notes",
+      "acceptance": "each reported regression is either fixed or has a documented fallback version a user can pin",
+      "deadline_or_stop": "hold a release if a known regression has neither a fix nor a fallback",
+      "rollback": "pin a pre-port release"
+    },
+    {
+      "step": 4,
+      "title": "Do not reuse this port as a performance precedent",
+      "owner": "anyone citing this case",
+      "cost_range": "1 day per review",
+      "artifact": "a re-run of the D2 calculation with the citing project's own measured kernel share and kernel speedup, not Bun's",
+      "acceptance": "the citing project's own numbers decide whether a performance-motivated migration clears its own target",
+      "deadline_or_stop": "stop the performance track when the candidate's predicted end-to-end speedup is below the target, as it is here at 1.048x against 1.5x",
+      "rollback": "no code was written"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at the named commit represents the shipped tree; deleted history was not inspected, so the pre-port Zig size is the first-party figure rather than a measurement taken here.",
+    "Unsafe surface was counted by pattern across tracked .rs files — opening unsafe blocks, unsafe fn, unsafe impl, unsafe extern — including test and generated code, and the counts do not distinguish an encapsulated block from one whose invariants leak to callers.",
+    "The first-party benchmark figures are treated as the best available estimate of the native-to-native delta and used directionally; no independent same-workload measurement of this port exists here.",
+    "Line counts across languages are not treated as comparable measures of effort, quality, or complexity in either direction."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "PASS",
+        "claim": "The report claims class reduction by construction only where the code is safe Rust, and names both the 10,257 opening unsafe blocks and the C, C++ and TypeScript layers the port never touched.",
+        "evidence": "D6 records · measured at f91d5c95"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "No performance benefit is credited to Rust: the measured delta is 2.2–4.8% on selected first-party benchmarks, and the report states that a performance-motivated version of this same migration fails gate 3.",
+        "evidence": "D2 · share=1.00, kernel=1.048, target=1.5"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The benchmark figures are vendor-selected first-party runs on the vendor's own workloads, and the defect-class motive is a first-party description with no published counts or rates on either side of the port.",
+        "evidence": "https://bun.com/blog/bun-in-rust"
+      },
+      {
+        "id": "M4",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "The ~$165k figure is API spend; the human review, triage and 19-regression work around it is not priced anywhere this report can cite, and a third-party account contested review quality at publication.",
+        "evidence": "D11 · theregister.com, 14 Jul 2026"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The port is in released versions with 19 regressions reported and since fixed, and pinning a pre-port release is an available rollback rather than a promised one.",
+        "evidence": "G4 · https://bun.com/blog/bun-in-rust"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "HIT",
+        "claim": "Nobody priced a funded Zig hardening programme against the port: sanitizer coverage, allocator instrumentation, review gates. So 'be more careful in Zig' is an unfunded counterfactual rather than a compared option.",
+        "evidence": "D12 · zig-harden retained with WEAK evidence"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying in Zig keeps lifetime management manual, which is precisely the condition that produced the documented stream of use-after-free, double-free and leak defects.",
+        "evidence": "G1 · https://bun.com/blog/bun-in-rust"
+      },
+      {
+        "id": "S3",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "Zig's performance is recorded as parity, not as a deficiency: the port moved selected benchmarks by 2.2–4.8%, and the report treats that as evidence against a speed rationale rather than against Zig.",
+        "evidence": "D2 · https://bun.com/blog/bun-in-rust"
+      },
+      {
+        "id": "S4",
+        "name": "Status-quo bias",
+        "state": "PASS",
+        "claim": "The report does not defend the incumbent language on familiarity grounds. It grants that the class is structural to manual lifetime management and authorizes the migration — the only MIGRATE plus APPROVE in this set.",
+        "evidence": "G2 PASS · selected option rust-migrate-complete"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The staying case is not left as an open-ended 'optimize Zig first'. The stop condition is attached instead to the migration's own claim: publish the defect-class measurement, or the safety outcome stays unverified and robustness stays CONDITIONAL.",
+        "evidence": "reversible path step 1 · change trigger"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

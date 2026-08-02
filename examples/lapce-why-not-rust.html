@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · lapce/lapce</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-extract a-approve">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">lapce/lapce</span><span>2026-08-02</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Rust · code editor · 67,928 lines of Rust, plus a 54,002-line GUI toolkit it had to write</span><span data-l="zh">Rust · 代码编辑器 · 自有 Rust 代码 67,928 行，外加一个自己写的 54,002 行 GUI 工具库</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">EXTRACT</div>
+      <div class="scope-sub"><span data-l="en">take the kernel, rent the editor</span><span data-l="zh">内核自己写，编辑器租别人的</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · APPROVE</div>
+      <p class="why"><span data-l="en">Two Rust editors set out to replace VS Code. Zed carries 1,539,358 lines of Rust; Lapce carries 67,928. Same language, same target, 4.4% of the code. Nothing here points at Rust. What a small team runs out of is people, so the scope that survives is the small one: take the kernel, rent the editor. lapce-xi-rope is already on crates.io, and ripgrep has been VS Code&#x27;s search backend since 2017.</span><span data-l="zh">两个 Rust 编辑器都想替掉 VS Code。Zed 有 1,539,358 行 Rust，Lapce 有 67,928 行。同一门语言，同一个目标，代码量是人家的 4.4%。这里没有一条证据指向语言。小团队缺的是人，所以能站住的是小的那个范围：内核自己写，编辑器租别人的。lapce-xi-rope 已经在 crates.io 上，ripgrep 从 2017 年起就是 VS Code 的搜索后端。</span></p>
+      <p class="trigger"><span data-l="en">Conditional in both directions. Scope moves up if the money arrives: Zed clears the ground-up build in the same language, with 23 contributors above Lapce&#x27;s second-most-active. Scope collapses back to staying if the boundary crossing eats the gain, which is how VS Code&#x27;s native text buffer died. Measure the boundary before committing to the kernel.</span><span data-l="zh">两个方向都有条件。范围往上走的条件是钱到位：Zed 用同一门语言把从零开始那条路走通了，它有 23 个贡献者的提交数超过 Lapce 的第二名。范围退回「不动」的条件是边界开销把收益吃掉，VS Code 的原生文本缓冲就是这么死的。所以押注内核之前，先量边界。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">ship the fast kernels as Rust libraries; do not build the editor around them</span><span data-l="zh">把快的那几块做成 Rust 库；不要围着它们再造一个编辑器</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>CONDITIONAL</b></span>
+        <span><span data-l="en">native-desktop-gui · a VS Code-class editor built ground-up by a volunteer team</span><span data-l="zh">原生桌面 GUI · 一个志愿者团队从零开始做的 VS Code 级编辑器</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">CPU-bound text and search work is a documented gap, confirmed by others.</span><span data-l="zh">CPU 密集的文本与搜索是有记录的缺口，别人也验证过。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">The kernels already exist as Rust crates. You depend, you don&#x27;t build.</span><span data-l="zh">内核已经是现成的 Rust crate。你是依赖它，不是造它。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">The cost is a version pin. Nothing cheaper reaches the same target.</span><span data-l="zh">成本是一个版本 pin。没有更便宜的东西能打到同一个目标。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Already delivered twice, once by Lapce itself.</span><span data-l="zh">已经交付过两次，其中一次是 Lapce 自己。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Lapce&#x27;s Rust</span><span data-l="zh">Lapce 的 Rust</span></div><div class="value mono">67,928<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">141 tracked .rs files · whole repository</span><span data-l="zh">版本库内 141 个 .rs 文件 · 整个仓库</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Zed&#x27;s Rust, same basis</span><span data-l="zh">Zed 的 Rust，同一口径</span></div><div class="value mono">1,539,358<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">1,926 files at 90d024b · the funded competitor</span><span data-l="zh">90d024b 上 1,926 个文件 · 有资金的对手</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">GUI toolkit written on the side</span><span data-l="zh">顺路写出来的 GUI 工具库</span></div><div class="value mono">54,002<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">floem @ 31fa8f44, library only, examples/ excluded</span><span data-l="zh">floem @ 31fa8f44，只算库，不含 examples/</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Commits on master in 2025</span><span data-l="zh">2025 年 master 上的提交</span></div><div class="value mono">44<span class="unit"><span data-l="en">commits</span><span data-l="zh">个</span></span></div><div class="note"><span data-l="en">down from 1,897 in 2022 · GitHub API</span><span data-l="zh">2022 年是 1,897 个 · GitHub API</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">One person&#x27;s share of master</span><span data-l="zh">一个人在 master 上的占比</span></div><div class="value mono">2,023<span class="unit"><span data-l="en">of 3,636</span><span data-l="zh">/ 3,636</span></span></div><div class="note"><span data-l="en">dzhou121 · GitHub contributors API</span><span data-l="zh">dzhou121 · GitHub contributors API</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Zed contributors above Lapce&#x27;s #2</span><span data-l="zh">提交数超过 Lapce 第二名的 Zed 贡献者</span></div><div class="value mono">23<span class="unit"><span data-l="en">people</span><span data-l="zh">人</span></span></div><div class="note"><span data-l="en">≥368 commits; Lapce has 2 at that bar</span><span data-l="zh">≥368 个提交；Lapce 在这条线上只有 2 人</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">The requirement has two halves and they do not have the same answer. Native-speed text handling is the half a small team can own. Remote development with a local editing engine needs a whole editor, and renting one costs less than writing one. Every option below is priced against both.</span><span data-l="zh">需求有两半，答案不一样。原生速度的文本处理，是小团队能自己扛的那一半。本地编辑引擎配远端 proxy 的远程开发，需要一整个编辑器，而租一个比写一个便宜。下面每个方案都要对着这两半算账。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Rust kernels as libraries behind an existing editor</span><span data-l="zh">Rust 内核做成库，挂在现成编辑器后面</span></span><span class="source"><span data-l="en">recommended · already shipped twice, including by Lapce itself</span><span data-l="zh">推荐 · 已经落地过两次，其中一次就是 Lapce 自己</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">the parts Rust is measurably good at, without owning a UI</span><span data-l="zh">拿到 Rust 确实擅长的那几块，同时不用自己养一套 UI</span></td><td><span data-l="en">per kernel; a version pin</span><span data-l="zh">按内核计；一个版本 pin</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">host&#x27;s API · unpin to revert</span><span data-l="zh">宿主自己的 API · 取消 pin 即回滚</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Build the whole editor in Rust, toolkit and plugin ABI included</span><span data-l="zh">整个编辑器用 Rust 从零做，含工具库和插件 ABI</span></span><span class="source"><span data-l="en">exclude · this is what Lapce did, and the numbers are its own</span><span data-l="zh">排除 · 这就是 Lapce 走的路，数字也是它自己的</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">native latency, unmeasured; feature surface thin in every category</span><span data-l="zh">原生延迟，未测量；每一类功能都薄</span></td><td><span data-l="en">121,930 lines; a toolkit to maintain</span><span data-l="zh">121,930 行；外加一个要长期维护的工具库</span></td><td><span data-l="en">years; v0.4.6 after 4.5</span><span data-l="zh">数年；4.5 年后停在 v0.4.6</span></td><td><span data-l="en">bespoke ABI · no rollback</span><span data-l="zh">自定 ABI · 无回滚</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust editor on somebody else&#x27;s GUI toolkit</span><span data-l="zh">Rust 编辑器，GUI 工具库用别人的</span></span><span class="source"><span data-l="en">retain · Lapce started here on Druid and left; the org still carries the forks</span><span data-l="zh">保留 · Lapce 起初用 Druid，后来离开了；那些 fork 还挂在 org 里</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">same native mechanism, 54,002 fewer lines to own</span><span data-l="zh">同样的原生机制，少养 54,002 行</span></td><td><span data-l="en">editor only; upstream sets the pace</span><span data-l="zh">只做编辑器；节奏由上游定</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">toolkit&#x27;s limits · swap the crate</span><span data-l="zh">受工具库能力限制 · 换个 crate</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Native editor in a language with a mature GUI toolkit</span><span data-l="zh">用一门有成熟 GUI 工具库的语言做原生编辑器</span></span><span class="source"><span data-l="en">retain · the counterfactual any native-speed claim has to beat</span><span data-l="zh">保留 · 任何「原生更快」的主张都要先赢过这个对照</span></span></td><td><span class="scope-tag">NATIVE</span></td><td><span data-l="en">the same native mechanism, no toolkit to write</span><span data-l="zh">同样的原生机制，不用自己写工具库</span></td><td><span data-l="en">editor only; manual memory care</span><span data-l="zh">只做编辑器；内存要自己管</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">toolkit bindings · conventional</span><span data-l="zh">工具库绑定 · 路子常规</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Adopt an editor somebody else is funding</span><span data-l="zh">直接用别人在投钱的编辑器</span></span><span class="source"><span data-l="en">retain · Zed is 1,539,358 lines of the same language, already built</span><span data-l="zh">保留 · Zed 是同一门语言的 1,539,358 行，已经建好了</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">the full feature surface, paid for by someone else</span><span data-l="zh">完整功能面，钱是别人出的</span></td><td><span data-l="en">per user; their roadmap</span><span data-l="zh">按人计；路线图归他们</span></td><td><span data-l="en">days</span><span data-l="zh">数天</span></td><td><span data-l="en">their ecosystem · switch back</span><span data-l="zh">他们的生态 · 可以换回来</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is evidence bound to named options, not a score to add up. The two performance lenses sit at UNKNOWN because nobody has published a latency measurement for this editor, and the report does not fill that hole with the competitor&#x27;s numbers.</span><span data-l="zh">每条状态都绑在具体方案上，不是可以相加的分数。两条性能相关的停在 UNKNOWN，因为没有人公开过这个编辑器的延迟测量；报告也没有拿对手的数字去填这个洞。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The requirement is written down and specific. docs/why-lapce.md walks from Vim&#x27;s missing async, through Neovim&#x27;s whole-canvas draw events, to the one the others could not fix: remote development that puts network latency in every keystroke. The editor owns its entire input path, so ownership is not in question.</span><span data-l="zh">需求是写下来的，而且很具体。docs/why-lapce.md 从 Vim 没有异步讲到 Neovim 只发整块画布的绘制事件，最后落到别人修不了的那一条：远程开发把网络延迟塞进每一次按键。编辑器拥有自己完整的输入路径，归属没有疑问。</span></div><div class="source mono">docs/why-lapce.md · lapce-app/src/proxy/remote.rs (497 lines) · lapce-rpc (3,760 lines)</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-ground-up</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">No keystroke-to-glyph measurement for Lapce exists in this repository or in public. The README says lightning-fast; there is no harness. No Amdahl figure appears here because there is no time share to put in it, and a line-count share is not a substitute.</span><span data-l="zh">这个仓库里和公开渠道里都找不到 Lapce 的按键到出字测量。README 写着 lightning-fast，但没有测量脚手架。这里不给 Amdahl 数字，因为没有时间占比可填，代码行数占比顶替不了它。</span></div><div class="source mono">no published Lapce latency measurement; README.md:8 carries the claim</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all native options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Every native option removes the same two things: the garbage collector and the JavaScript deserialization step that the author actually hit in Electron. None removes them better than the others. This lens separates native from Electron, and it does not separate Rust from C++ or from Go with Qt bindings.</span><span data-l="zh">所有原生方案拿掉的是同样两样东西：垃圾回收，以及作者当年在 Electron 里真正撞上的那个 JavaScript 反序列化步骤。谁也没比谁拿得更干净。这条镜头分得开原生和 Electron，分不开 Rust 和 C++，也分不开 Rust 和 Go 加 Qt。</span></div><div class="source mono">docs/why-lapce.md — the author&#x27;s own gonvim (Go + Qt) predates the Rust decision</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">A desktop editor runs one instance per developer on hardware the developer already owns. There is no fleet to price, so per-instance memory does not convert into a cost case here.</span><span data-l="zh">桌面编辑器是每个开发者一份，跑在开发者自己的机器上。没有机队要算钱，单实例内存在这里也就换不成成本论证。</span></div><div class="source mono">desktop distribution model</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-ground-up</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">Cold start is one of the two things people say out loud about Electron editors, and nobody has measured it for Lapce either. A native binary should win. Should is not a number.</span><span data-l="zh">冷启动是大家提到 Electron 编辑器时会说的两件事之一，而 Lapce 这边同样没人量过。原生二进制理应赢。理应不是数字。</span></div><div class="source mono">no published cold-start measurement</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Memory safety was never the objective here, and there is almost nothing left to buy. 13 lines of unsafe code sit in 141 files. The C that matters is in the dependency tree regardless: libgit2-sys, a vendored OpenSSL, tree-sitter, libz-sys and zstd-sys are all in the lockfile, and grammars load as C shared libraries at runtime.</span><span data-l="zh">内存安全从来不是这里的目标，而且已经几乎没有东西可买了。141 个文件里只有 13 行 unsafe 代码。真正要紧的 C 无论如何都在依赖树里：libgit2-sys、内置的 OpenSSL、tree-sitter、libz-sys、zstd-sys 都在 lockfile 里，而语法解析器是运行时按 C 动态库加载的。</span></div><div class="source mono">13 unsafe code lines across 141 .rs files · lapce-core/src/language.rs:1899 libloading · Cargo.lock, 758 locked packages</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The design puts syntax highlighting on another thread and the file layer in another process, so nothing blocks the main thread while you type. Rust makes that split checkable rather than merely intended. The shape itself is older than the language choice.</span><span data-l="zh">这套设计把语法高亮放到另一个线程、文件层放到另一个进程，打字的时候主线程不会被挡住。Rust 让这个切分是可校验的，而不只是「打算这么做」。至于这个形状本身，比选语言这件事更早。</span></div><div class="source mono">lapce-rpc (3,760 lines) is the process boundary · docs/why-lapce.md describes the UI/proxy/plugin split</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The application ships as a native binary with no bundled runtime, packaged for Windows, macOS and four Linux families. The binary is self-contained; the language support is not. Around 125 languages arrive as platform-specific tree-sitter shared libraries downloaded into a grammars directory after install.</span><span data-l="zh">程序以原生二进制发布，不带运行时，为 Windows、macOS 和四个 Linux 系列做了打包。二进制是自包含的，语言支持不是。大约 125 门语言是装完之后再下载的、跟平台绑定的 tree-sitter 动态库，落在一个 grammars 目录里。</span></div><div class="source mono">extra/ packaging (wxs, plist, icns, 4 Dockerfiles, .desktop, lapce.spec) · lapce-core/src/directory.rs:178 · 125 LapceLanguage variants</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-ground-up</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">No Rust GUI toolkit met the bar, so the team wrote one. floem is 54,002 lines of library code at the rev this repository pins. The lapce org additionally carries forks of druid, winit, cosmic-text, parley, swash, fount, font-kit, glutin, glazier, piet-wgpu and vger-rs. That is the ecosystem gap, itemised.</span><span data-l="zh">没有一个 Rust GUI 工具库达到要求，于是团队自己写了一个。在本仓库 pin 的那个 rev 上，floem 的库代码是 54,002 行。lapce org 里另外还挂着 druid、winit、cosmic-text、parley、swash、fount、font-kit、glutin、glazier、piet-wgpu、vger-rs 的 fork。生态缺口就是这张清单。</span></div><div class="source mono">Cargo.toml:79-89 pins floem @ 31fa8f44 · GitHub API orgs/lapce/repos</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-ground-up</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Plugins are WASI modules over a protocol Lapce invented, run on wasmtime 14.0.2. A VS Code extension is a Node module against a JavaScript API. Neither can load the other, and no adapter exists in this tree. The whole codebase mentions vscode once, in a URL for an icon font.</span><span data-l="zh">插件是 WASI 模块，跑在 wasmtime 14.0.2 上，走的是 Lapce 自己定的协议。VS Code 扩展是对着一套 JavaScript API 写的 Node 模块。两边谁也装不了谁，这棵树里也没有适配层。整个代码库提到 vscode 只有一次，在一个图标字体的 URL 里。</span></div><div class="source mono">lapce-proxy/Cargo.toml:59-65 · lapce-proxy/src/plugin/ (6,240 lines) · Cargo.lock wasmtime 14.0.2 · 1 vscode match across 141 .rs files</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-ground-up</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">67,928 lines of editor plus 54,002 of toolkit is 121,930 lines owned, and 44.3% of that is the toolkit. The competitor is 1,539,358 lines. Commits went 1,897, 624, 467, 44 across 2022 to 2025. Version 0.4.6 is the latest stable after 35 releases, and its changelog is one new file extension and seven bug fixes.</span><span data-l="zh">编辑器 67,928 行加工具库 54,002 行，自有 121,930 行，其中 44.3% 是工具库。对手是 1,539,358 行。2022 到 2025 年的提交数依次是 1,897、624、467、44。发过 35 个 release 之后，最新稳定版是 0.4.6，它的 changelog 是一个新文件后缀加七个修复。</span></div><div class="source mono">git ls-files &#x27;*.rs&#x27; | xargs wc -l on three clones · GitHub API commits and releases · CHANGELOG.md:11-27</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">对照方案</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-kernel-extract</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The smaller option is not hypothetical. Lapce already performed it: lapce-xi-rope 0.3.2 is a published crate, and this repository consumes it from crates.io like anyone else can. VS Code has run ripgrep as its search backend since 2017. The kernel path ships without an editor attached.</span><span data-l="zh">更小的那个方案不是假想。Lapce 自己已经做过了：lapce-xi-rope 0.3.2 是发布出去的 crate，本仓库跟别人一样从 crates.io 拉它。VS Code 从 2017 年起就用 ripgrep 当搜索后端。内核这条路不用配一个编辑器也能发。</span></div><div class="source mono">Cargo.toml:73 lapce-xi-rope = 0.3.2 from crates.io</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">One lens is N/A. D4 fleet footprint: this is a desktop application installed per user, so there is no fleet, no instance count and no price per core to compare.</span><span data-l="zh">一条记为 N/A。D4 机队占用：这是按人安装的桌面应用，没有机队，没有实例数，也没有单核价格可比。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">Lapce is 4.4% of Zed</span><span data-l="zh">Lapce 是 Zed 的 4.4%</span></h3><p><span data-l="en">Both trees were counted the same way: tracked .rs files, wc -l. Lapce is 67,928 lines across 141 files. Zed is 1,539,358 across 1,926. Lapce holds 44.1% of Zed&#x27;s stars. An editor that competes with VS Code is a very large amount of software, and Rust does not make you write it faster.</span><span data-l="zh">两棵树用同一种数法——版本库内的 .rs 文件，wc -l——Lapce 是 141 个文件 67,928 行，Zed 是 1,926 个文件 1,539,358 行。Lapce 拿到了 Zed 的 44.1% 的 star。一个能跟 VS Code 打的编辑器是极大量的软件，Rust 不会让你写得更快。</span></p><span class="ref mono">lapce c9e4c33 · zed 90d024b · same command, same basis</span></div>
+<div class="card rust"><h3><span data-l="en">The GUI toolkit is 54,002 lines</span><span data-l="zh">GUI 工具库 54,002 行</span></h3><p><span data-l="en">floem is an external git dependency pinned at 31fa8f44, so none of it counts inside Lapce&#x27;s 67,928. Its library code is 54,002 lines, which makes 44.3% of everything this effort owns a toolkit rather than an editor. Then there are the forks: druid, winit, cosmic-text, parley, swash, fount, font-kit, glutin, glazier, piet-wgpu, vger-rs.</span><span data-l="zh">floem 是外部 git 依赖，pin 在 31fa8f44，所以它一行都不在 Lapce 那 67,928 行里。它的库代码 54,002 行，也就是说这场投入自有的东西里有 44.3% 是工具库而不是编辑器。此外还有那些 fork：druid、winit、cosmic-text、parley、swash、fount、font-kit、glutin、glazier、piet-wgpu、vger-rs。</span></p><span class="ref mono">Cargo.toml:79-89 · floem @ 31fa8f44, examples/ excluded</span></div>
+<div class="card current"><h3><span data-l="en">Commits went 1,897 → 44</span><span data-l="zh">提交数从 1,897 掉到 44</span></h3><p><span data-l="en">Per calendar year on master: 1,897 in 2022, 624 in 2023, 467 in 2024, 44 in 2025, 18 so far in 2026. The cliff is Q4 2024, where 133 commits became 25. One person holds 2,023 of the 3,636, and the fourth-largest contributor is dependabot. Last commit on master: 2026-04-03.</span><span data-l="zh">master 上按自然年算：2022 年 1,897，2023 年 624，2024 年 467，2025 年 44，2026 年至今 18。断崖在 2024 年第四季度，133 变成 25。3,636 个提交里有 2,023 个属于一个人，第四名贡献者是 dependabot。master 上最后一次提交：2026-04-03。</span></p><span class="ref mono">gh api repos/lapce/lapce/commits with since/until · contributors API</span></div>
+<div class="card rust"><h3><span data-l="en">The plugin ABI cannot run a VS Code extension</span><span data-l="zh">插件 ABI 跑不了 VS Code 扩展</span></h3><p><span data-l="en">Lapce chose WASI modules over its own protocol, on wasmtime 14.0.2. That is a defensible architecture and it costs you the whole published extension library on day one. The protocol&#x27;s spec repository has not been pushed since 2022-11-13, and the earlier lapce-extensions repo was archived in October 2022. GitHub code search finds 152 files named volt.toml.</span><span data-l="zh">Lapce 选了 WASI 模块加自己的协议，跑在 wasmtime 14.0.2 上。这是个说得通的架构，代价是第一天就放弃整个已发布的扩展库。协议的 spec 仓库自 2022-11-13 起没有再推过，更早的 lapce-extensions 仓库 2022 年10 月就归档了。GitHub 代码搜索能找到 152 个叫 volt.toml 的文件。</span></p><span class="ref mono">lapce-proxy/Cargo.toml:59-65 · lapce-proxy/src/plugin/ 6,240 lines</span></div>
+<div class="card current"><h3><span data-l="en">Every VS Code subsystem is present; each one is thin</span><span data-l="zh">VS Code 的每个子系统都在，每个都薄</span></h3><p><span data-l="en">This is not a project that skipped the hard parts. LSP, DAP, WASI plugins, terminal, source control, settings, themes and remote development all exist, behind 11 panel kinds and 125 language definitions. DAP is 3,098 lines and the terminal is 3,164. The gap against VS Code is depth in every category at once, which is exactly the thing headcount buys.</span><span data-l="zh">这个项目没有跳过难的部分。LSP、DAP、WASI 插件、终端、源码管理、设置、主题、远程开发全都有，撑起 11 种面板和 125 个语言定义。DAP 3,098 行，终端 3,164 行。跟 VS Code 的差距是每一类都不够深，而深度正是人头能买到的东西。</span></p><span class="ref mono">lapce-app/src/panel/kind.rs:10-22 · lapce-core/src/language.rs:194</span></div>
+<div class="card unknown"><h3><span data-l="en">Nobody published this editor&#x27;s latency</span><span data-l="zh">没有人公开过这个编辑器的延迟</span></h3><p><span data-l="en">The README says lightning-fast. No harness in the repository measures it, and no third party has published one. D2 and D5 are UNKNOWN. Zed&#x27;s ~58ms against VS Code&#x27;s ~97ms is unaudited and it is Zed&#x27;s number, so it stays where it was measured.</span><span data-l="zh">README 写着 lightning-fast。仓库里没有测它的脚手架，也没有第三方发过。D2 和 D5 记为 UNKNOWN。Zed 那个 ~58ms 对 VS Code ~97ms 未经审计，而且是 Zed 的数字，就留在它被测出来的地方。</span></p><span class="ref mono">README.md:8 · no measurement artifact in 382 tracked files</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Native input, with no collector and no JS step</span><span data-l="zh">原生输入，没有 collector，没有 JS 那一步</span></b> — <span data-l="en">the boundary the author hit in Electron is real, and Rust removes it. So does C++, which is why D3 credits native execution rather than the language.</span><span data-l="zh">作者当年在 Electron 里撞上的那个边界是真的，Rust 拿得掉。C++ 也拿得掉，所以 D3 把功劳记给原生执行，不记给语言。</span></li><li><b><span data-l="en">A concurrency split you can check at compile time</span><span data-l="zh">一个编译期就能校验的并发切分</span></b> — <span data-l="en">syntax highlighting off the main thread, files behind a 3,760-line RPC boundary. The design is older than the language choice; Rust is what keeps it honest.</span><span data-l="zh">语法高亮挪出主线程，文件层藏在 3,760 行的 RPC 边界后面。这个设计比选语言更早；Rust 的作用是让它一直站得住。</span></li><li><b><span data-l="en">A kernel other people can use</span><span data-l="zh">一个别人能用的内核</span></b> — <span data-l="en">lapce-xi-rope 0.3.2 is on crates.io and this repository pulls it from there. The extraction already happened and it needed no editor.</span><span data-l="zh">lapce-xi-rope 0.3.2 在 crates.io 上，本仓库就是从那儿拉的。抽取这件事已经发生过了，而且不需要配一个编辑器。</span></li><li><b><span data-l="en">A toolkit, eventually</span><span data-l="zh">一个工具库，最后确实有了</span></b> — <span data-l="en">floem has 4,227 stars and two downstream projects in the same org. The side-quest produced something, the way Servo produced Stylo.</span><span data-l="zh">floem 有 4,227 个 star，同一个 org 里还有两个下游项目。这条支线确实产出了东西，跟 Servo 产出 Stylo 是一个路子。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">The extension library</span><span data-l="zh">扩展库</span></b> — <span data-l="en">WASI plus a bespoke protocol cannot load a Node extension. One vscode string exists in 141 files and it points at an icon font.</span><span data-l="zh">WASI 加一套自定协议装不了 Node 扩展。141 个文件里只有一个 vscode 字符串，指向一个图标字体。</span></li><li><b><span data-l="en">People</span><span data-l="zh">人</span></b> — <span data-l="en">1,897 commits in 2022, 44 in 2025. 23 Zed contributors sit above Lapce&#x27;s second-most-active. No language adds contributors.</span><span data-l="zh">2022 年 1,897 个提交，2025 年 44 个。23 个 Zed 贡献者的提交数超过 Lapce 的第二名。没有哪门语言能凭空长出贡献者。</span></li><li><b><span data-l="en">A GUI toolkit</span><span data-l="zh">一个 GUI 工具库</span></b> — <span data-l="en">nothing met the bar in 2022, so 54,002 lines got written before the editor could be finished. Zed made the same call and wrote GPUI.</span><span data-l="zh">2022 年没有达标的，于是在编辑器完工之前先写了 54,002 行。Zed 当时做了同样的判断，写出了 GPUI。</span></li><li><b><span data-l="en">Memory safety worth paying for here</span><span data-l="zh">在这里值得花钱买的内存安全</span></b> — <span data-l="en">13 unsafe code lines in 141 files, and libgit2, a vendored OpenSSL and the C grammars stay in the dependency tree whatever the application is written in.</span><span data-l="zh">141 个文件里 13 行 unsafe 代码；不管应用用什么写，libgit2、内置的 OpenSSL 和那些 C 语法解析器都还在依赖树里。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Zed · GPUI</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">The same option, the same language, and it works. Zed also found no Rust GUI framework that hit the bar and wrote GPUI. The difference is capacity: 23 contributors above Lapce&#x27;s second-most-active, and 39,386 commits against 3,636. That is the comparison that keeps this report off the claim that Rust editors fail.</span><span data-l="zh">同一个方案，同一门语言，而且成了。Zed 同样没找到达标的 Rust GUI 框架，于是写了 GPUI。差别在产能：23 个贡献者的提交数超过 Lapce 的第二名，39,386 个提交对 3,636 个。正是这个对比让本报告不至于变成「Rust 编辑器做不成」。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">greenfield Rust editor against Electron incumbents, custom GPU toolkit included</span><span data-l="zh">从零开始的 Rust 编辑器对 Electron 老牌产品，同样自带一套 GPU 工具库</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">venture funding and a paid team; its latency numbers are third-party and unaudited</span><span data-l="zh">有风投和全职团队；它的延迟数字是第三方的，未经审计</span></div><a class="ref mono" href="https://zed.dev/blog/videogame">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Microsoft · VS Code</h3><span class="outcome">STAYED</span></div><p><span data-l="en">The incumbent ran the experiment in both directions inside one product. A native C++ text buffer was reverted, with the verdict &#x27;We tried. It didn&#x27;t work out for us&#x27; — string conversion across the V8 boundary ate the gain. ripgrep, a whole Rust process exchanging bulk results, has powered search since 2017.</span><span data-l="zh">老牌产品在同一个产品里把两个方向都试过了。原生 C++ 文本缓冲被回退，结论是 &#x27;We tried. It didn&#x27;t work out for us&#x27;——跨 V8 边界的字符串转换把收益吃掉了。而 ripgrep 作为一个整进程的 Rust 程序批量交换结果，从 2017 年起一直在支撑搜索。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the direct precedent for the selected option: native at a coarse seam, not everywhere</span><span data-l="zh">所选方案的直接先例：在粗接缝上用原生，而不是全都换</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a funded incumbent with the ecosystem already in hand; no remote-architecture requirement</span><span data-l="zh">有资金的老牌产品，生态本来就在手上；也没有远程架构这条需求</span></div><a class="ref mono" href="https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Servo</h3><span class="outcome">CANCELLED</span></div><p><span data-l="en">A ground-up Rust replacement for a huge feature surface, cancelled in 2020 with the team laid off. Bobby Holley&#x27;s estimate was the whole story: a full Gecko replacement &#x27;would probably require thousands of engineer-years&#x27; while Mozilla &#x27;could only afford a handful of heads&#x27;. The language was fine. The arithmetic was not.</span><span data-l="zh">一次针对巨大功能面的从零 Rust 替换，2020 年取消，团队被裁。Bobby Holley 的估算就是全部故事：完整替换 Gecko &#x27;would probably require thousands of engineer-years&#x27;，而 Mozilla &#x27;could only afford a handful of heads&#x27;。语言没问题，算术有问题。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">scope economics at maximum scale; a volunteer editor team faces the same ratio</span><span data-l="zh">极大规模下的范围经济学；一个志愿者编辑器团队面对的是同一个比例</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a browser engine is larger again, and Servo had corporate funding Lapce never had</span><span data-l="zh">浏览器引擎的量级还要更大，而且 Servo 有 Lapce 从未有过的公司资金</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party blog · public record</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Stylo</h3><span class="outcome">EXTRACT</span></div><p><span data-l="en">The same R&amp;D that failed as a replacement shipped as a component. Two engineers started late 2015, first pixels April 2016, in Firefox 57 about two years later. Holley again: &#x27;the desire to throw everything away and start from scratch tends to be an emotional one.&#x27; Same org, same codebase, opposite outcome.</span><span data-l="zh">同一批研发，作为替换失败，作为组件发了出去。两个工程师 2015 年末动手，2016 年 4 月第一次出像素，大约两年后进入 Firefox 57。还是 Holley 的话：&#x27;the desire to throw everything away and start from scratch tends to be an emotional one.&#x27; 同一个组织，同一份代码，相反的结局。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the shape of the selected option: one measured kernel inside somebody else&#x27;s product</span><span data-l="zh">所选方案的形状：把一个量过的内核放进别人的产品里</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">it rode a funded donor project; Lapce&#x27;s kernel is already published, which is cheaper again</span><span data-l="zh">它是搭在一个有资金的母项目上的；Lapce 的内核已经发布了，那更便宜</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Alacritty</h3><span class="outcome">QUANTIFIED</span></div><p><span data-l="en">A greenfield Rust GPU terminal called itself the fastest in existence. When someone measured, its latency came out mid-pack, and Dan Luu called throughput dumps &#x27;as useless a benchmark as I can think of&#x27;. Lapce&#x27;s README says lightning-fast and ships no harness. Same failure mode, same fix: define the metric.</span><span data-l="zh">一个从零写的 Rust GPU 终端自称世上最快。等到有人真去量，它的延迟落在中游，Dan Luu 说吞吐量转储 &#x27;as useless a benchmark as I can think of&#x27;。Lapce 的 README 写着 lightning-fast，也没带测量脚手架。同样的毛病，同样的解法：把指标定下来。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same archetype, same superlative-without-a-metric pattern that puts D2 at UNKNOWN</span><span data-l="zh">同一个类型，同一种「有最高级没有指标」的模式，正是 D2 记 UNKNOWN 的原因</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a terminal is a fraction of an editor&#x27;s surface; only the claim failed audit, not the product</span><span data-l="zh">终端的表面积只是编辑器的一小部分；审计不过关的是主张，不是产品</span></div><a class="ref mono" href="https://danluu.com/term-latency/">third-party · independent measurement</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Measure the latency before you pick the language</span><span data-l="zh">先量延迟，再选语言</span></h3><p><span data-l="en">Whoever wants the new editor publishes keystroke-to-glyph latency first, on stated hardware, against the editor they intend to replace. The harness has to be runnable by someone else. Lapce never published one and neither did anyone else; Zed&#x27;s figures are third-party and unaudited. If the incumbent lands inside the gap you care about, stop here. No code moves in this step.</span><span data-l="zh">想做新编辑器的人，先把按键到出字的延迟发出来，写明硬件，对着打算替掉的那个编辑器测。测量脚手架要能被别人复跑。Lapce 没发过，别人也没有；Zed 的数字是第三方的，未经审计。如果现有编辑器落在你在乎的区间里，就停在这里。这一步不动代码。</span></p></div><span class="cost"><span data-l="en">1–2 weeks</span><span data-l="zh">1–2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Ship the kernel as a library first</span><span data-l="zh">内核先做成库发出去</span></h3><p><span data-l="en">Rope, search and syntax go out as crates or subprocesses behind the editor people already use. This is not theoretical. lapce-xi-rope 0.3.2 is on crates.io and ripgrep has been VS Code&#x27;s search backend since 2017. The step passes when the kernel beats the in-editor implementation on step one&#x27;s measurement with the boundary cost counted in. If the boundary eats the gain, stop — VS Code&#x27;s native text buffer died exactly there. Backing out is unpinning a dependency.</span><span data-l="zh">把 rope、搜索、语法解析做成 crate 或子进程，挂在大家已经在用的编辑器后面。这不是空想：lapce-xi-rope 0.3.2 就在 crates.io 上，ripgrep 从 2017 年起就是 VS Code 的搜索后端。通过标准是：把边界开销算进去之后，内核在第一步那份测量上赢过编辑器内置实现。如果边界把收益吃掉，就停——VS Code 的原生文本缓冲就死在这里。回退就是取消一个依赖 pin。</span></p></div><span class="cost"><span data-l="en">4–8 weeks per kernel</span><span data-l="zh">每个内核 4–8 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Name the GUI toolkit before writing one</span><span data-l="zh">写工具库之前，先把它的名字说出来</span></h3><p><span data-l="en">Before any ground-up build is authorized, the proposer names the third-party toolkit and the version they will pin. If the answer is that they will write it, then 54,002 lines and eleven upstream forks go into the estimate at the top, not discovered in year two. Acceptance is a working prototype of the editor&#x27;s hardest view on a toolkit somebody else maintains. If no toolkit qualifies, the honest description is a toolkit project with an editor attached, and it should be funded as one.</span><span data-l="zh">任何从零开始的方案获批之前，提案人先说出要用哪个第三方工具库、pin 哪个版本。如果答案是「我们自己写」，那 54,002 行和十一个上游 fork 就要在一开始进预算，而不是第二年才发现。通过标准是：用别人维护的工具库，把编辑器最难的那个视图做出可用原型。如果没有工具库够格，那么诚实的说法是这是一个附带编辑器的工具库项目，就该按那个来投钱。</span></p></div><span class="cost"><span data-l="en">2–4 weeks</span><span data-l="zh">2–4 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Decide the extension story in writing, on day one</span><span data-l="zh">扩展这件事，第一天就写成文字</span></h3><p><span data-l="en">The plugin ABI is chosen once and cannot be revisited later, so it gets written down before anything is built. State plainly whether published extensions run. WASI plus a bespoke protocol means they do not, and Lapce&#x27;s own record shows what that looks like four years on: a spec repo untouched since 2022-11-13, wasmtime pinned at 14.0.2, and 152 volt.toml files on GitHub. Either produce an adapter that loads a real published extension, or write the sentence that says you are forgoing the library.</span><span data-l="zh">插件 ABI 只选一次，后面改不了，所以在动工之前就得写下来。明说一句：已发布的扩展能不能跑。WASI 加自定协议的答案是不能，而 Lapce 自己的记录展示了四年后是什么样子：spec 仓库自 2022-11-13 起没动过，wasmtime pin 在 14.0.2，GitHub 上 152 个 volt.toml。要么做出一个适配层，能加载一个真实发布的扩展；要么写下那句话，承认放弃这个库。</span></p></div><span class="cost"><span data-l="en">1 week</span><span data-l="zh">1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Count committers, not stars</span><span data-l="zh">数提交者，不要数 star</span></h3><p><span data-l="en">Before authorizing a multi-year build, count how many people will still have more than three hundred commits in it three years out. Zed has 23 above that bar. Lapce has 2, and its fourth-largest contributor is dependabot. Five funded committers is the floor for a ground-up editor on this evidence. If the honest answer is one person plus volunteers, take step two and stop there — that path is reversible and it still ships something people use.</span><span data-l="zh">批准一个多年期项目之前，先数一数三年后还会有多少人在里面留下三百个以上的提交。Zed 有 23 个在这条线以上。Lapce 有 2 个，而且第四名贡献者是 dependabot。按现有证据，从零做编辑器的地板是五个有资金的提交者。如果诚实的答案是一个人加一群志愿者，那就走第二步然后停在那里——那条路可回退，而且照样能发出别人真会用的东西。</span></p></div><span class="cost"><span data-l="en">1 day</span><span data-l="zh">1 天</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The proposal credits native latency to Rust. The same author had already reached it in Go with Qt bindings, and Sublime got there in C++. D3 records the mechanism as native execution.</span><span data-l="zh">提案把原生延迟记在 Rust 头上。同一个作者早就用 Go 加 Qt 绑定做到过，Sublime 用 C++ 也做到了。D3 把这个机制记为原生执行。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与工况</span></b> — <span data-l="en">Neither side of the latency claim has a measurement. The README says lightning-fast and 382 tracked files contain no harness, so D2 and D5 stay UNKNOWN.</span><span data-l="zh">延迟这条主张，两边都没有测量。README 写着 lightning-fast，382 个纳管文件里没有测量脚手架，所以 D2 和 D5 停在 UNKNOWN。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被漏掉的成本</span></b> — <span data-l="en">The GUI toolkit is not inside the editor&#x27;s line count. floem is 54,002 lines at the pinned rev, and the org carries eleven more forks of the GUI and text stack.</span><span data-l="zh">GUI 工具库不在编辑器的代码行数里。floem 在 pin 的那个 rev 上是 54,002 行，org 里还挂着十一个 GUI 与文本栈的 fork。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">2,023 of 3,636 commits belong to one person and yearly commits fell to 44 in 2025. The ground-up scope needs a team that does not exist here.</span><span data-l="zh">3,636 个提交里 2,023 个属于一个人，年度提交数在 2025 年掉到 44。从零开始那个范围需要的团队，这里没有。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying was priced rather than assumed. docs/why-lapce.md documents three specific failures of the incumbents, one of which Neovim and xi could not fix.</span><span data-l="zh">「不动」这条是算过的，不是默认的。docs/why-lapce.md 记下了现成编辑器的三处具体失败，其中一处是 Neovim 和 xi 修不了的。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The report never says Rust made this slower or harder, and the option it recommends is a Rust option. What excludes the ground-up build is headcount and toolkit cost, and Zed clears both in the same language.</span><span data-l="zh">报告没有说 Rust 让这件事更慢或更难，而且它推荐的就是一个 Rust 方案。把从零开始那条路排除掉的是人头和工具库成本，这两样 Zed 用同一门语言都过了。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与工况</span></b> — <span data-l="en">No latency measurement exists for either editor, so the staying case is unproven on speed too. This verdict rests on volume and capacity, not on a benchmark.</span><span data-l="zh">两个编辑器都没有延迟测量，所以「不动」这条在速度上同样没被证明。本结论靠的是体量和产能，不是跑分。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被漏掉的成本</span></b> — <span data-l="en">Staying keeps the Electron boundary the author actually hit, and the report does not price that away. The extraction option does not deliver the remote architecture from D1 either.</span><span data-l="zh">「不动」就意味着作者当年真撞上的那个 Electron 边界还在，报告没有把它抹掉。抽取方案也交付不了 D1 里那套远程架构。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Ownership</span><span data-l="zh">归属</span></b> — <span data-l="en">The toolkit detour produced a reusable asset. floem has 4,227 stars and two downstream projects in the same org, which is the Servo-to-Stylo shape rather than pure loss.</span><span data-l="zh">工具库这条弯路产出了可复用的东西。floem 有 4,227 个 star，同一个 org 里还有两个下游项目，这是 Servo 到 Stylo 那个形状，不是纯损失。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">824 open issues and 67 open pull requests sit against a stable release whose changelog is one file extension and seven fixes. Doing nothing leaves the incumbent&#x27;s latency exactly where it is.</span><span data-l="zh">824 个开着的 issue、67 个开着的 PR，对应的稳定版 changelog 是一个文件后缀加七个修复。什么都不做，现有编辑器的延迟就原地不动。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">lapce/lapce at c9e4c33 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">lapce/lapce @ c9e4c33 · 静态只读分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/lapce/lapce at commit c9e4c33, shallow clone, 382 tracked files. Scope: the whole repository, with the GUI toolkit and the plugin ABI as the candidate seams. Sampling: 141 tracked .rs files total 67,928 lines — lapce-app 49,393, lapce-proxy 9,450, lapce-core 5,325, lapce-rpc 3,760. Rust is 100% of the code-extension lines; the 165 .svg files are icons and the 24 .toml files are manifests and defaults. Two comparison trees were counted with the identical command, `git ls-files &#x27;*.rs&#x27; | xargs wc -l`: floem at rev 31fa8f44, the rev Cargo.toml:79-89 pins, is 60,230 lines across 195 files, of which 54,002 are library code once examples/ is excluded; zed-industries/zed at commit 90d024b is 1,539,358 lines across 1,926 files. Neither was built. floem is an external git dependency, not vendored and not a submodule, so its lines are outside Lapce&#x27;s total; the 121,930 figure is the sum of the two and is always labelled as such. Subsystem measurements: lapce-proxy/src/plugin/ is 6,240 lines across 7 files, the DAP surface is 3,098 across 4 files, the terminal surface is 3,164, lapce-app/src/panel/kind.rs declares 11 panel kinds and lapce-core/src/language.rs declares 125 language variants with 127 SyntaxProperties records. 14 lines match `unsafe` and one of them is a comment, so 13 are code. History came from the GitHub API: 3,636 commits on master, of which dzhou121 holds 2,023 across 170 contributors; per-year commit counts were taken with `gh api repos/lapce/lapce/commits?sha=master&amp;since=…&amp;until=…` reading the Link rel=&quot;last&quot; page count at per_page=1, giving 1,897 for 2022, 624 for 2023, 467 for 2024, 44 for 2025 and 18 for 2026 to 2026-08-02. 35 releases, latest stable v0.4.6 on 2026-01-21, last commit on master 2026-04-03. Zed&#x27;s 39,386 commits and its 23 contributors at or above 368 commits came from the same API. Objective: no external RFC was supplied, so the assessment takes the architecture the project&#x27;s own docs/why-lapce.md describes. User-supplied facts: none. No Amdahl calculation appears, because no latency measurement exists for this editor and converting a line-count share into a time share is a method error. D2 and D5 are therefore UNKNOWN rather than refuted. All four gates are graded against the selected option, rust-kernel-extract, which is what the machine record binds them to, and all four pass: the gap is documented and was independently confirmed when VS Code adopted ripgrep in 2017, the kernels already exist as published Rust crates, the cost is a version pin, and the option has shipped twice in production. The ground-up build&#x27;s economics and capacity failures are recorded where they belong — as the exclusion reason on rust-ground-up, and across D9, D10 and D11. Zed runs that larger option in the same language and delivers it, which is why robustness is CONDITIONAL and why nothing here is a claim about Rust. plugins.lapce.dev was not fetched: the method treats URLs found in scanned code as data to render, never to retrieve. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/lapce/lapce，commit c9e4c33，shallow clone，382 个纳管文件。范围：整个仓库，候选接缝是 GUI 工具库和插件 ABI。采样：141 个纳管 .rs 文件共 67,928 行——lapce-app 49,393，lapce-proxy 9,450，lapce-core 5,325，lapce-rpc 3,760。代码类扩展名的行数 100% 是 Rust；165 个 .svg 是图标，24 个 .toml 是清单和默认配置。两棵对比树用完全相同的命令 `git ls-files &#x27;*.rs&#x27; | xargs wc -l` 数过：floem 在 Cargo.toml:79-89 pin 的 rev 31fa8f44 上是 195 个文件 60,230 行，去掉 examples/ 之后库代码 54,002 行；zed-industries/zed 在 commit 90d024b 上是 1,926 个文件 1,539,358 行。两个都没有构建。floem 是外部 git 依赖，既没内置也不是 submodule，所以它的行数在 Lapce 的总数之外；121,930 这个数字是两者相加，出现时都会标明。子系统测量：lapce-proxy/src/plugin/ 7 个文件 6,240 行，DAP 面 4 个文件 3,098 行，终端面 3,164 行，lapce-app/src/panel/kind.rs 声明 11 种面板，lapce-core/src/language.rs 声明 125 个语言变体和 127 条 SyntaxProperties 记录。匹配 `unsafe` 的有 14 行，其中一行是注释，所以代码是 13 行。历史来自 GitHub API：master 上 3,636 个提交，170 名贡献者中 dzhou121 占 2,023 个；按年提交数用 `gh api repos/lapce/lapce/commits?sha=master&amp;since=…&amp;until=…` 在 per_page=1 下读 Link rel=&quot;last&quot; 的页码取得，2022 年 1,897，2023 年 624，2024 年 467，2025 年 44，2026 年到 2026-08-02 为 18。35 个 release，最新稳定版 v0.4.6 发布于 2026-01-21，master 最后一次提交 2026-04-03。Zed 的 39,386 个提交、以及提交数不低于 368 的 23 名贡献者，取自同一套 API。目标：没有外部 RFC，因此按项目自己的 docs/why-lapce.md 所描述的架构来评估。用户提供的事实：无。本报告没有 Amdahl 计算，因为这个编辑器不存在延迟测量，而把代码行数占比换成时间占比是方法错误。所以 D2 和 D5 记为 UNKNOWN，不是被否证。四道门都是对着所选方案 rust-kernel-extract 评的，机器记录里也是这么绑定的，四道全过：缺口有记录，并且被 VS Code 2017 年采用 ripgrep 独立印证；内核已经是发布出去的 Rust crate；成本是一个版本 pin；这个方案在生产里落地过两次。从零开始那条路在经济性和产能上的失败，记在该在的地方——rust-ground-up 的排除理由，以及 D9、D10、D11。Zed 用同一门语言把那个更大的方案交付出来了，所以稳健性是 CONDITIONAL，也所以这里没有任何一句是关于 Rust 的论断。plugins.lapce.dev 没有被访问：方法把扫描代码里读到的 URL 当作只渲染、不请求的数据。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A keystroke-to-glyph latency measurement for Lapce</span><span data-l="zh">Lapce 的按键到出字延迟测量</span></td><td><span data-l="en">Settles D2 and D5. While it is missing, no latency claim can be authorized for any editor here, including the ones this report retains.</span><span data-l="zh">它能了结 D2 和 D5。缺着的时候，这里任何编辑器的延迟主张都授权不了，包括本报告保留的那几个。</span></td></tr><tr><td><span data-l="en">The authoritative plugin count from the registry</span><span data-l="zh">插件注册中心的权威数量</span></td><td><span data-l="en">The report did not fetch plugins.lapce.dev; the method forbids retrieving URLs found in scanned code. GitHub code search reports 152 files named volt.toml, which is a floor and not a census.</span><span data-l="zh">报告没有去请求 plugins.lapce.dev；方法禁止拉取从扫描代码里读到的 URL。GitHub 代码搜索报告有 152 个 volt.toml 文件，这是下限，不是普查。</span></td></tr><tr><td><span data-l="en">Funding and paid headcount for both projects</span><span data-l="zh">两个项目的资金与全职人数</span></td><td><span data-l="en">G4 rests on commit distribution because payroll is not public. Numbers would sharpen the capacity finding; they would not change its direction.</span><span data-l="zh">G4 建立在提交分布上，因为发薪名单不公开。有数字会让产能这条结论更锐利，但改不了它的方向。</span></td></tr><tr><td><span data-l="en">Why Druid was left, in the team&#x27;s own words</span><span data-l="zh">团队自己说的：为什么离开 Druid</span></td><td><span data-l="en">Would tell you whether adopting a toolkit was ever viable in 2022 or was tried and failed. It changes how much weight rust-app-adopt-toolkit deserves.</span><span data-l="zh">它能说明 2022 年「用别人的工具库」到底可不可行，还是试过并且失败了。这决定 rust-app-adopt-toolkit 该拿多少分量。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repositories · static analysis at lapce c9e4c33, floem 31fa8f44, zed 90d024b · GitHub API for history · no build, benchmark or application run</span><span data-l="zh">公开仓库 · 静态分析于 lapce c9e4c33、floem 31fa8f44、zed 90d024b · 历史数据取自 GitHub API · 没有构建、基准或运行应用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-02",
+  "repository": {
+    "path": "https://github.com/lapce/lapce",
+    "commit": "c9e4c33948033f10f003991a037d949a708eedf8",
+    "scope": "whole repository; the GUI toolkit and the plugin ABI are the two candidate seams",
+    "sampling": "shallow clone; 382 tracked files enumerated, 141 .rs files measured; floem measured in a separate clone at the pinned rev 31fa8f44; zed-industries/zed measured at 90d024b on the same basis; GitHub API used for commits, releases and contributors; no build, benchmark or run of the application"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A keystroke-to-glyph latency measurement for Lapce",
+      "The authoritative plugin count from the registry",
+      "Funding and paid headcount for both projects",
+      "Why Druid was left, in the team's own words"
+    ]
+  },
+  "objective": {
+    "driver": "CPU-bound text handling, plus a remote-development architecture",
+    "requirement": "native-speed rope, search and syntax work in the editor developers already use; and, separately, a local editing engine paired with a remote proxy",
+    "baseline": "Electron could not deserialize Neovim's draw events fast enough, and Neovim and xi both put network latency into every keystroke under remote development (docs/why-lapce.md)",
+    "target": "no numeric latency threshold is stated anywhere in the repository; the CPU-bound half is judged on shipped precedent, and the architecture half on the cost of renting an editor against writing one"
+  },
+  "decision": {
+    "authorization": "APPROVE",
+    "scope": "EXTRACT",
+    "selected_option_id": "rust-kernel-extract",
+    "confidence": "HIGH",
+    "robustness": "CONDITIONAL",
+    "because": "Two Rust editors set out to replace VS Code. Zed carries 1,539,358 lines of Rust; Lapce carries 67,928. Same language, same target, 4.4% of the code. Nothing here points at Rust. What a small team runs out of is people, so the scope that survives is the small one: take the kernel, rent the editor. lapce-xi-rope is already on crates.io, and ripgrep has been VS Code's search backend since 2017.",
+    "change_trigger": "Conditional in both directions. Scope moves up if the money arrives: Zed clears the ground-up build in the same language, with 23 contributors above Lapce's second-most-active. Scope collapses back to staying if the boundary crossing eats the gain, which is how VS Code's native text buffer died. Measure the boundary before committing to the kernel."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "rust-kernel-extract",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "docs/why-lapce.md documents the incumbents failing first-hand: Vim froze on synchronous linting, and Electron could not deserialize Neovim's draw events fast enough. Microsoft confirmed the same class of gap independently and paid to fix it, adopting ripgrep as VS Code's search backend in 2017. The kernel option targets a gap somebody else already established."
+    },
+    {
+      "id": "G2",
+      "option_id": "rust-kernel-extract",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "This passes on the ecosystem-asset clause, not on raw language speed. The kernels are written, published and reusable: lapce-xi-rope 0.3.2 is pulled from crates.io at Cargo.toml:73, and ripgrep runs as a whole process exchanging bulk results. Native execution on its own is not Rust-specific and C++ supplies it too, which is why D3 stays NEUTRAL across the native options."
+    },
+    {
+      "id": "G3",
+      "option_id": "rust-kernel-extract",
+      "name": "economics and smallest sufficient option",
+      "state": "PASS",
+      "evidence": "One-time cost is a crate or a subprocess; recurring cost is a version pin. Nothing cheaper reaches the CPU-bound target — staying and configuring does not touch it, and the two build-an-editor options cost 121,930 lines of owned code between them. The requirement's other half, remote development with a local editing engine, is cheaper to rent than to write, which is why adopt-funded-editor is retained rather than excluded."
+    },
+    {
+      "id": "G4",
+      "option_id": "rust-kernel-extract",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "Rollback is unpinning a dependency, and the host editor's extension API is untouched, so compatibility risk is close to zero. Delivery is not a projection here. The extraction has already shipped twice: Lapce publishes lapce-xi-rope on crates.io, and Microsoft has run ripgrep behind VS Code's search since 2017. The stop condition is the one VS Code found the hard way — if the boundary crossing consumes the gain, unpin."
+    }
+  ],
+  "options": [
+    {
+      "id": "rust-kernel-extract",
+      "name": "Rust kernels as libraries behind an existing editor",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "native-speed rope, search and syntax work in the editor developers already use; and, separately, a local editing engine paired with a remote proxy",
+      "benefit_interval": "the parts Rust is measurably good at, without owning a UI",
+      "one_time_cost": "one crate or one subprocess per kernel",
+      "recurring_cost": "a dependency pin",
+      "time_to_value": "weeks",
+      "compatibility": "the host editor's own extension API",
+      "reversibility": "unpin the dependency",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "lapce-xi-rope 0.3.2 is a published crate this repository consumes, and ripgrep has served VS Code's search as a subprocess since 2017. The option needs no new editor, no toolkit and no plugin ABI."
+    },
+    {
+      "id": "rust-ground-up",
+      "name": "Build the whole editor in Rust, toolkit and plugin ABI included",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "native-speed rope, search and syntax work in the editor developers already use; and, separately, a local editing engine paired with a remote proxy",
+      "benefit_interval": "native latency, unmeasured; feature surface thin in every category",
+      "one_time_cost": "121,930 lines of own code and counting",
+      "recurring_cost": "a GUI toolkit and a plugin protocol, forever",
+      "time_to_value": "years; v0.4.6 after 4.5",
+      "compatibility": "no published extension runs",
+      "reversibility": "none",
+      "evidence_strength": "STRONG",
+      "disposition": "exclude",
+      "reason": "Excluded on economics and delivery capacity, not on the language. The toolkit is 44.3% of the code this effort owns, commits on master fell to 44 in 2025 with 2,023 of the 3,636 held by one person, and the plugin ABI forfeits the published extension library at the moment it is chosen. Zed clears the same scope in the same language with 23 contributors above Lapce's second-most-active, so the binding constraint is headcount rather than Rust."
+    },
+    {
+      "id": "rust-app-adopt-toolkit",
+      "name": "Rust editor on somebody else's GUI toolkit",
+      "implementation": "rust",
+      "scope": "partial",
+      "target": "native-speed rope, search and syntax work in the editor developers already use; and, separately, a local editing engine paired with a remote proxy",
+      "benefit_interval": "same native mechanism, 54,002 fewer lines to own",
+      "one_time_cost": "the editor only",
+      "recurring_cost": "upstream toolkit's roadmap, not yours",
+      "time_to_value": "months",
+      "compatibility": "constrained by what the toolkit renders",
+      "reversibility": "swap the toolkit crate",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Cuts the largest omitted cost. The lapce org's forks of druid, winit, cosmic-text, parley, swash, font-kit, glutin, glazier, piet-wgpu and vger-rs are the record of why it was hard in 2022; a 2026 team faces a different toolkit market."
+    },
+    {
+      "id": "native-nonrust-shell",
+      "name": "Native editor in a language with a mature GUI toolkit",
+      "implementation": "non-rust-native",
+      "scope": "full",
+      "target": "native-speed rope, search and syntax work in the editor developers already use; and, separately, a local editing engine paired with a remote proxy",
+      "benefit_interval": "the same native mechanism, no toolkit to write",
+      "one_time_cost": "the editor only",
+      "recurring_cost": "C++ or Go memory discipline",
+      "time_to_value": "months",
+      "compatibility": "whatever the toolkit binds to",
+      "reversibility": "conventional refactor",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Sublime is C++ and the same author's gonvim was Go with Qt bindings. Both reached native latency without Rust, which is why D3 does not credit the mechanism to the language."
+    },
+    {
+      "id": "adopt-funded-editor",
+      "name": "Adopt an editor somebody else is funding",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "native-speed rope, search and syntax work in the editor developers already use; and, separately, a local editing engine paired with a remote proxy",
+      "benefit_interval": "the full feature surface, paid for by someone else",
+      "one_time_cost": "per user migration",
+      "recurring_cost": "someone else's product decisions",
+      "time_to_value": "days",
+      "compatibility": "their extension ecosystem",
+      "reversibility": "switch back",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "Meets the objective for a user, not for a project. It is retained because it prices what the ground-up option is actually competing against."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-ground-up",
+        "rust-app-adopt-toolkit",
+        "rust-kernel-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The requirement is written down and specific. docs/why-lapce.md walks from Vim's missing async, through Neovim's whole-canvas draw events, to the one the others could not fix: remote development that puts network latency in every keystroke. The editor owns its entire input path, so ownership is not in question.",
+      "source": "docs/why-lapce.md · lapce-app/src/proxy/remote.rs (497 lines) · lapce-rpc (3,760 lines)",
+      "baseline_regime": "architecture requirement stated by the project",
+      "caveat": "The same requirement is met by any native option, including native-nonrust-shell; D1 says the requirement is real, not that Rust is the answer to it.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-ground-up"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "No keystroke-to-glyph measurement for Lapce exists in this repository or in public. The README says lightning-fast; there is no harness. No Amdahl figure appears here because there is no time share to put in it, and a line-count share is not a substitute.",
+      "source": "no published Lapce latency measurement; README.md:8 carries the claim",
+      "baseline_regime": "n/a — the measurement is absent",
+      "caveat": "Zed published ~58ms end-to-end against VS Code's ~97ms, third-party and unaudited. That is Zed's number and it is not transferred here.",
+      "change_trigger": "A keystroke-to-glyph harness on stated hardware, run against the incumbent, would make the latency claim assessable for either editor."
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Every native option removes the same two things: the garbage collector and the JavaScript deserialization step that the author actually hit in Electron. None removes them better than the others. This lens separates native from Electron, and it does not separate Rust from C++ or from Go with Qt bindings.",
+      "source": "docs/why-lapce.md — the author's own gonvim (Go + Qt) predates the Rust decision",
+      "baseline_regime": "structural, at the UI boundary",
+      "caveat": "Crediting this to Rust rather than to native execution is the attribution error the challenge audit records as a HIT.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "A desktop editor runs one instance per developer on hardware the developer already owns. There is no fleet to price, so per-instance memory does not convert into a cost case here.",
+      "source": "desktop distribution model",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [
+        "rust-ground-up"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "Cold start is one of the two things people say out loud about Electron editors, and nobody has measured it for Lapce either. A native binary should win. Should is not a number.",
+      "source": "no published cold-start measurement",
+      "baseline_regime": "n/a",
+      "caveat": "Recorded UNKNOWN rather than assumed. The tree-sitter grammars load lazily from a separate directory, so first-open cost for a new language is a distinct question again.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "STRONG",
+      "claim": "Memory safety was never the objective here, and there is almost nothing left to buy. 13 lines of unsafe code sit in 141 files. The C that matters is in the dependency tree regardless: libgit2-sys, a vendored OpenSSL, tree-sitter, libz-sys and zstd-sys are all in the lockfile, and grammars load as C shared libraries at runtime.",
+      "source": "13 unsafe code lines across 141 .rs files · lapce-core/src/language.rs:1899 libloading · Cargo.lock, 758 locked packages",
+      "baseline_regime": "static inventory at this commit",
+      "caveat": "One of the 14 grep matches is a comment, so the code count is 13. The single most interesting unsafe block loads an arbitrary C grammar from disk.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "rust-ground-up",
+        "rust-app-adopt-toolkit"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The design puts syntax highlighting on another thread and the file layer in another process, so nothing blocks the main thread while you type. Rust makes that split checkable rather than merely intended. The shape itself is older than the language choice.",
+      "source": "lapce-rpc (3,760 lines) is the process boundary · docs/why-lapce.md describes the UI/proxy/plugin split",
+      "baseline_regime": "shipped architecture",
+      "caveat": "The author had already built the same split against Neovim's RPC and against xi, in C and Rust respectively, so the architecture transfers to any language.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-ground-up",
+        "rust-app-adopt-toolkit"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The application ships as a native binary with no bundled runtime, packaged for Windows, macOS and four Linux families. The binary is self-contained; the language support is not. Around 125 languages arrive as platform-specific tree-sitter shared libraries downloaded into a grammars directory after install.",
+      "source": "extra/ packaging (wxs, plist, icns, 4 Dockerfiles, .desktop, lapce.spec) · lapce-core/src/directory.rs:178 · 125 LapceLanguage variants",
+      "baseline_regime": "shipped packaging at this commit",
+      "caveat": "Out-of-band grammars are a real distribution surface: the editor's syntax support depends on a download and a dlopen, not on the binary you shipped.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "rust-ground-up"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "No Rust GUI toolkit met the bar, so the team wrote one. floem is 54,002 lines of library code at the rev this repository pins. The lapce org additionally carries forks of druid, winit, cosmic-text, parley, swash, fount, font-kit, glutin, glazier, piet-wgpu and vger-rs. That is the ecosystem gap, itemised.",
+      "source": "Cargo.toml:79-89 pins floem @ 31fa8f44 · GitHub API orgs/lapce/repos",
+      "baseline_regime": "dependency and org inventory at this commit",
+      "caveat": "Zed hit the same wall and wrote GPUI, so this is a fact about 2022-era Rust GUI rather than about Lapce's judgement. It still lands as cost.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-ground-up"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "Plugins are WASI modules over a protocol Lapce invented, run on wasmtime 14.0.2. A VS Code extension is a Node module against a JavaScript API. Neither can load the other, and no adapter exists in this tree. The whole codebase mentions vscode once, in a URL for an icon font.",
+      "source": "lapce-proxy/Cargo.toml:59-65 · lapce-proxy/src/plugin/ (6,240 lines) · Cargo.lock wasmtime 14.0.2 · 1 vscode match across 141 .rs files",
+      "baseline_regime": "static ABI inventory at this commit",
+      "caveat": "wasmtime 14.0.0 shipped 2023-10-20 and the protocol spec repo has not been pushed since 2022-11-13, so the boundary is both incompatible and unattended.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-ground-up"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "67,928 lines of editor plus 54,002 of toolkit is 121,930 lines owned, and 44.3% of that is the toolkit. The competitor is 1,539,358 lines. Commits went 1,897, 624, 467, 44 across 2022 to 2025. Version 0.4.6 is the latest stable after 35 releases, and its changelog is one new file extension and seven bug fixes.",
+      "source": "git ls-files '*.rs' | xargs wc -l on three clones · GitHub API commits and releases · CHANGELOG.md:11-27",
+      "baseline_regime": "line counts at named commits; history from the default branch",
+      "caveat": "floem has its own contributor base — 327 commits from dzhou121 against 274 from jrmoulton — so its 54,002 lines are not billed entirely to Lapce. They are still lines that had to exist before the editor could.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "rust-kernel-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The smaller option is not hypothetical. Lapce already performed it: lapce-xi-rope 0.3.2 is a published crate, and this repository consumes it from crates.io like anyone else can. VS Code has run ripgrep as its search backend since 2017. The kernel path ships without an editor attached.",
+      "source": "Cargo.toml:73 lapce-xi-rope = 0.3.2 from crates.io",
+      "baseline_regime": "current upstream practice",
+      "caveat": "The extraction does not deliver the remote-development architecture from D1. That half needs a whole editor, which is why adopt-funded-editor stays retained rather than excluded.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Zed · GPUI",
+      "outcome": "MIGRATED",
+      "match": "greenfield Rust editor against Electron incumbents, custom GPU toolkit included",
+      "mismatch": "venture funding and a paid team; its latency numbers are third-party and unaudited",
+      "workload_regime": "vendor claims plus unaudited third-party timing",
+      "source_class": "first-party · engineering blog",
+      "url": "https://zed.dev/blog/videogame"
+    },
+    {
+      "name": "Microsoft · VS Code",
+      "outcome": "STAYED",
+      "match": "the direct precedent for the selected option: native at a coarse seam, not everywhere",
+      "mismatch": "a funded incumbent with the ecosystem already in hand; no remote-architecture requirement",
+      "workload_regime": "first-party engineering retrospective",
+      "source_class": "first-party · engineering blog",
+      "url": "https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation"
+    },
+    {
+      "name": "Mozilla · Servo",
+      "outcome": "CANCELLED",
+      "match": "scope economics at maximum scale; a volunteer editor team faces the same ratio",
+      "mismatch": "a browser engine is larger again, and Servo had corporate funding Lapce never had",
+      "workload_regime": "first-party retrospective plus public layoff record",
+      "source_class": "first-party blog · public record",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Mozilla · Stylo",
+      "outcome": "EXTRACT",
+      "match": "the shape of the selected option: one measured kernel inside somebody else's product",
+      "mismatch": "it rode a funded donor project; Lapce's kernel is already published, which is cheaper again",
+      "workload_regime": "first-party retrospective",
+      "source_class": "first-party · engineering blog",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Alacritty",
+      "outcome": "QUANTIFIED",
+      "match": "same archetype, same superlative-without-a-metric pattern that puts D2 at UNKNOWN",
+      "mismatch": "a terminal is a fraction of an editor's surface; only the claim failed audit, not the product",
+      "workload_regime": "independent latency measurement",
+      "source_class": "third-party · independent measurement",
+      "url": "https://danluu.com/term-latency/"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Measure the latency before you pick the language",
+      "owner": "whoever proposes the new editor",
+      "cost_range": "1–2 weeks",
+      "artifact": "a keystroke-to-glyph latency measurement on stated hardware against the incumbent, with a reproducible harness",
+      "acceptance": "a third party can re-run the harness and reproduce the gap",
+      "deadline_or_stop": "stop if the incumbent already lands inside the latency budget",
+      "rollback": "measurement only; no code changes"
+    },
+    {
+      "step": 2,
+      "title": "Ship the kernel as a library first",
+      "owner": "the kernel author",
+      "cost_range": "4–8 weeks per kernel",
+      "artifact": "one Rust kernel published as a crate or subprocess behind an existing editor",
+      "acceptance": "it beats the host's own implementation on step one's measurement with the boundary cost included",
+      "deadline_or_stop": "stop if the boundary crossing consumes the gain",
+      "rollback": "unpin the dependency"
+    },
+    {
+      "step": 3,
+      "title": "Name the GUI toolkit before writing one",
+      "owner": "the proposer",
+      "cost_range": "2–4 weeks",
+      "artifact": "a named third-party GUI toolkit at a pinned version, with a prototype of the editor's hardest view",
+      "acceptance": "the prototype renders that view acceptably on a toolkit the team does not maintain",
+      "deadline_or_stop": "if no toolkit qualifies, re-scope and fund it as a toolkit project",
+      "rollback": "prototype only; discard the branch"
+    },
+    {
+      "step": 4,
+      "title": "Decide the extension story in writing, on day one",
+      "owner": "the architecture owner",
+      "cost_range": "1 week",
+      "artifact": "a written extension-compatibility decision, plus either an adapter loading a real published extension or an explicit forfeit",
+      "acceptance": "the decision names which existing extensions run and which do not",
+      "deadline_or_stop": "no ground-up build proceeds without that decision on paper",
+      "rollback": "document only"
+    },
+    {
+      "step": 5,
+      "title": "Count committers, not stars",
+      "owner": "whoever funds the work",
+      "cost_range": "1 day",
+      "artifact": "a staffing plan naming the committers and the years they are funded for",
+      "acceptance": "at least five funded committers for the ground-up scope",
+      "deadline_or_stop": "if the answer is one person plus volunteers, take the extraction option instead",
+      "rollback": "planning only"
+    }
+  ],
+  "assumptions": [
+    "Every line count is `wc -l` over tracked files of the named extension, blanks and comments included; the same command was used on all three repositories so the comparison is like-for-like.",
+    "floem is an external git dependency, not vendored or a submodule, so its lines are not inside Lapce's 67,928. It was measured in a separate clone at rev 31fa8f44, the exact rev Cargo.toml pins.",
+    "zed-industries/zed was measured at commit 90d024b as the funded comparator. Neither project was built, run or benchmarked.",
+    "Commit and contributor counts come from the GitHub API for the default branch only, and exclude other branches and any squashed history.",
+    "The proposal under assessment is the one the project's own docs describe — a native editor with a local editing engine and a remote proxy — since no external RFC was supplied."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "The proposal credits native latency to Rust. The same author had already reached it in Go with Qt bindings, and Sublime got there in C++. D3 records the mechanism as native execution.",
+        "evidence": "docs/why-lapce.md · D3 NEUTRAL across native options"
+      },
+      {
+        "id": "M2",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "Neither side of the latency claim has a measurement. The README says lightning-fast and 382 tracked files contain no harness, so D2 and D5 stay UNKNOWN.",
+        "evidence": "README.md:8 · D2, D5 UNKNOWN"
+      },
+      {
+        "id": "M3",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "The GUI toolkit is not inside the editor's line count. floem is 54,002 lines at the pinned rev, and the org carries eleven more forks of the GUI and text stack.",
+        "evidence": "D9, D11 · Cargo.toml:79-89"
+      },
+      {
+        "id": "M4",
+        "name": "Delivery ownership",
+        "state": "HIT",
+        "claim": "2,023 of 3,636 commits belong to one person and yearly commits fell to 44 in 2025. The ground-up scope needs a team that does not exist here.",
+        "evidence": "GitHub contributors and commits API · rust-ground-up excluded"
+      },
+      {
+        "id": "M5",
+        "name": "Cost of inaction",
+        "state": "PASS",
+        "claim": "Staying was priced rather than assumed. docs/why-lapce.md documents three specific failures of the incumbents, one of which Neovim and xi could not fix.",
+        "evidence": "D1 SUPPORTS · G1 PASS"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "The report never says Rust made this slower or harder, and the option it recommends is a Rust option. What excludes the ground-up build is headcount and toolkit cost, and Zed clears both in the same language.",
+        "evidence": "rust-kernel-extract selected · rust-ground-up excluded on D9 and D11"
+      },
+      {
+        "id": "S2",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "No latency measurement exists for either editor, so the staying case is unproven on speed too. This verdict rests on volume and capacity, not on a benchmark.",
+        "evidence": "D2, D5 UNKNOWN"
+      },
+      {
+        "id": "S3",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "Staying keeps the Electron boundary the author actually hit, and the report does not price that away. The extraction option does not deliver the remote architecture from D1 either.",
+        "evidence": "D12 caveat · docs/why-lapce.md"
+      },
+      {
+        "id": "S4",
+        "name": "Ownership",
+        "state": "PASS",
+        "claim": "The toolkit detour produced a reusable asset. floem has 4,227 stars and two downstream projects in the same org, which is the Servo-to-Stylo shape rather than pure loss.",
+        "evidence": "GitHub API repos/lapce/floem · orgs/lapce/repos"
+      },
+      {
+        "id": "S5",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "824 open issues and 67 open pull requests sit against a stable release whose changelog is one file extension and seven fixes. Doing nothing leaves the incumbent's latency exactly where it is.",
+        "evidence": "GitHub search API · CHANGELOG.md:11-27"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

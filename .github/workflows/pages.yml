@@ -1,0 +1,58 @@
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "examples/**"
+      - "skills/why-not-rust/assets/report-template.html"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy mid-flight; queue instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Rebuild the gallery from source
+        # Publishing the rendered-from-source output rather than the committed
+        # HTML means the site can never be staler than the case modules.
+        run: |
+          python3 examples/build_cases.py
+          python3 examples/build_index.py
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp examples/*.html _site/
+          # Jekyll would otherwise drop any path beginning with an underscore.
+          touch _site/.nojekyll
+          echo "Published $(ls _site/*.html | wc -l | tr -d ' ') pages:"
+          ls _site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

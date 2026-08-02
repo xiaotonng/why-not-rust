@@ -1,10 +1,14 @@
 # Case library — cited precedents for the Rust-migration question
 
-This library contains **52** adoption, extraction, refusal, reversal, and stay-stack
+This library contains **60** adoption, extraction, refusal, reversal, and stay-stack
 cases. Match them with the six-field protocol in `dimensions.md`; do not force one of
 each outcome when it would create false balance.
 
-Last audited: **2026-08-01**.
+Last audited: **2026-08-02**. The 2026-08-02 pass added eight desktop-application
+cases — remacs, xi-editor, Lapce/Zed, Spacedrive, Ghostty, Signal Desktop, Bitwarden
+desktop and KeePassXC — measured directly from public repositories at a pinned commit
+rather than from vendor prose. Worked reports for all eight, and for twelve others,
+are in the repository's `examples/` gallery.
 
 Source-check legend: **[V]** the linked page directly supports the claim as last
 checked; **[V(s)]** a supporting source was located but some figures were available
@@ -242,6 +246,35 @@ number keeps its URL and workload regime; quote nothing that lacks them.
 
 ## 3 · Stayed and won (same goal, no migration)
 
+### Ghostty · Zig core + native Swift macOS app, Rust declined (2023–)
+- scope: terminal emulator; libghostty core in Zig, macOS UI in Swift/AppKit, GTK on Linux | archetype: native-desktop-gui | factors: memory-safety-from-c, cross-platform-core, attribution-error
+- facts: [V] at `46edeee4`, 213,626 lines of Zig excluding inline test blocks across 755 files — and **32,377 lines of Swift across 160 files under `macos/Sources`** (67 import AppKit, 63 SwiftUI, four titlebar implementations). The Mac-native quality users praise comes from the layer that is neither Zig nor Rust. [V] Ghostty's own C++ is **995 lines** in `src/simd/*.cpp` reaching for portable SIMD via Google Highway, which is fetched at build time (`pkg/highway/build.zig.zon:9`), not vendored; the 52,566-line simdutf amalgamation is upstream. [V] **0 of 5 published advisories** are memory-safety defects: CWE-78, CWE-94, CWE-284, an fd leak, an escalation vector. [V] a safety-checked build already ships — the tip channel builds `ReleaseSafe`, codesigns and notarizes it, while `PACKAGING.md:111` says the safe build is *"currently too slow"* with no measurement behind it and 15 benchmark harnesses unused in the tree. https://github.com/ghostty-org/ghostty
+- attribution note: Rust's ownership model does reach use-after-free where Zig's `ReleaseSafe` cannot, so the mechanism is real. The case fails on price: a 213,626-line rewrite cannot be the smallest sufficient step while an existing build flag goes unpriced.
+- supports: D3 and D6 — separate "native, non-GC" from "Rust specifically", and check whether a configuration change reaches the goal before any rewrite.
+- transfer limit: a judgement about this project's costs, not a general claim about Zig versus Rust.
+
+### Signal Desktop · crypto extracted to Rust years ago, the shell stayed TypeScript (2020–)
+- scope: Electron messenger; libsignal consumed as a prebuilt native module | archetype: electron-desktop | factors: memory-safety-from-c, safety-conflation
+- facts: [V] at `34fa4531`, **555,145 lines of TypeScript and TSX across 2,764 files** and zero Rust in the application repository; Signal's own native code is **308 lines** — one `.c`, one `.cpp`, one `.mm`. [V] the Rust that matters is upstream: libsignal is 182,247 lines across 584 files, replacing `libsignal-protocol-c` (archived 2020-07-31) and shared by iOS, Android and Desktop; even it still links BoringSSL via `boring 5.0.2`. [V] Electron 43.0.0 (`package.json:245`) bundles Chromium, and Chromium's own security team attributes ~70% of 912 high/critical bugs since 2015 to memory safety — Signal's entire lever on that C++ is one version pin. [V] the shipped mitigation pattern is a Rust parser in front of the C++ decoder: `ts/util/handleVideoAttachment.preload.ts:34` runs every MP4 through libsignal's `mp4san` before Chromium sees it. https://github.com/signalapp/Signal-Desktop · https://www.chromium.org/Home/chromium-security/memory-safety/
+- attribution note: the strongest imaginable memory-safety customer extracted the narrow, high-assurance kernel and left the large, fast-changing UI in a memory-safe managed language. Rewriting TypeScript into Rust would move no defect class.
+- supports: D6 — locate the untrusted-input parsing before sizing a scope; the exposure here is bundled C++ nobody proposes to rewrite.
+- transfer limit: applies to apps whose UI language is already memory-safe; says nothing about C or C++ desktop UIs.
+
+### Bitwarden desktop · Rust at the OS seam only, Electron UI kept (2021–)
+- scope: Electron/Angular password manager with a Rust native module | archetype: electron-desktop | factors: memory-safety-from-c, scope-economics
+- facts: [V] at `f97b15bc`, **28,301 lines of Rust in 170 files, every one under `apps/desktop/desktop_native`**, exposed through exactly **38 functions** in a 491-line generated `napi/index.d.ts` and called from 15 files, all in the Electron main process; the desktop app's own TypeScript is 32,549 lines across 238 files (4.2% of the monorepo's 780,391). [V] **7,851 of those Rust lines never compile on macOS** — Windows WebAuthn, plugin authenticator, process isolation; there is no `macos.rs` in the `biometric` crate and `secure_memory` falls back to `mlock`. [V] the decrypted user key does reach the renderer (`renderer-biometrics.service.ts:87`), and vault crypto is already Rust→WASM returning a JavaScript string (`encrypt.service.implementation.ts:49`). https://github.com/bitwarden/clients
+- attribution note: Rust was adopted precisely where Electron cannot reach — keychain, biometrics, secure enclave — and nowhere else. Because the plaintext already crosses into JavaScript, a Rust UI would relocate the heap holding secrets rather than empty it.
+- supports: D6 and G3 — the smallest sufficient option here was taken years before anyone proposed a rewrite; use it as the constructive counterpart to 1Password 8.
+- transfer limit: the narrow-FFI verdict depends on the 38-function surface; a chatty boundary would price differently.
+
+### KeePassXC · C++/Qt kept; the safety case loses on scope (2016–)
+- scope: native cross-platform password manager parsing attacker-supplied `.kdbx` files | archetype: native-desktop-gui | factors: memory-safety-from-c, scope-economics
+- facts: [V] the mechanism is real — a hostile `.kdbx` reaches `Kdbx4Reader::readHeaderField` before the header HMAC is compared, and KDBX 3.1 has no header HMAC at all. [V] but KeePassXC frames only **2,003 lines** of that read path itself: XML goes to `QXmlStreamReader`, gzip to zlib, and every cipher, hash and KDF to Botan (`CMakeLists.txt:478`). The security-relevant core is **16,076 of 113,863 own-source lines (14.1%)** while `src/gui` alone is 50,344 (44.2%), and there are 12 `memcpy` occurrences in the whole tree. [V] **476 of 660** files include a Qt header, with 72 Qt Designer files holding 18,677 lines of `.ui` XML that has no Rust equivalent. [V] **0 of 6** NVD records for KeePassXC/KeePassX 2015–2026 are memory-safety defects. https://github.com/keepassxreboot/keepassxc
+- attribution note: absence of found bugs is not absence of bugs, and the report keeps an idle AFL harness as the trigger that would reopen the decision. What decides it today is that a rewrite buys a new UI toolkit, not a safer parser.
+- supports: D6 with D9 — when the untrusted bytes are handled by vetted external libraries, "rewrite for memory safety" targets code the project never wrote.
+- transfer limit: reverses if fuzzing produces findings in the 2,003-line framing layer.
+- counting caution: this repository's 45 `.ts` files are **Qt Linguist translation XML**, not TypeScript. Counted naively they are 73.3% of the line total and make a C++ project read as a TypeScript one. Always confirm what an extension actually contains.
+
 ### Microsoft · VS Code — stayed TypeScript/Electron; native only at seams (2016–)
 - scope: editor; C++ text buffer attempt reverted; ripgrep adopted as search subprocess | archetype: electron-desktop | factors: (control case for) cpu-tight-loop claims
 - facts: [V(s)] 2018 native-buffer verdict: **"TL;DR: We tried. It didn't work out for us"** — converting strings between native representation and V8 "compromised any performance gained"; the fix was a better data structure in TypeScript (piece tree). https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation · [V(s)] ripgrep (Rust) powers text search since v1.11 (Mar 2017) — a subprocess at a clean seam. https://users.rust-lang.org/t/ripgrep-is-now-the-standard-text-search-provider-in-vs-code/10285 · [V(s)] perceived speed = extension-host process isolation + lazy activation + virtualized lists + V8 snapshots; 73.6% professional-editor share (SO survey 2024). https://survey.stackoverflow.co/2024/
@@ -327,6 +360,34 @@ number keeps its URL and workload regime; quote nothing that lacks them.
 - transfer limit: 3x still ≪ Biome's claimed ~25x — both facts belong in the same sentence.
 
 ## 4 · Reversals, refusals, failures
+
+### remacs · in-place Emacs C → Rust, abandoned (2016-11 → 2021-04)
+- scope: GNU Emacs C core ported function-by-function inside a hard fork | archetype: native-desktop-gui | factors: memory-safety-from-c, contributor-experience, scope-economics
+- facts: [V] at the final commit `a684a4c2`, 30,133 lines of Rust across 88 files against 309,205 lines of C still in `src/` (119 files); subtracting 3,308 lines of port machinery (proc macro, bindgen driver, FFI mirror, build script) leaves **26,825 lines of converted behaviour**. [V] primitives tell a different story from lines: 666 `#[lisp_fn]` in Rust against 748 `DEFUN` in C — **47% of primitives, ~8% of the code**, because `xdisp.c` is 33,281 lines holding 14 of them. [V] only **5 of 126** upstream `.c` files were retired in four years and four months (four more went with dropped MS-DOS support, not with Rust). [V] 919 `unsafe` occurrences in 66 of 75 files under `rust_src/src`. https://github.com/remacs/remacs
+- attribution note: Rust's safety mechanism does not survive inside a C-managed heap — the Rust holds `Lisp_Object`s that a C mark-and-sweep collector traces through 164 `staticpro` roots the borrow checker never sees. A contributor recorded it in issue #1532: *"we're back to the C world of 'If you don't want memory corruption you have to be really careful, the compiler won't keep you safe'."*
+- supports: D6 cannot be claimed for Rust code whose objects are owned and traced by a foreign collector; D11 prices in-place ports of large C cores against contributor supply.
+- transfer limit: indicts in-place porting under a foreign GC, not C→Rust generally — fish shell finished the same shape at a fortieth of the scope.
+
+### xi-editor · Rust editor with a Swift front end, abandoned (2016 → ~2020)
+- scope: editor core in Rust, native macOS front end in a separate repository, async plugins over JSON-RPC | archetype: native-desktop-gui | factors: architecture-attribution-risk, scope-economics
+- facts: [V] at `a2dea305`, 39,292 lines of Rust in 103 files. The cross-process machinery — rpc, plugin-lib, lsp-lib, core-lib's plugins module, `rpc.rs`, `client.rs`, `line_cache_shadow.rs` and the rpc integration test — is **7,601 lines across 29 files against the 3,089 lines of editing operations it existed to deliver (2.46×)**. [V] **100 wire methods** a front end must implement, counted as leaf variants of the protocol enums in `rust/core-lib/src/rpc.rs`, on a protocol that never got version negotiation. [V] `rust/rope/src/engine.rs:16-30` states the CRDT exists because it *"is sufficient for asynchronous plugins that can only have one pending edit in flight each."* https://github.com/xi-editor/xi-editor · https://raphlinus.github.io/xi/2020/06/27/xi-retrospective.html
+- attribution note: the causal chain runs Rust-2016 → no native GUI → process split → async plugins → CRDT. Only the last two links draw negative verdicts from the author; the language shaped the architecture without being the defect.
+- supports: D10 prices cross-process boundaries that exceed the payload they carry; the extractable kernel survived where the architecture did not — `lapce-xi-rope` has 129,043 downloads and shipped 0.4.0 in December 2025, and `xi-unicode` has 8,463,481.
+- transfer limit: a dead project whose kernel is still shipping is evidence for extraction, not against Rust editors.
+
+### Lapce vs Zed · same language, same target, opposite outcome (2021 → 2026)
+- scope: two Rust editors aiming at VS Code, one funded and one not | archetype: native-desktop-gui | factors: contributor-experience, scope-economics
+- facts: [V] on a matched basis (`git ls-files '*.rs' | xargs wc -l`) Lapce is **67,928 lines across 141 files** and Zed is **1,539,358 across 1,926** — Lapce is 4.4% of Zed. [V] Lapce also carries a GUI toolkit written on the side: floem at `31fa8f44` is **54,002 lines** excluding examples, pinned as a git dependency at `Cargo.toml:79-89`. [V] commits on master fell **1,897 (2022) → 624 → 467 → 44 (2025)**; one person holds 2,023 of 3,636; Zed has **23 contributors** above Lapce's second-place contributor. https://github.com/lapce/lapce · https://github.com/zed-industries/zed
+- attribution note: the language is held constant across both, so it cannot explain the divergence. What differs is headcount, funding, and whether the team also had to build its own GUI toolkit.
+- supports: D11 is decisive for editor-scale rewrites; use this pair whenever a proposal argues that Rust itself will make a small team competitive with a funded one.
+- transfer limit: not evidence that unfunded Rust projects fail — evidence that editor-scale scope is priced in people, not in language.
+
+### Spacedrive · a Rust file manager whose bottleneck was I/O structure (2022 → 2026)
+- scope: Tauri desktop file explorer, Rust core, React UI | archetype: native-desktop-gui | factors: attribution-error, amdahl-omission, scope-economics
+- facts: [V] the repository's own committed benchmark (`core/benchmarks/results/`, 100,000 files, Apple M3 Max) puts content identification at **95.5% of index wall clock** — 1,340.8s against 60.15s for discovery alone, 13.4 ms per file. [V] the cause is in the code: `core/src/volume/backend/local.rs:133` opens the file inside every `read_range`, and the sampled hash performs six per file, awaited in sequence; with `MINIMUM_FILE_SIZE` = 102,400 B the phase reads at most **7.6 MB/s**, while the benchmark CSV's throughput column overstates it ~1,160× by dividing logical file size rather than bytes read. [V] optimising traversal yields **1.047× end-to-end** (share 0.045) against the ~13.4× the project's own docs imply. [V] 36,463 lines — 18.5% of `core/` — are P2P and sync machinery; highest non-prerelease tag is 0.4.3. https://github.com/spacedriveapp/spacedrive
+- attribution note: a per-file syscall pattern, not the language, sets the ceiling. Rust survives here on distribution grounds — one workspace ships desktop, headless server, CLI and mobile cores — while the performance justification does not.
+- supports: D2 must come from a profile, never from a line-count share; this is the cleanest available example of a first-party benchmark that refutes its own project's marketing number.
+- transfer limit: prices this project's scope and I/O structure, not Tauri or Rust file tooling in general.
 
 ### Prisma · deleted its Rust query engine — Rust → TypeScript (2025)
 - scope: ORM core moved to TS; a small WASM query-plan compiler retained | archetype: lib-with-bindings | factors: (reversal) boundary-tax

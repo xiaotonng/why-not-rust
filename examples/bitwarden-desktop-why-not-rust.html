@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · bitwarden/clients · apps/desktop</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">bitwarden/clients · apps/desktop</span><span>2026-08-02</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Electron + Angular · 32,549 lines of the desktop app&#x27;s own TypeScript, 28,301 lines of Rust</span><span data-l="zh">Electron + Angular · 桌面端自有 TypeScript 32,549 行，Rust 28,301 行</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">the split it already has is the answer</span><span data-l="zh">它现在这套拆分方式就是答案</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">Bitwarden already put Rust where it pays. 28,301 lines of it in 13 workspace crates under apps/desktop/desktop_native, reached through 38 functions in a generated 491-line .d.ts, called by 15 files that all live in the Electron main process. The proposal on the table is to carry on into the UI. It does not survive its own security argument. The vault crypto is already Rust, and the decrypted user key still crosses IPC into the renderer&#x27;s V8 heap — a Rust UI relocates that heap rather than emptying it.</span><span data-l="zh">Bitwarden 早就把 Rust 放在了它值钱的位置。apps/desktop/desktop_native 下 13 个 workspace crate、28,301 行，对外通过一份生成的 491 行 .d.ts 里的 38 个函数，调用它的 15 个文件全在 Electron 主进程。桌面上的提案是继续往界面里推。这条提案过不了它自己的安全论证。金库加解密已经是 Rust，而解密后的 user key 照样跨 IPC 进到渲染进程的 V8 堆里——换成 Rust 界面只是把这个堆搬个地方，不是把它清空。</span></p>
+      <p class="trigger"><span data-l="en">One thing reopens the scope. If Bitwarden rules that a decrypted user key must never enter the renderer&#x27;s V8 heap, the answer becomes EXTRACT: grow secure_memory and move the unlock path behind it. A UI rewrite is still not the shape. Frame time, RSS and startup stay UNKNOWN because nobody has published a measurement for this app.</span><span data-l="zh">有一件事能让范围重开。如果 Bitwarden 定下「解密后的 user key 绝不能进渲染进程 V8 堆」，答案就变成 EXTRACT：把 secure_memory 做厚，把解锁路径搬到它后面。界面重写仍然不是这个形状。帧时间、RSS、启动时间都停在 UNKNOWN，因为没有人公开过这个应用的测量。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep the Electron UI; keep growing the Rust module at the OS seam</span><span data-l="zh">界面留在 Electron；Rust 模块继续在 OS 接缝上长</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>MEDIUM</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>CONDITIONAL</b></span>
+        <span><span data-l="en">electron-desktop · password manager with a napi Rust module and a uniffi Swift extension</span><span data-l="zh">Electron 桌面端 · 密码管理器，带 napi Rust 模块和 uniffi Swift 扩展</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">A decrypted user key sits in the renderer&#x27;s V8 heap while unlocked.</span><span data-l="zh">金库解锁期间，解密后的 user key 就在渲染进程的 V8 堆里。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">A Rust UI relocates that heap; it does not empty it.</span><span data-l="zh">Rust 界面只是把那个堆搬个地方，清空不了。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">Weeks of secure_memory work beats rewriting 32,549 lines.</span><span data-l="zh">把 secure_memory 补几周，胜过重写 32,549 行。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">No dual-run: the UI sits on a library three clients share.</span><span data-l="zh">没有双跑方案：界面坐在三个客户端共用的库上。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Rust in the desktop app</span><span data-l="zh">桌面端里的 Rust</span></div><div class="value mono">28,301<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">13 workspace crates in apps/desktop/desktop_native · 100% of the repo&#x27;s Rust</span><span data-l="zh">apps/desktop/desktop_native 里 13 个 workspace crate · 全仓库 Rust 的 100%</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">The whole FFI surface</span><span data-l="zh">整个 FFI 面</span></div><div class="value mono">38<span class="unit"><span data-l="en">functions</span><span data-l="zh">个函数</span></span></div><div class="note"><span data-l="en">napi/index.d.ts · 491 lines · 15 namespaces</span><span data-l="zh">napi/index.d.ts · 491 行 · 15 个命名空间</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">The desktop app&#x27;s own TypeScript</span><span data-l="zh">桌面端自有 TypeScript</span></div><div class="value mono">32,549<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">apps/desktop/src · 238 files · 4.2% of the monorepo&#x27;s TS</span><span data-l="zh">apps/desktop/src · 238 个文件 · 整个 monorepo TS 的 4.2%</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Runtime callers of the Rust module</span><span data-l="zh">运行时调用 Rust 模块的文件</span></div><div class="value mono">15<span class="unit"><span data-l="en">files</span><span data-l="zh">个</span></span></div><div class="note"><span data-l="en">every one of them in the Electron main process</span><span data-l="zh">全部位于 Electron 主进程</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust that never compiles on a Mac</span><span data-l="zh">在 Mac 上根本不编译的 Rust</span></div><div class="value mono">7,851<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">win_webauthn + windows_plugin_authenticator + process_isolation</span><span data-l="zh">win_webauthn + windows_plugin_authenticator + process_isolation</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">TypeScript files calling the Rust SDK</span><span data-l="zh">调用 Rust SDK 的 TypeScript 文件</span></div><div class="value mono">285<span class="unit"><span data-l="en">files</span><span data-l="zh">个</span></span></div><div class="note"><span data-l="en">@bitwarden/sdk-internal · Rust delivered as WASM</span><span data-l="zh">@bitwarden/sdk-internal · Rust 以 WASM 交付</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option is judged against one objective. Reach the macOS APIs a vault needs, and keep secret handling as tight as the platform allows. Leave the shared TypeScript alone; the browser extension, web vault and CLI import it too.</span><span data-l="zh">所有方案对着同一个目标。拿到金库需要的 macOS API，把密钥处理收紧到平台允许的程度。共享的那套 TypeScript 不要动，浏览器扩展、Web 端和 CLI 都在 import 它。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Keep Electron UI + Rust at the OS seam</span><span data-l="zh">界面留 Electron，Rust 守 OS 接缝</span></span><span class="source"><span data-l="en">recommended · the smallest option that meets the requirement, taken in 2022</span><span data-l="zh">推荐 · 满足需求的最小方案，2022 年就选了</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">OS access met today; secret handling as tight as the platform allows</span><span data-l="zh">OS 访问已经拿到；密钥处理已收到平台允许的程度</span></td><td><span data-l="en">already paid; two toolchains in CI</span><span data-l="zh">已经付过了；CI 里两条工具链</span></td><td><span data-l="en">shipping since 2022</span><span data-l="zh">2022 年起已在发布</span></td><td><span data-l="en">native · per-crate rollback</span><span data-l="zh">原生 · 按 crate 回滚</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Move the unlock path behind secure_memory</span><span data-l="zh">把解锁路径搬到 secure_memory 后面</span></span><span class="source"><span data-l="en">retain · where the next Rust investment belongs, if the key must leave V8</span><span data-l="zh">保留 · 如果 key 必须离开 V8，下一笔 Rust 投入该落在这里</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">the one gap this report found: a decrypted user key in the V8 heap</span><span data-l="zh">本报告找到的唯一缺口：V8 堆里的解密 user key</span></td><td><span data-l="en">weeks; needs a macOS backend</span><span data-l="zh">数周；需要一个 macOS 后端</span></td><td><span data-l="en">one release cycle</span><span data-l="zh">一个发布周期</span></td><td><span data-l="en">IPC only · feature-flag rollback</span><span data-l="zh">只动 IPC · 用 feature flag 回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Native Swift/AppKit Mac UI on the Rust core</span><span data-l="zh">在 Rust 内核上做原生 Swift/AppKit Mac 界面</span></span><span class="source"><span data-l="en">retain · the native answer that is not a Rust answer</span><span data-l="zh">保留 · 「原生」的答案，但不是 Rust 的答案</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">answers the actual Mac complaint; buys nothing for memory safety</span><span data-l="zh">回应 Mac 用户真正的抱怨；内存安全上一分不涨</span></td><td><span data-l="en">a second Mac client; permanent parity debt</span><span data-l="zh">多一个 Mac 客户端；长期的功能对齐负债</span></td><td><span data-l="en">quarters</span><span data-l="zh">以季度计</span></td><td><span data-l="en">core unchanged · ship both, drop one</span><span data-l="zh">内核不动 · 两个都发，再砍一个</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Swap Electron for a Rust shell on the system webview</span><span data-l="zh">把 Electron 换成 Rust 外壳 + 系统 webview</span></span><span class="source"><span data-l="en">exclude · trades one Chromium for three engines you cannot patch</span><span data-l="zh">排除 · 用一个 Chromium 换三个你补不了的引擎</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">smaller installer; the rendering engine becomes someone else&#x27;s</span><span data-l="zh">安装包更小；渲染引擎变成别人的</span></td><td><span data-l="en">main process rewrite; 3 platforms requalified</span><span data-l="zh">重写主进程；三个平台重新验证</span></td><td><span data-l="en">quarters</span><span data-l="zh">以季度计</span></td><td><span data-l="en">3 engines instead of 1 · hard to reverse</span><span data-l="zh">1 个引擎变 3 个 · 很难回退</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rewrite the UI in a Rust GUI toolkit</span><span data-l="zh">用 Rust GUI 框架重写界面</span></span><span class="source"><span data-l="en">exclude · pays for a rewrite and the threat model does not move</span><span data-l="zh">排除 · 付一次重写的钱，威胁模型不挪动</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">no measured benefit on any lens; loses the shared library</span><span data-l="zh">任何维度都没有实测收益；还丢掉共享库</span></td><td><span data-l="en">32,549 + a share of 247,757 lines</span><span data-l="zh">32,549 行，外加共享层 247,757 行里的一部分</span></td><td><span data-l="en">years</span><span data-l="zh">以年计</span></td><td><span data-l="en">forks the shared layer · no rollback</span><span data-l="zh">分叉共享层 · 无回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is evidence about named options, not a score to add up. The performance and footprint lenses sit at UNKNOWN because no measurement of this app exists in public, and no amount of argument moves them.</span><span data-l="zh">每条状态都绑在具体方案上，不是能相加的分数。性能和占用那几条停在 UNKNOWN，因为公开资料里没有这个应用的任何测量，靠辩论推不动。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-split</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The unmet requirement was never speed. It was reaching the macOS Keychain, Touch ID, an SSH agent socket, the clipboard and process hardening from inside Electron. 15 main-process files do that through Rust, and no file in the renderer calls the module at runtime.</span><span data-l="zh">从来没有满足不了的性能需求。缺的是在 Electron 里面拿到 macOS Keychain、Touch ID、SSH agent socket、剪贴板和进程加固。15 个主进程文件通过 Rust 做这件事，渲染进程没有任何文件在运行时调它。</span></div><div class="source mono">15 non-spec files import @bitwarden/desktop-napi as a value; 4 more use import type only</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-native-gui, tauri-shell</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">No Amdahl figure appears here, and that is deliberate. There is no published profile of this app splitting Chromium compositing, Angular change detection, network sync and crypto. Substituting the line share for a time share would be a method error.</span><span data-l="zh">这里不给 Amdahl 数字，是故意的。没有公开 profile 把这个应用的 Chromium 合成、Angular 变更检测、网络同步和加解密拆开。拿代码行数占比顶替时间占比是方法错误。</span></div><div class="source mono">no published end-to-end profile of the Bitwarden desktop app</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-native-gui</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">A V8 heap and a Chromium compositor are both in the loop, so a GC-pause story is plausible on paper. Nobody has traced one. The repository shows the opposite concern: backgroundThrottling is switched off so the window keeps updating, which is a responsiveness decision, not a collector one.</span><span data-l="zh">V8 堆和 Chromium 合成器都在链路里，纸面上 GC 停顿的故事讲得通。但没有人做过 trace。仓库里反映的是另一头的顾虑：backgroundThrottling 被关掉，让窗口持续更新——这是响应性的决定，不是 collector 的决定。</span></div><div class="source mono">apps/desktop/src/main/window.main.ts:410 backgroundThrottling: false</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · tauri-shell, rust-native-gui</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">Desktop RAM is not a fleet cost, and no Bitwarden measurement exists. The only numbers on the table are third-party and N=1: one macOS comparison put a Tauri app at ~172 MB against ~409 MB for Electron after six windows, written by a Tauri user.</span><span data-l="zh">桌面端内存不构成机队成本，而且 Bitwarden 自己没有测量。桌面上唯一的数字是第三方的、N=1 的：一份 macOS 对比里，开六个窗口后 Tauri 应用约 172 MB，Electron 约 409 MB，作者本人用 Tauri。</span></div><div class="source mono">https://www.gethopp.app/blog/tauri-vs-electron (2025, N=1, author uses Tauri)</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The app registers autostart and lives in the tray. It boots once per login and stays resident, so startup cost is amortized over a work day rather than paid per invocation.</span><span data-l="zh">这个应用注册开机自启并常驻托盘。每次登录启动一次然后一直在，启动开销摊在一整天里，不是每次调用都付。</span></div><div class="source mono">apps/desktop/desktop_native/napi/src/autostart.rs · src/main/tray.main.ts</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-secure-memory</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">One exposure survives the current design. The main process reads the biometric key out of the Keychain and sends it over IPC, where the renderer rebuilds it as a SymmetricCryptoKey. A decrypted user key therefore lives in the V8 heap while the vault is unlocked.</span><span data-l="zh">现在这套设计下还剩一处暴露。主进程从 Keychain 读出生物识别密钥，通过 IPC 发出去，渲染进程把它重建成 SymmetricCryptoKey。所以金库解锁期间，解密后的 user key 就在 V8 堆里。</span></div><div class="source mono">apps/desktop/src/key-management/biometrics/renderer-biometrics.service.ts:87 · os-biometrics-mac.service.ts:50 · published audits indexed at bitwarden.com/help/is-bitwarden-audited/</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Process isolation is already the concurrency model. Main, renderer and preload are separate OS processes with an explicit IPC contract, and the Rust side runs its own tokio work behind napi. No race incident appears in the repository.</span><span data-l="zh">进程隔离本来就是这里的并发模型。主进程、渲染进程、preload 是三个独立 OS 进程，之间有明确的 IPC 契约，Rust 那边在 napi 后面跑自己的 tokio。仓库里没有竞态事故的记录。</span></div><div class="source mono">apps/desktop/tsconfig.main.json · tsconfig.renderer.json · tsconfig.preload.json</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-native-gui, tauri-shell</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The distribution matrix is already large and already met. build.js maps 7 Rust target triples; electron-builder produces a universal macOS build, a sandboxed Mac App Store package, snap, flatpak and three Windows architectures. A new UI stack re-earns every one of those.</span><span data-l="zh">分发矩阵已经很大，而且已经满足了。build.js 映射 7 个 Rust 目标三元组；electron-builder 产出 macOS universal 包、沙箱化的 Mac App Store 包、snap、flatpak 和三种 Windows 架构。换一套 UI 栈，这些要重新挣一遍。</span></div><div class="source mono">apps/desktop/desktop_native/build.js:9-15 · apps/desktop/package.json pack:* scripts</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-split</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The crates that make this work are ordinary, maintained ecosystem pieces: security-framework for Keychain, napi 3.x for the addon, uniffi for Swift, interprocess for IPC, ssh-key and rsa for the agent. All 13 crates pin exact versions and the workspace denies unwrap_used.</span><span data-l="zh">让这套东西成立的 crate 都是普通的、有人维护的生态件：Keychain 用 security-framework，插件用 napi 3.x，Swift 用 uniffi，IPC 用 interprocess，agent 用 ssh-key 和 rsa。13 个 crate 全部锁死精确版本，workspace 层面 deny unwrap_used。</span></div><div class="source mono">apps/desktop/desktop_native/Cargo.toml · clippy.toml · deny.toml</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · stay-split, rust-secure-memory</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The seam is small and coarse. 491 generated lines of .d.ts, 15 namespaces, 38 exported functions, 27 exported types. Calls happen per user action: unlock, read the clipboard, sign an SSH request. Nothing fires per item or per frame.</span><span data-l="zh">接缝小而粗。生成的 .d.ts 491 行，15 个命名空间，38 个导出函数，27 个导出类型。调用按用户动作发生：解锁、读剪贴板、签一次 SSH 请求。没有任何调用是按条目或按帧触发的。</span></div><div class="source mono">apps/desktop/desktop_native/napi/index.d.ts · 491 lines · 38 `export function` declarations</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-native-gui</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The desktop app is 32,549 lines of its own TypeScript sitting on 247,757 non-spec lines in libs/. That shared layer is what the browser extension, web vault and CLI also import — 874 import statements from @bitwarden/common in the desktop app alone. A UI rewrite forks it or reimplements it.</span><span data-l="zh">桌面端自有 TypeScript 32,549 行，坐在 libs/ 的 247,757 行非测试代码上。这层共享代码同时被浏览器扩展、Web 端和 CLI import——单是桌面端就有 874 条 @bitwarden/common 的 import。界面重写要么分叉它，要么重新实现它。</span></div><div class="source mono">apps/desktop/src 32,549 lines / 238 files · libs/ 247,757 non-spec lines / 2,757 files</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">对照方案</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · swift-native-mac</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">If the complaint is that the app does not feel like a Mac app, the answer in this repository is Swift, not Rust. autofill_provider already builds a BitwardenMacosProviderFFI.xcframework through uniffi, and 569 lines of Swift already ship as the credential-provider extension.</span><span data-l="zh">如果抱怨的是「不像 Mac 应用」，这个仓库里给出的答案是 Swift，不是 Rust。autofill_provider 已经通过 uniffi 产出 BitwardenMacosProviderFFI.xcframework，569 行 Swift 已经作为凭据提供方扩展在发布。</span></div><div class="source mono">apps/desktop/desktop_native/autofill_provider/build.sh · apps/desktop/macos/autofill-extension/CredentialProviderViewController.swift (569 lines)</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">One lens is N/A. D5 startup shape: the app registers autostart and lives in the tray, so it boots once per login and stays resident.</span><span data-l="zh">一条记为 N/A。D5 启动形态：这个应用注册开机自启并常驻托盘，每次登录只启动一次然后一直在。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">The whole Rust boundary is 38 functions</span><span data-l="zh">整个 Rust 边界是 38 个函数</span></h3><p><span data-l="en">napi/index.d.ts is generated, 491 lines long, and declares 15 namespaces with 38 exported functions and 27 exported types. That is the whole contract. Fifteen TypeScript files call into it at runtime, every one in the Electron main process. Compare a boundary you cannot walk away from: Redis exports 399 module ABI entry points.</span><span data-l="zh">napi/index.d.ts 是生成的，491 行，声明 15 个命名空间、38 个导出函数、27 个导出类型。契约就这么多。运行时调它的有 15 个 TypeScript 文件，全在 Electron 主进程。对比一个走不掉的边界：Redis 导出 399 个模块 ABI 入口点。</span></p><span class="ref mono">apps/desktop/desktop_native/napi/index.d.ts · 491 lines · 38 `export function`</span></div>
+<div class="card unknown"><h3><span data-l="en">The decrypted user key does reach the renderer</span><span data-l="zh">解密后的 user key 确实会进渲染进程</span></h3><p><span data-l="en">On macOS the biometric key is stored in the Keychain as base64, read back by the Rust passwords namespace, and sent over IPC. renderer-biometrics.service.ts rebuilds it: &quot;Objects received over IPC lose their prototype, so they must be recreated.&quot; So a decrypted user key sits in V8 while the vault is unlocked. Two mitigations ship. contextIsolation is on with nodeIntegration off, and locking triggers a process reload that throws the renderer&#x27;s memory away.</span><span data-l="zh">在 macOS 上，生物识别密钥以 base64 存进 Keychain，由 Rust 的 passwords 命名空间读回来，然后经 IPC 发出去。renderer-biometrics.service.ts 把它重建：&quot;Objects received over IPC lose their prototype, so they must be recreated.&quot; 所以金库解锁期间，解密后的 user key 就待在 V8 里。缓解手段有两项，都已经在发。contextIsolation 开着、nodeIntegration 关着；锁定时会做一次 process reload，把渲染进程内存扔掉。</span></p><span class="ref mono">apps/desktop/src/key-management/biometrics/renderer-biometrics.service.ts:87,91-92</span></div>
+<div class="card current"><h3><span data-l="en">The vault crypto is already Rust</span><span data-l="zh">金库加解密已经是 Rust</span></h3><p><span data-l="en">encrypt.service.implementation.ts does not implement AES. It calls PureCrypto.symmetric_decrypt_string from @bitwarden/sdk-internal, which is Rust compiled to WASM — the sdk-internal repository is 7.27 MB of Rust against 65 KB of TypeScript by GitHub&#x27;s own byte count. 285 TypeScript files import it. desktop_native pins the same bitwarden-crypto crate natively.</span><span data-l="zh">encrypt.service.implementation.ts 里没有 AES 实现。它调 @bitwarden/sdk-internal 的 PureCrypto.symmetric_decrypt_string，那是 Rust 编成的 WASM——按 GitHub 自己的字节统计，sdk-internal 仓库是 7.27 MB Rust 对 65 KB TypeScript。285 个 TypeScript 文件 import 它。desktop_native 在原生侧锁的是同一个 bitwarden-crypto crate。</span></p><span class="ref mono">libs/common/src/key-management/crypto/services/encrypt.service.implementation.ts:49</span></div>
+<div class="card current"><h3><span data-l="en">On a Mac, the Rust module is thinner than on Windows</span><span data-l="zh">在 Mac 上，Rust 模块比 Windows 上薄</span></h3><p><span data-l="en">7,851 of the 28,301 Rust lines are gated out of a macOS build by a crate-level cfg: win_webauthn (6,086), windows_plugin_authenticator (1,717) and process_isolation (48). The biometric crate has windows.rs and linux.rs. There is no macos.rs. secure_memory carries DPAPI, keyctl and memfd_secret backends; on macOS it falls back to mlock, which its own doc comment calls weaker. Touch ID comes from Electron&#x27;s systemPreferences, not from Rust.</span><span data-l="zh">28,301 行 Rust 里有 7,851 行被 crate 级 cfg 挡在 macOS 构建之外：win_webauthn（6,086）、windows_plugin_authenticator（1,717）、process_isolation（48）。biometric crate 有 windows.rs 和 linux.rs。没有 macos.rs。secure_memory 带 DPAPI、keyctl、memfd_secret 三种后端；在 macOS 上退回 mlock，它自己的文档注释说这个更弱。Touch ID 来自 Electron 的 systemPreferences，不是 Rust。</span></p><span class="ref mono">win_webauthn/src/lib.rs:7 · secure_memory/src/secure_key/mlock.rs:8-9 · os-biometrics-mac.service.ts:37</span></div>
+<div class="card current"><h3><span data-l="en">Rust arrived in 2022 as a keytar replacement</span><span data-l="zh">Rust 是 2022 年作为 keytar 替代品进来的</span></h3><p><span data-l="en">bitwarden/desktop PR #1379, merged 2022-04-05: +1,806 / -336 across 37 files. Its own objective paragraph says npm modules and Electron lacked functionality, and that the choice was between C++ and Rust. It shipped &quot;a drop-in replacement of the keytar module rewritten in rust&quot;. The repository was created in 2016. Four years of Electron came first, then one module.</span><span data-l="zh">bitwarden/desktop PR #1379，2022-04-05 合并：37 个文件，+1,806 / -336。它自己的 objective 段落写着 npm 模块和 Electron 缺功能，选择是在 C++ 和 Rust 之间。它交付的是 &quot;a drop-in replacement of the keytar module rewritten in rust&quot;。仓库 2016 年建的。先有四年 Electron，然后才有一个模块。</span></p><span class="ref mono">GitHub REST API · repos/bitwarden/desktop/pulls/1379 · merged 2022-04-05</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">OS APIs an Electron app cannot reach</span><span data-l="zh">Electron 拿不到的 OS API</span></b> — <span data-l="en">Keychain through security-framework, an SSH agent socket, PT_DENY_ATTACH process hardening, a Windows passkey plugin. JavaScript cannot reach any of it. Speed was never the constraint.</span><span data-l="zh">通过 security-framework 访问 Keychain、SSH agent socket、PT_DENY_ATTACH 进程加固、Windows passkey 插件。JavaScript 一个都拿不到。约束从来不是速度。</span></li><li><b><span data-l="en">One implementation for three hosts</span><span data-l="zh">一份实现，三个宿主</span></b> — <span data-l="en">autofill_provider compiles to a Node addon and to a staticlib that Swift links through uniffi. bitwarden-crypto serves desktop_native natively and the TypeScript as WASM. That sharing is the Rust argument.</span><span data-l="zh">autofill_provider 既编成 Node 插件，也编成 Swift 通过 uniffi 链接的 staticlib。bitwarden-crypto 在原生侧供 desktop_native，在 TypeScript 侧以 WASM 供上层。这种共享就是 Rust 的理由。</span></li><li><b><span data-l="en">A place to put the next hardening step</span><span data-l="zh">下一步加固有地方放</span></b> — <span data-l="en">secure_memory already holds keys outside ordinary heap on Windows and Linux. macOS is the gap. If the user key has to leave V8, that crate is where the work goes.</span><span data-l="zh">secure_memory 在 Windows 和 Linux 上已经把密钥放在普通堆之外。缺的是 macOS。如果 user key 必须离开 V8，活儿就落在这个 crate 上。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">A vault whose plaintext never enters a JS heap</span><span data-l="zh">一个明文永不进 JS 堆的金库</span></b> — <span data-l="en">PureCrypto.symmetric_decrypt_string returns a JavaScript string, and the biometric user key is rebuilt in the renderer. Rewriting the UI moves that heap. It does not remove it. Rust&#x27;s own heap needed help here too — Cure53&#x27;s 2024 SDK audit found the master password left in freed memory, fixed by adding a zeroing allocator.</span><span data-l="zh">PureCrypto.symmetric_decrypt_string 返回的是 JavaScript 字符串，生物识别的 user key 在渲染进程里被重建。重写界面只是把这个堆搬个地方。它没有拿掉那个堆。Rust 自己的堆也一样要人管——Cure53 2024 年对 SDK 的审计发现主密码留在了已释放的内存里，修法是加一个清零的全局分配器。</span></li><li><b><span data-l="en">A native Mac feel</span><span data-l="zh">原生 Mac 的手感</span></b> — <span data-l="en">that is a UI-framework question. The repository&#x27;s own answer to it is Swift through uniffi, already building an xcframework today.</span><span data-l="zh">那是 UI 框架的问题。这个仓库自己的答案是通过 uniffi 走 Swift，今天就已经在产出 xcframework。</span></li><li><b><span data-l="en">Escape from Chromium</span><span data-l="zh">从 Chromium 里脱身</span></b> — <span data-l="en">swapping Electron for a system webview trades one engine you can pin for three you cannot. On Windows, WebView2 is Chromium regardless.</span><span data-l="zh">把 Electron 换成系统 webview，是拿一个你能锁版本的引擎去换三个你锁不了的。而在 Windows 上，WebView2 本来就是 Chromium。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>AgileBits · 1Password 8</h3><span class="outcome">SPLIT STACK</span></div><p><span data-l="en">Closed source, so nothing here was inspected. AgileBits wrote 1Password 8&#x27;s shared backend in Rust and wrapped it in Electron on macOS, Windows and Linux. Their stated driver was organisational: four client implementations of the same server APIs, four teams, four sets of bugs. One matched Activity Monitor comparison put the Rust core process below the app it replaced, 83.2 MB against 109.7 MB. The whole app came out at 326.2 MB across seven processes against 134.3 MB across three.</span><span data-l="zh">闭源，这里没有检视过任何东西。AgileBits 把 1Password 8 的共享后端写成 Rust，在 macOS、Windows、Linux 上用 Electron 包起来。他们自述的动因是组织层面的：同一套服务端 API 有四份客户端实现、四个团队、四套 bug。有一份对齐条件的 Activity Monitor 对比显示，Rust 核心进程比它取代的那个应用还省，83.2 MB 对 109.7 MB。整个应用则是七个进程 326.2 MB，对三个进程 134.3 MB。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the same Rust-core plus Electron-UI shape, the same product category, the same Mac audience, and the same shared-core driver Bitwarden&#x27;s SDK serves</span><span data-l="zh">同样是 Rust 内核加 Electron 界面的形状，同一个产品品类，同一批 Mac 用户，以及和 Bitwarden 的 SDK 一样的「共享内核」动因</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">the direction is opposite. 1Password moved a Mac app off Apple&#x27;s own UI toolkit, by their own description of their history; Bitwarden has been Electron since 2016 and added Rust underneath it</span><span data-l="zh">方向是反的。按 1Password 自己对过往的描述，他们是把一个 Mac 应用从 Apple 自家 UI 工具包上挪走；Bitwarden 自 2016 年起就是 Electron，是在下面加了 Rust</span></div><a class="ref mono" href="https://1password.com/blog/1password-8-the-story-so-far">first-party blog · plus an N=1 user measurement on the vendor forum</a></article>
+<article class="precedent"><div class="top"><h3>Microsoft · VS Code</h3><span class="outcome">STAYED</span></div><p><span data-l="en">The same architecture, tested twice. A native C++ text buffer was tried and then reverted, because converting strings between native memory and V8 ate the gain. Their own summary: &quot;TL;DR: We tried. It didn&#x27;t work out for us&quot;. ripgrep, a Rust binary, has powered search since 2017. It runs as a subprocess and hands back bulk results.</span><span data-l="zh">同一套架构，被测了两次。原生 C++ 文本缓冲试过，后来回退了，因为在原生内存和 V8 之间转字符串把收益吃掉了。他们自己的总结是：&quot;TL;DR: We tried. It didn&#x27;t work out for us&quot;。而 Rust 写的 ripgrep 从 2017 年起就在驱动搜索。它作为子进程跑，一次交回一批结果。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">an Electron product that keeps native code only at coarse seams, which is the shape Bitwarden&#x27;s 38-function napi boundary already has</span><span data-l="zh">一个 Electron 产品，只在粗粒度接缝上放原生代码；Bitwarden 那 38 个函数的 napi 边界就是这个形状</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">an editor with no vault, no OS keychain requirement and no credential-provider extension</span><span data-l="zh">那是编辑器，没有金库，不需要 OS keychain，也没有凭据提供方扩展</span></div><a class="ref mono" href="https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Zed · GPUI</h3><span class="outcome">SHIPPED</span></div><p><span data-l="en">A Rust desktop app that really is fast: 120fps UI, sub-10ms typing latency by the team&#x27;s own account. The cost is in the same sentence. No existing Rust GUI framework cleared the bar, so they wrote GPUI, a game-engine-style GPU scene graph, before they could write the editor.</span><span data-l="zh">一个确实快的 Rust 桌面应用：团队自述 120fps 界面、打字延迟低于 10ms。代价就在同一句话里。当时没有现成的 Rust GUI 框架够用，所以他们先写了 GPUI——一个游戏引擎式的 GPU 场景图——然后才写编辑器。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">proof that a native Rust desktop UI is achievable, which is the strongest version of the rewrite proposal</span><span data-l="zh">证明原生 Rust 桌面界面做得到，这是重写提案最强的版本</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">greenfield, not a migration; no shared library serving three other clients; the numbers are unaudited first-party</span><span data-l="zh">那是全新开发，不是迁移；没有一层要同时服务另外三个客户端的共享库；数字是未经审计的第一方数据</span></div><a class="ref mono" href="https://zed.dev/blog/videogame">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Tauri on Linux</h3><span class="outcome">REVERTED</span></div><p><span data-l="en">The obvious way to put Rust in charge of a desktop app is a Rust shell over the system webview. Tauri&#x27;s own maintainers wrote that they &quot;can&#x27;t fully recommend Tauri for Linux right now&quot; and that WebKitGTK is &quot;getting worse each release&quot;. One application measured 40fps on WebKitGTK and 240fps after converting to Electron. On Windows, WebView2 is Chromium anyway.</span><span data-l="zh">让 Rust 主管一个桌面应用，最直接的路子是 Rust 外壳套系统 webview。Tauri 自己的维护者写过他们 &quot;can&#x27;t fully recommend Tauri for Linux right now&quot;，以及 WebKitGTK &quot;getting worse each release&quot;。有一个应用实测在 WebKitGTK 上 40fps，转成 Electron 后 240fps。而在 Windows 上，WebView2 本来就是 Chromium。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the exact option a vault would consider first, and Bitwarden ships to macOS, Windows, snap and flatpak — all three engines</span><span data-l="zh">金库最先会考虑的就是这个方案，而 Bitwarden 要发 macOS、Windows、snap 和 flatpak——三个引擎全都碰上</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">the fps figure is one app on one machine, and Tauri&#x27;s macOS story is better than its Linux one</span><span data-l="zh">那个 fps 数字是一台机器上的一个应用，而且 Tauri 在 macOS 上的表现好于 Linux</span></div><a class="ref mono" href="https://github.com/tauri-apps/tauri/discussions/8524">first-party maintainers · issue tracker</a></article>
+<article class="precedent"><div class="top"><h3>Amazon · Prime Video living-room UI</h3><span class="outcome">EXTRACT SHIPPED</span></div><p><span data-l="en">37K lines of Rust went under a React UI across more than 8,000 device types. The WASM VM added up to 7.5MB and saved about 30MB of JS heap. The business logic stayed in JavaScript. The split held because the seam between rendering core and UI is coarse.</span><span data-l="zh">37K 行 Rust 塞到 React 界面底下，覆盖 8,000 多种设备型号。WASM 虚拟机最多增加 7.5MB，省下大约 30MB 的 JS 堆。业务逻辑留在 JavaScript。这套拆分站得住，是因为渲染内核和界面之间的接缝是粗的。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a shipped split-stack app where Rust owns the layer that needs it and the UI layer is left alone</span><span data-l="zh">一个已经发布的分层混合应用：Rust 拿走真正需要它的那层，界面层不动</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a memory-constrained TV client with a real per-frame budget; a desktop vault has neither</span><span data-l="zh">那是内存受限的电视客户端，有实打实的每帧预算；桌面金库两样都没有</span></div><a class="ref mono" href="https://www.amazon.science/blog/how-prime-video-updates-its-app-for-more-than-8-000-device-types">first-party · engineering blog</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Decide whether the user key may sit in V8</span><span data-l="zh">先定 user key 能不能待在 V8 里</span></h3><p><span data-l="en">Bitwarden&#x27;s security team writes down one sentence: is a decrypted user key in the renderer&#x27;s V8 heap acceptable while the vault is unlocked, given contextIsolation and the process reload on lock. If the answer is yes, this report&#x27;s verdict stands and nothing moves. If it is no, the next step is funded and the scope becomes EXTRACT. No code changes here.</span><span data-l="zh">Bitwarden 安全团队写下一句话：在有 contextIsolation 和锁定时 process reload 的前提下，金库解锁期间让解密后的 user key 待在渲染进程 V8 堆里，能不能接受。答案是能，本报告的结论就成立，什么都不动。答案是不能，下一步就有预算，范围变成 EXTRACT。这一步不改代码。</span></p></div><span class="cost"><span data-l="en">1 week</span><span data-l="zh">1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Give secure_memory a macOS backend</span><span data-l="zh">给 secure_memory 补一个 macOS 后端</span></h3><p><span data-l="en">Only if step 1 said no. The desktop platform team adds a macOS backend to secure_memory stronger than the current mlock fallback, then moves the biometric unlock path behind it so the key handle crosses IPC instead of the key. Ship it behind a feature flag and keep the mlock path live. If the platform cannot beat mlock on macOS, say so in writing and stop — the answer is then a documented residual risk, not a rewrite.</span><span data-l="zh">只有第 1 步答「不能」才做。桌面平台团队给 secure_memory 加一个比现在 mlock 兜底更强的 macOS 后端，然后把生物识别解锁路径搬到它后面，让跨 IPC 传的是 key handle 而不是 key。用 feature flag 上线，mlock 那条路留着。如果这个平台上确实赢不过 mlock，就写下来然后停——结论是一条记录在案的残余风险，不是一次重写。</span></p></div><span class="cost"><span data-l="en">4–8 weeks</span><span data-l="zh">4–8 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Publish a profile before any UI proposal</span><span data-l="zh">任何界面提案之前，先出 profile</span></h3><p><span data-l="en">Whoever proposes replacing the UI publishes the measurement first. State the vault size and the interaction, then split wall-clock into Chromium compositing, Angular change detection, WASM crypto, IPC and network sync. The five shares have to sum to the wall-clock on a harness someone else can re-run. If Angular is not a large share, the performance argument is over.</span><span data-l="zh">提出换界面的人先把测量发出来。写清金库规模和具体交互，再把墙钟时间拆成 Chromium 合成、Angular 变更检测、WASM 加解密、IPC、网络同步五块。五块之和要对得上墙钟，测量脚手架要能被别人复跑。如果 Angular 占不了多少，性能这条论证就到此为止。</span></p></div><span class="cost"><span data-l="en">2 weeks</span><span data-l="zh">2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Cost the Swift Mac client before calling it a Rust question</span><span data-l="zh">把 Swift Mac 客户端算完价，再说这是不是 Rust 的问题</span></h3><p><span data-l="en">If the driver is that the app should feel like a Mac app, product and the Mac engineers price a Swift client on the existing Rust core. uniffi already produces the xcframework, so the estimate is about UI parity and ongoing feature lag, not about bindings. The step passes when the estimate names which features the Swift client would not have on day one. If nobody will fund two Mac UIs, that is the answer and the Electron build continues.</span><span data-l="zh">如果动机是「应该像个 Mac 应用」，那就让产品和 Mac 工程师给「在现有 Rust 内核上做 Swift 客户端」算个价。uniffi 已经在产 xcframework，所以估算要算的是界面对齐和长期功能滞后，不是 binding。通过标准是：估算里点名 Swift 客户端第一天会缺哪些功能。如果没人愿意养两套 Mac 界面，那这就是答案，Electron 构建继续。</span></p></div><span class="cost"><span data-l="en">2–3 weeks of estimation</span><span data-l="zh">2–3 周做估算</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></b> — <span data-l="en">No profile of this app exists, so a UI-rewrite performance claim has no reach argument available. The report records UNKNOWN and names the profile that would settle it instead of estimating.</span><span data-l="zh">这个应用没有 profile，界面重写的性能主张就拿不出影响面的论证。报告记 UNKNOWN，并点名了能了结它的那份 profile，没有拿估算去填。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">Two claims get bundled: that the app should be native, and that it should be Rust. The repository separates them — uniffi and 569 lines of Swift already ship the native path.</span><span data-l="zh">两个主张被捆在一起：应该原生，以及应该 Rust。仓库把它们分开了——uniffi 加 569 行 Swift 已经把原生那条路发出去了。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Safety transfer</span><span data-l="zh">安全论证的搬运</span></b> — <span data-l="en">A Rust UI is often argued from memory safety. The vault crypto is already Rust and the decrypted key still lands in the UI process&#x27;s heap, so that argument does not reach the UI language.</span><span data-l="zh">「Rust 界面」常常拿内存安全来论证。可金库加解密已经是 Rust，解密后的密钥照样落在界面进程的堆里，所以这条论证够不到界面用什么语言。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">Both seams are named and counted: 38 napi functions in a 491-line .d.ts, plus the uniffi Swift bindings. The second one is disclosed rather than folded into the first count.</span><span data-l="zh">两条接缝都点了名、算了数：491 行 .d.ts 里 38 个 napi 函数，加上 uniffi 的 Swift binding。第二条是单独披露的，没有并进第一条的计数。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The path requires a written threat-model decision before any Rust work, and a costed Swift estimate before anyone calls the native complaint a Rust problem.</span><span data-l="zh">路径要求：任何 Rust 工作之前先有一份书面威胁模型决定；把「不够原生」说成 Rust 问题之前，先有一份 Swift 的成本估算。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有人投入的对照方案</span></b> — <span data-l="en">Staying is not standing still. 13 Rust crates, a Rust SDK 285 TypeScript files already import, and a Swift extension are all shipping work.</span><span data-l="zh">留下来不等于原地不动。13 个 Rust crate、一个已经被 285 个 TypeScript 文件 import 的 Rust SDK、一个 Swift 扩展，全是已经在发的工作。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Doing nothing leaves a decrypted user key in the renderer&#x27;s V8 heap while the vault is unlocked. Electron defaults are not self-correcting either. Cure53 rated the 2023 configuration a Critical RCE chain, and closing it took 13 pull requests.</span><span data-l="zh">什么都不做，就意味着金库解锁期间解密后的 user key 一直在渲染进程 V8 堆里。Electron 的默认值也不会自己变对。Cure53 把 2023 年那套配置定为 Critical 级的 RCE 链，收口用了 13 个 PR。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏的不安全面</span></b> — <span data-l="en">The Rust module is not the whole native surface. On macOS the app links 652 lines of hand-written Objective-C and 166 of headers, and the Rust itself carries 177 unsafe blocks, 88 of them in the Windows-only win_webauthn.</span><span data-l="zh">Rust 模块不等于全部原生面。macOS 上这个应用还链进 652 行手写 Objective-C 和 166 行头文件，而 Rust 自己带 177 个 unsafe 块，其中 88 个在只编 Windows 的 win_webauthn 里。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The report does not claim a native UI would feel the same. It records the UI performance question as unmeasured and keeps the strongest native option, which is Swift, in the comparison.</span><span data-l="zh">报告没有主张原生界面手感一样。它把界面性能这个问题记为未测量，并把最强的原生方案——Swift——留在对比里。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">Path step 2 carries an explicit stop: if no macOS primitive beats mlock, write down the residual risk and stop rather than escalating to a rewrite.</span><span data-l="zh">路径第 2 步带明确的停止条件：如果 macOS 上没有比 mlock 更强的原语，就把残余风险写下来然后停，不往重写上升级。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">bitwarden/clients at f97b15b · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">bitwarden/clients @ f97b15b · 静态只读分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/bitwarden/clients at commit f97b15bc4c8a0aa5236eb969e98a718c0330898b, shallow clone, 8,362 tracked files. Scope: apps/desktop only. The other three clients in this monorepo are context, and the report states both counting bases wherever a share appears. Sampling: the whole tree holds 780,391 lines of TypeScript across 5,813 files and 28,301 lines of Rust across 170 files, and all 170 Rust files are under apps/desktop/desktop_native. The desktop app&#x27;s own TypeScript is 32,549 lines across 238 files in apps/desktop/src, which is 4.2% of the monorepo&#x27;s TypeScript. The Rust is 3.5% of the tree and 46% of the desktop app&#x27;s own code on a matched .ts/.rs basis. That second figure is the one this assessment turns on. libs/ is 247,757 non-spec lines across 2,757 files. The .ts files were checked to be TypeScript and not Qt Linguist XML. The napi surface is 38 `export function` declarations and 27 exported types in a 491-line generated index.d.ts spanning 15 namespaces, matching the 15 `pub mod` declarations in napi/src/lib.rs. 15 non-spec TypeScript files import the module as a runtime value, and all 15 are main-process files. Unsafe accounting: 177 `unsafe {` blocks, 27 `unsafe fn`, 7 `unsafe extern` and 12 `unsafe impl` across the 170 .rs files, counted as occurrences and not deduplicated per file. 88 of those blocks are in win_webauthn, which carries `#![cfg(target_os = &quot;windows&quot;)]`. Electron is pinned at 41.7.2 in the root package.json and the desktop app version is 2026.7.1. Two history facts come from the GitHub REST API, because the clone is depth-1: PR #1379 merged 2022-04-05 in the archived bitwarden/desktop repository, and the sdk-internal language bytes. No build, test, benchmark or network call was run against the project. Objective: no RFC was supplied, so the assessment takes the commonly stated proposal. User-supplied facts: none. No Amdahl calculation appears, because no profile exists to give f a defensible value. The performance and footprint lenses are UNKNOWN, not refuted. G1 through G4 are graded against the Rust expansion under review, meaning replacement of the Angular UI or of the Electron shell. They are not graded against the OS-seam module that already ships. G1 passes: a decrypted user key does sit in the renderer&#x27;s V8 heap while the vault is unlocked. G2 fails because a Rust UI relocates that heap instead of emptying it, and because the native-feel benefit is served by Swift here. G3 fails because a macOS backend for secure_memory meets the same target in weeks. G4 fails because the UI rests on a shared TypeScript layer that three other clients import, so there is no dual-run or rollback path. Nothing in this report argues against the Rust that is already there. Disclosure: this repository ships assistant-directed instruction files (.claude/, nine CLAUDE.md files, .mcp.json). They were read as data, contain ordinary coding conventions, and changed no number, gate or verdict here. Three published third-party audits are cited as documents and none was reproduced: Cure53 2023 on the Electron desktop app, Cure53 2024 on the SDK, and IOActive 2024, all indexed at bitwarden.com/help/is-bitwarden-audited/. 1Password 8 is cited only from public sources and is labelled as such; it is closed-source and was not inspected, and its memory figures are one user&#x27;s N=1 report. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/bitwarden/clients，commit f97b15bc4c8a0aa5236eb969e98a718c0330898b，shallow clone，8,362 个纳管文件。范围：只看 apps/desktop。同一个 monorepo 里另外三个客户端只作为背景，凡是出现占比，报告都把两套口径都写出来。采样：整棵树有 780,391 行 TypeScript（5,813 个文件）和 28,301 行 Rust（170 个文件），而这 170 个 Rust 文件全部在 apps/desktop/desktop_native 下。桌面端自有 TypeScript 是 apps/desktop/src 里 238 个文件、32,549 行，占整个 monorepo TypeScript 的 4.2%。Rust 占整棵树 3.5%，在对齐的 .ts/.rs 口径下占桌面端自有代码的 46%。这份评估靠的是后面这个数。libs/ 是 2,757 个文件、247,757 行非测试代码。.ts 文件已核对过是 TypeScript，不是 Qt Linguist XML。napi 面是一份 491 行生成 index.d.ts 里的 38 个 `export function` 和 27 个导出类型，跨 15 个命名空间，与 napi/src/lib.rs 里 15 个 `pub mod` 对得上；把该模块当运行时值 import 的非测试 TypeScript 文件有 15 个，全部是主进程文件。unsafe 口径：170 个 .rs 文件里 177 个 `unsafe {` 块、27 个 `unsafe fn`、7 个 `unsafe extern`、12 个 `unsafe impl`，按出现次数计，未按文件去重；其中 88 个块在 win_webauthn 里，那个 crate 带 `#![cfg(target_os = &quot;windows&quot;)]`。Electron 在根 package.json 里锁 41.7.2，桌面端版本号 2026.7.1。有两条历史事实来自 GitHub REST API，因为 clone 是 depth-1：归档仓库 bitwarden/desktop 的 PR #1379 于 2022-04-05 合并，以及 sdk-internal 的语言字节数。没有对项目做过任何构建、测试、基准或网络调用。目标：没有人提供 RFC，所以按通常被提出的那个提案评估。用户提供的事实：无。本报告没有 Amdahl 计算：不存在能给 f 一个站得住取值的 profile。性能和占用相关的几条是 UNKNOWN，不是被否证。G1 到 G4 评的是正在被审的那次 Rust 扩张——换掉 Angular 界面，或者换掉 Electron 外壳——不是评那个已经在发的 OS 接缝模块。G1 通过：金库解锁期间，解密后的 user key 确实待在渲染进程 V8 堆里。G2 失败，因为 Rust 界面只是把这个堆搬走，不是清空它，而且「原生手感」这条在这里是 Swift 在兑现。G3 失败，因为给 secure_memory 补一个 macOS 后端，几周就能达到同一个目标。G4 失败，因为界面坐在一层被另外三个客户端 import 的共享 TypeScript 上，没有双跑，也没有回滚路径。本报告没有任何一句是在反对已经存在的那些 Rust。披露：这个仓库带有面向 AI 助手的指令文件（.claude/、九个 CLAUDE.md、.mcp.json）。它们被当作数据读取，内容是普通的编码约定，没有改变这里的任何数字、证据门或结论。引用了三份公开的第三方审计，只作为文档引用，没有复现任何一份：Cure53 2023 针对 Electron 桌面端、Cure53 2024 针对 SDK、IOActive 2024，索引都在 bitwarden.com/help/is-bitwarden-audited/。1Password 8 只引用公开资料并明确标注来源；它是闭源的，没有被检视，其内存数字是某个用户的 N=1 报告。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">An end-to-end profile of the desktop app at a stated vault size</span><span data-l="zh">一份端到端 profile，写明金库规模</span></td><td><span data-l="en">While it is missing, D2, D3 and D4 stay UNKNOWN and no performance claim about the UI can be authorized in any language.</span><span data-l="zh">缺着的时候，D2、D3、D4 停在 UNKNOWN，关于界面的任何性能主张，用什么语言都授权不了。</span></td></tr><tr><td><span data-l="en">A written decision on whether a decrypted user key may live in the renderer&#x27;s V8 heap</span><span data-l="zh">一份书面决定：解密后的 user key 能不能待在渲染进程 V8 堆里</span></td><td><span data-l="en">This is the only trigger that changes the scope. Answer no and the verdict moves from STAY to EXTRACT, with secure_memory as the target.</span><span data-l="zh">这是唯一能改变范围的触发条件。答「不能」，结论就从 STAY 变成 EXTRACT，目标是 secure_memory。</span></td></tr><tr><td><span data-l="en">Any first-party footprint or startup measurement for this app</span><span data-l="zh">这个应用任何一方自己的内存占用或启动时间测量</span></td><td><span data-l="en">The only figures in circulation are third-party, N=1, and measured on other applications. They cannot price the Electron-replacement options.</span><span data-l="zh">在流传的数字全是第三方、N=1，而且测的是别的应用。它们给不了「替换 Electron」这类方案定价。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit f97b15b · no build, benchmark or network call against the target</span><span data-l="zh">公开仓库 · 在 commit f97b15b 上做静态分析 · 未对目标做构建、基准或网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-02",
+  "repository": {
+    "path": "https://github.com/bitwarden/clients",
+    "commit": "f97b15bc4c8a0aa5236eb969e98a718c0330898b",
+    "scope": "apps/desktop — the Electron/Angular desktop app plus apps/desktop/desktop_native; the browser extension, web vault and CLI in the same monorepo are context only",
+    "sampling": "shallow clone; 8,362 tracked files enumerated; apps/desktop, apps/desktop/desktop_native, libs/ and the root manifests measured; the GitHub REST API supplied history because the clone is depth-1; no build, test or benchmark was run"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "An end-to-end profile of the desktop app at a stated vault size",
+      "A written decision on whether a decrypted user key may live in the renderer's V8 heap",
+      "Any first-party footprint or startup measurement for this app"
+    ]
+  },
+  "objective": {
+    "driver": "platform integration and secret handling",
+    "requirement": "reach the macOS Keychain, Touch ID, an SSH agent socket and a credential-provider extension from an Electron app, and keep secret handling as tight as the platform allows, without forking the shared TypeScript the other three clients consume",
+    "baseline": "28,301 lines of Rust in 13 crates behind 38 napi functions; 32,549 lines of the desktop app's own TypeScript on 247,757 shared lines; no published profile, footprint or startup measurement",
+    "target": "OS APIs reachable and secret exposure minimised; no numeric UI performance target has been stated by anyone"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "stay-split",
+    "confidence": "MEDIUM",
+    "robustness": "CONDITIONAL",
+    "because": "Bitwarden already put Rust where it pays. 28,301 lines of it in 13 workspace crates under apps/desktop/desktop_native, reached through 38 functions in a generated 491-line .d.ts, called by 15 files that all live in the Electron main process. The proposal on the table is to carry on into the UI. It does not survive its own security argument. The vault crypto is already Rust, and the decrypted user key still crosses IPC into the renderer's V8 heap — a Rust UI relocates that heap rather than emptying it.",
+    "change_trigger": "One thing reopens the scope. If Bitwarden rules that a decrypted user key must never enter the renderer's V8 heap, the answer becomes EXTRACT: grow secure_memory and move the unlock path behind it. A UI rewrite is still not the shape. Frame time, RSS and startup stay UNKNOWN because nobody has published a measurement for this app."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "stay-split",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "One gap is real and structural. On macOS the biometric key is read out of the Keychain and sent over IPC, and renderer-biometrics.service.ts:87 rebuilds it as a SymmetricCryptoKey inside the Angular process. The other half of the proposal — that the app should be faster or feel more native — names no measurable target anywhere in the repository or in public."
+    },
+    {
+      "id": "G2",
+      "option_id": "stay-split",
+      "name": "rust-specific causality",
+      "state": "FAIL",
+      "evidence": "PureCrypto.symmetric_decrypt_string already runs Rust as WASM and hands back a JavaScript string, so plaintext in the UI process is not a property of the UI language. The second stated benefit is that the app should feel like a Mac app, which is a UI-framework property: uniffi and 569 lines of shipped Swift already serve that path with no Rust in the UI at all."
+    },
+    {
+      "id": "G3",
+      "option_id": "stay-split",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "A far cheaper option meets the same target. secure_memory already holds keys outside ordinary heap on Windows and Linux; giving it a macOS backend and moving the unlock path behind it is weeks of work behind a feature flag. The rewrite costs 32,549 lines of desktop TypeScript plus whatever it consumes of 247,757 shared lines, for a benefit interval nobody has quantified."
+    },
+    {
+      "id": "G4",
+      "option_id": "stay-split",
+      "name": "delivery and reversibility",
+      "state": "FAIL",
+      "evidence": "There is no rollback story for a UI rewrite here. libs/ is 247,757 non-spec lines that the browser extension, web vault and CLI also import, at 874 @bitwarden/common import statements in the desktop app alone. The shipped distribution matrix would be re-earned as well: 7 Rust target triples, a universal macOS build, a sandboxed Mac App Store package, snap, flatpak and three Windows architectures."
+    }
+  ],
+  "options": [
+    {
+      "id": "stay-split",
+      "name": "Keep Electron UI + Rust at the OS seam",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "reach the macOS Keychain, Touch ID, an SSH agent socket and a credential-provider extension from an Electron app, and keep secret handling as tight as the platform allows, without forking the shared TypeScript the other three clients consume",
+      "benefit_interval": "OS access met today; secret handling as tight as the platform allows",
+      "one_time_cost": "none; already shipped",
+      "recurring_cost": "two toolchains in CI, seven Rust target triples",
+      "time_to_value": "shipping since 2022",
+      "compatibility": "native",
+      "reversibility": "drop a crate; the UI never notices",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "Rust sits exactly where OS APIs and cross-host code sharing demand it, and nowhere else. The UI keeps the shared library three other clients depend on."
+    },
+    {
+      "id": "rust-secure-memory",
+      "name": "Move the unlock path behind secure_memory",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "reach the macOS Keychain, Touch ID, an SSH agent socket and a credential-provider extension from an Electron app, and keep secret handling as tight as the platform allows, without forking the shared TypeScript the other three clients consume",
+      "benefit_interval": "the one gap this report found: a decrypted user key in the V8 heap",
+      "one_time_cost": "weeks; a macOS backend for secure_memory does not exist yet",
+      "recurring_cost": "one more IPC contract to review each release",
+      "time_to_value": "one release cycle",
+      "compatibility": "IPC-shaped; no UI change",
+      "reversibility": "feature flag",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Targets the actual exposure rather than the language of the UI. secure_memory already exists with Windows and Linux backends; macOS falls back to mlock, which the code itself calls weaker."
+    },
+    {
+      "id": "swift-native-mac",
+      "name": "Native Swift/AppKit Mac UI on the Rust core",
+      "implementation": "non-rust-native",
+      "scope": "partial",
+      "target": "reach the macOS Keychain, Touch ID, an SSH agent socket and a credential-provider extension from an Electron app, and keep secret handling as tight as the platform allows, without forking the shared TypeScript the other three clients consume",
+      "benefit_interval": "answers the actual Mac complaint; buys nothing for memory safety",
+      "one_time_cost": "a second Mac client; two UIs to keep at feature parity",
+      "recurring_cost": "Mac-only feature lag, forever",
+      "time_to_value": "quarters",
+      "compatibility": "Rust core unchanged; UI parity is the risk",
+      "reversibility": "keep the Electron build",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "The complaint Mac users make is that the app is not native. uniffi already generates Swift bindings from autofill_provider, and 569 lines of Swift already ship in the credential-provider extension. Naming this keeps the native claim separate from the Rust claim."
+    },
+    {
+      "id": "tauri-shell",
+      "name": "Swap Electron for a Rust shell on the system webview",
+      "implementation": "rust",
+      "scope": "partial",
+      "target": "reach the macOS Keychain, Touch ID, an SSH agent socket and a credential-provider extension from an Electron app, and keep secret handling as tight as the platform allows, without forking the shared TypeScript the other three clients consume",
+      "benefit_interval": "smaller installer; the rendering engine becomes someone else's",
+      "one_time_cost": "rewrite the main process and preload; requalify three platforms",
+      "recurring_cost": "a webview matrix you do not control",
+      "time_to_value": "quarters",
+      "compatibility": "WKWebView on macOS, WebKitGTK on Linux, WebView2 on Windows",
+      "reversibility": "low",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "The Rust part is the shell, not the product surface. Tauri's own maintainers documented the Linux WebKitGTK problem, and on Windows WebView2 is Chromium anyway. For a vault, an engine you cannot pin is a security regression, not a win."
+    },
+    {
+      "id": "rust-native-gui",
+      "name": "Rewrite the UI in a Rust GUI toolkit",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "reach the macOS Keychain, Touch ID, an SSH agent socket and a credential-provider extension from an Electron app, and keep secret handling as tight as the platform allows, without forking the shared TypeScript the other three clients consume",
+      "benefit_interval": "no measured benefit on any lens; loses the shared library",
+      "one_time_cost": "32,549 lines of desktop TypeScript plus whatever it uses from 247,757 shared lines",
+      "recurring_cost": "a11y, IME and platform matrix owned in-house",
+      "time_to_value": "years",
+      "compatibility": "breaks code sharing with three other clients",
+      "reversibility": "none",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "The vault crypto is already Rust and the decrypted key already lands in a heap the UI process owns. Moving that heap from V8 to Rust changes which process leaks it, not whether. Meanwhile the shared TypeScript layer serves three other clients."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "stay-split"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The unmet requirement was never speed. It was reaching the macOS Keychain, Touch ID, an SSH agent socket, the clipboard and process hardening from inside Electron. 15 main-process files do that through Rust, and no file in the renderer calls the module at runtime.",
+      "source": "15 non-spec files import @bitwarden/desktop-napi as a value; 4 more use import type only",
+      "baseline_regime": "static import graph at this commit",
+      "caveat": "apps/desktop/src/autofill/services/desktop-autofill.service.ts is an Angular renderer service that imports the namespace without `type`, but every use of it is a type position; its runtime calls go through the preload IPC bridge.",
+      "change_trigger": "A published frame-time or RSS profile would add a second, currently absent, requirement to weigh."
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-native-gui",
+        "tauri-shell"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "No Amdahl figure appears here, and that is deliberate. There is no published profile of this app splitting Chromium compositing, Angular change detection, network sync and crypto. Substituting the line share for a time share would be a method error.",
+      "source": "no published end-to-end profile of the Bitwarden desktop app",
+      "baseline_regime": "n/a — the measurement is absent",
+      "caveat": "The UI-rewrite options therefore carry no benefit interval for speed; they are excluded on other lenses, not on a speed calculation.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [
+        "rust-native-gui"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "A V8 heap and a Chromium compositor are both in the loop, so a GC-pause story is plausible on paper. Nobody has traced one. The repository shows the opposite concern: backgroundThrottling is switched off so the window keeps updating, which is a responsiveness decision, not a collector one.",
+      "source": "apps/desktop/src/main/window.main.ts:410 backgroundThrottling: false",
+      "baseline_regime": "shipped webPreferences at this commit",
+      "caveat": "Recorded UNKNOWN rather than assumed either way. A jank trace on a large vault would make this assessable.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [
+        "tauri-shell",
+        "rust-native-gui"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "Desktop RAM is not a fleet cost, and no Bitwarden measurement exists. The only numbers on the table are third-party and N=1: one macOS comparison put a Tauri app at ~172 MB against ~409 MB for Electron after six windows, written by a Tauri user.",
+      "source": "https://www.gethopp.app/blog/tauri-vs-electron (2025, N=1, author uses Tauri)",
+      "baseline_regime": "third-party macOS single-machine comparison of other apps",
+      "caveat": "On Windows, WebView2 is Chromium, so the same comparison collapses once shared pages are counted. Neither number was measured on Bitwarden.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "MODERATE",
+      "claim": "The app registers autostart and lives in the tray. It boots once per login and stays resident, so startup cost is amortized over a work day rather than paid per invocation.",
+      "source": "apps/desktop/desktop_native/napi/src/autostart.rs · src/main/tray.main.ts",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-secure-memory"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "One exposure survives the current design. The main process reads the biometric key out of the Keychain and sends it over IPC, where the renderer rebuilds it as a SymmetricCryptoKey. A decrypted user key therefore lives in the V8 heap while the vault is unlocked.",
+      "source": "apps/desktop/src/key-management/biometrics/renderer-biometrics.service.ts:87 · os-biometrics-mac.service.ts:50 · published audits indexed at bitwarden.com/help/is-bitwarden-audited/",
+      "baseline_regime": "structural, on the unlock path",
+      "caveat": "Two mitigations already ship: contextIsolation with nodeIntegration off, and a process reload on lock that discards the renderer's memory. The first of those was itself an audit fix — Cure53's 2023 desktop assessment raised BWN-08-013 and the Critical BWN-08-014, an RCE chain that existed because the main BrowserWindow ran with nodeIntegration on and contextIsolation off. Rust does not make this class go away by itself either: Cure53's 2024 SDK finding BWN-11-006 was a master password left in freed memory, fixed by adding a zeroing global allocator. secure_memory exists for exactly this problem and has no macOS backend beyond mlock.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Process isolation is already the concurrency model. Main, renderer and preload are separate OS processes with an explicit IPC contract, and the Rust side runs its own tokio work behind napi. No race incident appears in the repository.",
+      "source": "apps/desktop/tsconfig.main.json · tsconfig.renderer.json · tsconfig.preload.json",
+      "baseline_regime": "shipped build configuration",
+      "caveat": "The IPC contract is hand-written and therefore hand-checked; that is a review burden in any implementation language.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-native-gui",
+        "tauri-shell"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "The distribution matrix is already large and already met. build.js maps 7 Rust target triples; electron-builder produces a universal macOS build, a sandboxed Mac App Store package, snap, flatpak and three Windows architectures. A new UI stack re-earns every one of those.",
+      "source": "apps/desktop/desktop_native/build.js:9-15 · apps/desktop/package.json pack:* scripts",
+      "baseline_regime": "static build configuration at this commit",
+      "caveat": "A 2025 survey of 43 Rust GUI crates found the overwhelming majority not production-ready on accessibility and IME; that cost lands in D11, not here.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "stay-split"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The crates that make this work are ordinary, maintained ecosystem pieces: security-framework for Keychain, napi 3.x for the addon, uniffi for Swift, interprocess for IPC, ssh-key and rsa for the agent. All 13 crates pin exact versions and the workspace denies unwrap_used.",
+      "source": "apps/desktop/desktop_native/Cargo.toml · clippy.toml · deny.toml",
+      "baseline_regime": "manifest inventory at this commit",
+      "caveat": "The Rust GUI half of the ecosystem is a different story and is priced against the rewrite options at D8 and D11.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "stay-split",
+        "rust-secure-memory"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The seam is small and coarse. 491 generated lines of .d.ts, 15 namespaces, 38 exported functions, 27 exported types. Calls happen per user action: unlock, read the clipboard, sign an SSH request. Nothing fires per item or per frame.",
+      "source": "apps/desktop/desktop_native/napi/index.d.ts · 491 lines · 38 `export function` declarations",
+      "baseline_regime": "static interface inventory at this commit",
+      "caveat": "The seam is not free, and a published audit priced one edge of it. IOActive 2024 finding BITSR24-02 sits in desktop_native/core/src/ssh_agent/unix.rs, and Bitwarden's own resolution note reads: 'If the SSH agent spawned thread encounters errors there is no way for the TypeScript implementation to see this error.' A second boundary is excluded from the count above: uniffi generates Swift bindings for the macOS credential-provider extension from the same autofill_provider crate.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-native-gui"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The desktop app is 32,549 lines of its own TypeScript sitting on 247,757 non-spec lines in libs/. That shared layer is what the browser extension, web vault and CLI also import — 874 import statements from @bitwarden/common in the desktop app alone. A UI rewrite forks it or reimplements it.",
+      "source": "apps/desktop/src 32,549 lines / 238 files · libs/ 247,757 non-spec lines / 2,757 files",
+      "baseline_regime": "matched .ts basis, spec files excluded from the libs figure",
+      "caveat": "The 780,391-line whole-repo TypeScript total is not the rewrite cost and is not used as one here; it includes three other clients.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "swift-native-mac"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "If the complaint is that the app does not feel like a Mac app, the answer in this repository is Swift, not Rust. autofill_provider already builds a BitwardenMacosProviderFFI.xcframework through uniffi, and 569 lines of Swift already ship as the credential-provider extension.",
+      "source": "apps/desktop/desktop_native/autofill_provider/build.sh · apps/desktop/macos/autofill-extension/CredentialProviderViewController.swift (569 lines)",
+      "baseline_regime": "shipped build script and source at this commit",
+      "caveat": "A second Mac UI means permanent feature-parity work; this is retained as the counterfactual the native claim has to beat, not recommended.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "AgileBits · 1Password 8",
+      "outcome": "SPLIT STACK",
+      "match": "the same Rust-core plus Electron-UI shape, the same product category, the same Mac audience, and the same shared-core driver Bitwarden's SDK serves",
+      "mismatch": "the direction is opposite. 1Password moved a Mac app off Apple's own UI toolkit, by their own description of their history; Bitwarden has been Electron since 2016 and added Rust underneath it",
+      "workload_regime": "first-party retrospective (Aug 2021) plus one user's per-process Activity Monitor comparison on macOS 11 with an empty vault, N=1; 1Password staff logged it internally and did not dispute the figures, and published no counter-measurement",
+      "source_class": "first-party blog · plus an N=1 user measurement on the vendor forum",
+      "url": "https://1password.com/blog/1password-8-the-story-so-far"
+    },
+    {
+      "name": "Microsoft · VS Code",
+      "outcome": "STAYED",
+      "match": "an Electron product that keeps native code only at coarse seams, which is the shape Bitwarden's 38-function napi boundary already has",
+      "mismatch": "an editor with no vault, no OS keychain requirement and no credential-provider extension",
+      "workload_regime": "first-party engineering blog; no controlled benchmark published for the buffer work",
+      "source_class": "first-party · engineering blog",
+      "url": "https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation"
+    },
+    {
+      "name": "Zed · GPUI",
+      "outcome": "SHIPPED",
+      "match": "proof that a native Rust desktop UI is achievable, which is the strongest version of the rewrite proposal",
+      "mismatch": "greenfield, not a migration; no shared library serving three other clients; the numbers are unaudited first-party",
+      "workload_regime": "first-party claims plus one unaudited third-party comparison against VS Code",
+      "source_class": "first-party · engineering blog",
+      "url": "https://zed.dev/blog/videogame"
+    },
+    {
+      "name": "Tauri on Linux",
+      "outcome": "REVERTED",
+      "match": "the exact option a vault would consider first, and Bitwarden ships to macOS, Windows, snap and flatpak — all three engines",
+      "mismatch": "the fps figure is one app on one machine, and Tauri's macOS story is better than its Linux one",
+      "workload_regime": "maintainer statements plus a single-application frame-rate report",
+      "source_class": "first-party maintainers · issue tracker",
+      "url": "https://github.com/tauri-apps/tauri/discussions/8524"
+    },
+    {
+      "name": "Amazon · Prime Video living-room UI",
+      "outcome": "EXTRACT SHIPPED",
+      "match": "a shipped split-stack app where Rust owns the layer that needs it and the UI layer is left alone",
+      "mismatch": "a memory-constrained TV client with a real per-frame budget; a desktop vault has neither",
+      "workload_regime": "first-party engineering post; footprint figures stated without a harness",
+      "source_class": "first-party · engineering blog",
+      "url": "https://www.amazon.science/blog/how-prime-video-updates-its-app-for-more-than-8-000-device-types"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Decide whether the user key may sit in V8",
+      "owner": "Bitwarden security team",
+      "cost_range": "1 week",
+      "artifact": "a written threat-model decision on whether a decrypted user key may live in the renderer's V8 heap while unlocked",
+      "acceptance": "the decision names the mitigations it relies on and the residual risk it accepts",
+      "deadline_or_stop": "if the answer is yes, stop — the current split is the verdict and no work follows",
+      "rollback": "documentation only; no code changes"
+    },
+    {
+      "step": 2,
+      "title": "Give secure_memory a macOS backend",
+      "owner": "desktop platform team",
+      "cost_range": "4–8 weeks",
+      "artifact": "a macOS backend for secure_memory plus the biometric unlock path moved behind it, behind a feature flag",
+      "acceptance": "the renderer receives a key handle rather than key material, and the existing mlock path still passes its tests",
+      "deadline_or_stop": "stop and document the residual risk if no macOS primitive beats mlock",
+      "rollback": "clear the feature flag; the mlock path is untouched"
+    },
+    {
+      "step": 3,
+      "title": "Publish a profile before any UI proposal",
+      "owner": "whoever proposes the UI rewrite",
+      "cost_range": "2 weeks",
+      "artifact": "an end-to-end profile at a stated vault size splitting Chromium compositing, Angular change detection, WASM crypto, IPC and network sync",
+      "acceptance": "the five shares sum to measured wall-clock and a third party can re-run the harness",
+      "deadline_or_stop": "stop the performance track if Angular is not a large share of the time",
+      "rollback": "measurement only; no code changes"
+    },
+    {
+      "step": 4,
+      "title": "Cost the Swift Mac client before calling it a Rust question",
+      "owner": "product plus the Mac engineers",
+      "cost_range": "2–3 weeks of estimation",
+      "artifact": "a costed plan for a Swift/AppKit Mac client on the existing Rust core, naming the day-one feature gap",
+      "acceptance": "the plan states which features the Swift client lacks at launch and who owns parity afterwards",
+      "deadline_or_stop": "if nobody funds two Mac UIs, stop — the Electron build continues unchanged",
+      "rollback": "estimation only; the shipped client is untouched"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at the named commit represents the shipped tree; generated files such as napi/index.d.ts are counted as they are committed.",
+    "The napi surface is read as one entry point per `export function` declaration in the generated index.d.ts, cross-checked against the 15 `pub mod` namespaces in napi/src/lib.rs.",
+    "The crate count is the 13 entries in the `[workspace] members` array of apps/desktop/desktop_native/Cargo.toml, not the number of directories holding a Cargo.toml. A fourteenth, objc/, is a path dependency rather than a member; its 164 lines of Rust are still inside the 28,301 total.",
+    "The proposal under assessment is the commonly stated one — rewrite the Bitwarden desktop app in Rust for a native feel and a tighter threat model — since no RFC exists.",
+    "Line counts are raw `wc -l` on tracked files of one extension; comments and blank lines are included and no counting basis mixes extensions."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "No profile of this app exists, so a UI-rewrite performance claim has no reach argument available. The report records UNKNOWN and names the profile that would settle it instead of estimating.",
+        "evidence": "D2, D3, D4 UNKNOWN"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "Two claims get bundled: that the app should be native, and that it should be Rust. The repository separates them — uniffi and 569 lines of Swift already ship the native path.",
+        "evidence": "D12 · autofill_provider/build.sh"
+      },
+      {
+        "id": "M3",
+        "name": "Safety transfer",
+        "state": "HIT",
+        "claim": "A Rust UI is often argued from memory safety. The vault crypto is already Rust and the decrypted key still lands in the UI process's heap, so that argument does not reach the UI language.",
+        "evidence": "D6 · encrypt.service.implementation.ts:49"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "Both seams are named and counted: 38 napi functions in a 491-line .d.ts, plus the uniffi Swift bindings. The second one is disclosed rather than folded into the first count.",
+        "evidence": "D10 · napi/index.d.ts · autofill_provider/uniffi.toml"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The path requires a written threat-model decision before any Rust work, and a costed Swift estimate before anyone calls the native complaint a Rust problem.",
+        "evidence": "reversible path steps 1 and 4"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "Staying is not standing still. 13 Rust crates, a Rust SDK 285 TypeScript files already import, and a Swift extension are all shipping work.",
+        "evidence": "D9 · 285 files importing @bitwarden/sdk-internal"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Doing nothing leaves a decrypted user key in the renderer's V8 heap while the vault is unlocked. Electron defaults are not self-correcting either. Cure53 rated the 2023 configuration a Critical RCE chain, and closing it took 13 pull requests.",
+        "evidence": "D6 · renderer-biometrics.service.ts:87 · Cure53 2023 BWN-08-013 and BWN-08-014"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "HIT",
+        "claim": "The Rust module is not the whole native surface. On macOS the app links 652 lines of hand-written Objective-C and 166 of headers, and the Rust itself carries 177 unsafe blocks, 88 of them in the Windows-only win_webauthn.",
+        "evidence": "objc/src/native/*.m (13 files) · 177 `unsafe {` across 170 .rs files"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The report does not claim a native UI would feel the same. It records the UI performance question as unmeasured and keeps the strongest native option, which is Swift, in the comparison.",
+        "evidence": "D2 UNKNOWN · swift-native-mac retained"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "Path step 2 carries an explicit stop: if no macOS primitive beats mlock, write down the residual risk and stop rather than escalating to a rewrite.",
+        "evidence": "reversible path step 2"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

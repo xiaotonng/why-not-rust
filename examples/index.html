@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>why-not-rust — twenty worked Rust decisions</title>
+<meta name="description" content="Twenty open-source projects run through four non-compensatory proof gates. Each report is self-contained, bilingual, and pinned to a public commit.">
+<style>
+  :root {
+    --page:#0b0c0e; --ink:#e9eaec; --ink-2:#b9bcc2; --ink-3:#83878f; --line:#22252a;
+    --rust:#e06c3f; --teal:#3fb99a; --blue:#5b9cf0; --amber:#d9a441;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:light) {
+    :root:not([data-theme="dark"]) {
+      --page:#fbfbfa; --ink:#16181c; --ink-2:#4a4e57; --ink-3:#7c818b; --line:#e3e4e7;
+    }
+  }
+  :root[data-theme="light"] {
+    --page:#fbfbfa; --ink:#16181c; --ink-2:#4a4e57; --ink-3:#7c818b; --line:#e3e4e7;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px; overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  a { color:inherit; }
+  .mono { font-family:var(--mono); }
+  .mast {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:26px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  .logo { font-family:var(--mono); font-weight:700; letter-spacing:-.02em; }
+  .logo i { font-style:normal; color:var(--rust); }
+  .btn {
+    font:inherit; font-size:.76rem; color:var(--ink-2); background:none;
+    border:1px solid var(--line); border-radius:6px; padding:5px 11px; cursor:pointer;
+  }
+  h1 { font-size:2.6rem; line-height:1.1; letter-spacing:-.035em; margin:54px 0 18px; }
+  .lede { font-size:1.06rem; color:var(--ink-2); max-width:60ch; margin:0 0 10px; }
+  .meta { font-size:.82rem; color:var(--ink-3); margin-top:22px; }
+  h2 {
+    font-size:.78rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3);
+    margin:62px 0 4px; font-weight:600;
+  }
+  .sub { font-size:.9rem; color:var(--ink-3); margin:0 0 20px; max-width:64ch; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line); }
+  .card {
+    background:var(--page); padding:18px 20px; text-decoration:none; display:block;
+  }
+  .card:hover { background:color-mix(in srgb, var(--ink) 5%, var(--page)); }
+  .card .top { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .card .name { font-weight:640; letter-spacing:-.01em; }
+  .card .verdict {
+    font-family:var(--mono); font-size:.66rem; font-weight:700; letter-spacing:.07em;
+    white-space:nowrap; display:inline-flex; align-items:center; gap:5px;
+  }
+  .card .verdict::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .v-stay .verdict { color:var(--blue); }
+  .v-extract .verdict { color:var(--teal); }
+  .v-partial .verdict { color:var(--amber); }
+  .v-migrate .verdict { color:var(--rust); }
+  .card .finding { font-size:.86rem; color:var(--ink-2); margin-top:7px; }
+  footer { margin-top:70px; padding-top:22px; border-top:1px solid var(--line); font-size:.82rem; color:var(--ink-3); }
+  @media (max-width:640px) { body { padding:0 20px 70px; } h1 { font-size:2rem; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <span class="logo">why<i>&ndash;not&ndash;</i>rust</span>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">light / dark</button>
+  </div>
+
+  <h1>Twenty worked Rust decisions</h1>
+  <p class="lede">Twenty open-source projects, each run through the same four non-compensatory
+  proof gates. Every report is self-contained, reads in English and 中文, and is pinned to a
+  public commit you can re-measure.</p>
+  <p class="meta">8 APPROVE &middot; 11 REJECT &middot; 1 DEFER&ndash;MEASURE &middot;
+  all four scope words &middot; <a href="https://github.com/xiaotonng/why-not-rust">source on GitHub</a></p>
+
+  <h2>Desktop applications</h2>
+  <p class="sub">Apps whose teams believed a Rust rewrite was the answer. Six of the ten already bet
+  on Rust: two are dead, two have stalled, two are thriving. Same language, opposite outcomes.</p>
+  <div class="grid"><a class="card v-stay" href="remacs-why-not-rust.html"><span class="top"><span class="name">remacs/remacs</span><span class="verdict">STAY / REJECT</span></span><span class="finding">the experiment already ran; it ran out of people before it ran out of C</span></a><a class="card v-extract" href="xi-editor-why-not-rust.html"><span class="top"><span class="name">xi-editor/xi-editor</span><span class="verdict">EXTRACT / APPROVE</span></span><span class="finding">take the kernel that survived, not the architecture that didn&#x27;t</span></a><a class="card v-extract" href="lapce-why-not-rust.html"><span class="top"><span class="name">lapce/lapce</span><span class="verdict">EXTRACT / APPROVE</span></span><span class="finding">take the kernel, rent the editor</span></a><a class="card v-stay" href="spacedrive-why-not-rust.html"><span class="top"><span class="name">spacedriveapp/spacedrive</span><span class="verdict">STAY / REJECT</span></span><span class="finding">Rust stays. The feature scope does not.</span></a><a class="card v-migrate" href="zed-why-not-rust.html"><span class="top"><span class="name">zed-industries/zed</span><span class="verdict">MIGRATE / APPROVE</span></span><span class="finding">the deadline is measurable and the rewrite shipped; the mechanism is not the advertised one</span></a><a class="card v-migrate" href="fish-shell-why-not-rust.html"><span class="top"><span class="name">fish-shell/fish-shell</span><span class="verdict">MIGRATE / APPROVE</span></span><span class="finding">the one everybody talks about and almost nobody finishes</span></a><a class="card v-stay" href="ghostty-why-not-rust.html"><span class="top"><span class="name">ghostty-org/ghostty</span><span class="verdict">STAY / REJECT</span></span><span class="finding">stay in Zig — the cheap fix has not been priced yet</span></a><a class="card v-stay" href="bitwarden-desktop-why-not-rust.html"><span class="top"><span class="name">bitwarden/clients · apps/desktop</span><span class="verdict">STAY / REJECT</span></span><span class="finding">the split it already has is the answer</span></a><a class="card v-stay" href="signal-desktop-why-not-rust.html"><span class="top"><span class="name">signalapp/Signal-Desktop</span><span class="verdict">STAY / REJECT</span></span><span class="finding">the shell stays; the memory-unsafety is somewhere else</span></a><a class="card v-stay" href="keepassxc-why-not-rust.html"><span class="top"><span class="name">keepassxreboot/keepassxc</span><span class="verdict">STAY / REJECT</span></span><span class="finding">stay native; the migration buys a new UI, not a safer parser</span></a></div>
+
+  <h2>Systems and developer tooling</h2>
+  <p class="sub">The projects people most often demand a rewrite of.</p>
+  <div class="grid"><a class="card v-extract" href="curl-why-not-rust.html"><span class="top"><span class="name">curl/curl</span><span class="verdict">EXTRACT / APPROVE</span></span><span class="finding">keep Rust at the backend seam curl already ships</span></a><a class="card v-stay" href="sqlite-why-not-rust.html"><span class="top"><span class="name">sqlite/sqlite</span><span class="verdict">STAY / REJECT</span></span><span class="finding">keep the C engine; the verification programme is what actually ships</span></a><a class="card v-stay" href="openssl-why-not-rust.html"><span class="top"><span class="name">openssl/openssl</span><span class="verdict">STAY / DEFER–MEASURE</span></span><span class="finding">stay while the one missing document gets produced</span></a><a class="card v-partial" href="ffmpeg-why-not-rust.html"><span class="top"><span class="name">FFmpeg/FFmpeg</span><span class="verdict">PARTIAL / APPROVE</span></span><span class="finding">replace the layer attacker bytes reach first</span></a><a class="card v-stay" href="redis-why-not-rust.html"><span class="top"><span class="name">redis/redis</span><span class="verdict">STAY / REJECT</span></span><span class="finding">keep the store; the rewrite cannot deliver what it promises</span></a><a class="card v-stay" href="esbuild-why-not-rust.html"><span class="top"><span class="name">evanw/esbuild</span><span class="verdict">STAY / REJECT</span></span><span class="finding">keep the language that already delivered the win</span></a><a class="card v-stay" href="flake8-why-not-rust.html"><span class="top"><span class="name">PyCQA/flake8</span><span class="verdict">STAY / REJECT</span></span><span class="finding">the rewrite already happened, and it was not yours</span></a><a class="card v-stay" href="prisma-engines-why-not-rust.html"><span class="top"><span class="name">prisma/prisma-engines</span><span class="verdict">STAY / REJECT</span></span><span class="finding">keep query execution in the host language</span></a><a class="card v-partial" href="coreutils-why-not-rust.html"><span class="top"><span class="name">uutils/coreutils</span><span class="verdict">PARTIAL / APPROVE</span></span><span class="finding">replace one utility at a time, not the userland at once</span></a><a class="card v-migrate" href="bun-why-not-rust.html"><span class="top"><span class="name">oven-sh/bun</span><span class="verdict">MIGRATE / APPROVE</span></span><span class="finding">the migration that shipped, approved for the reason it actually had</span></a></div>
+
+  <footer>Static read-only analysis of public repositories. No build, test, benchmark or network
+  call was run against any target project. Where a decisive measurement does not exist, the report
+  records <span class="mono">UNKNOWN</span> rather than estimating it.</footer>
+</div>
+</body>
+</html>

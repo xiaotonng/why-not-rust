@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · prisma/prisma-engines</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">prisma/prisma-engines</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Rust · ORM engines · 394,195 lines of Rust · the query engine went; the language stayed</span><span data-l="zh">Rust · ORM 引擎 · 394,195 行 Rust · 撤掉的是查询引擎，Rust 还在树里</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">keep query execution in the host language</span><span data-l="zh">查询执行留在宿主语言里</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">This is the one case in the set where the measurement pointed away from Rust. Prisma published both halves: a 25,000-row query at 185 ms through the Rust query engine, 55 ms without it. Feed that pair into the boundary formula and the added crossing cost is 2.36× the TypeScript baseline&#x27;s entire runtime. Even an infinite kernel speedup misses parity. G2 fails on call frequency. The data crossed the boundary on every operation, and execution speed never got to matter.</span><span data-l="zh">这批案例里，只有这一次实测把矛头指向了 Rust。Prisma 自己公布了两组数：25,000 行的查询，走 Rust 查询引擎 185 ms，不走 55 ms。把这一对数字放进边界公式，多出来的跨界开销等于 TypeScript 基线整段运行时间的 2.36×。内核提速到无穷大，也追不平。G2 挂在调用频率上。数据每做一次操作就要过一次边界，执行速度根本没轮到上场。</span></p>
+      <p class="trigger"><span data-l="en">Stable for a chatty per-operation boundary. It does not transfer to coarse seams. This repository still holds 394,195 lines of Rust, including the WASM query compiler that was kept on purpose — those crossings happen in bulk, not per call.</span><span data-l="zh">对「每次操作过一次边界」这种形态，结论是稳的。换成粗接缝就不成立。这个仓库里还留着 394,195 行 Rust，其中包括特意保留的 WASM 查询编译器——那条缝是批量过一次，不是每次调用过一次。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">query execution in TypeScript; Rust kept where the boundary is coarse</span><span data-l="zh">查询执行放在 TypeScript；边界粗的地方仍然用 Rust</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">lib-with-bindings · Rust core under a JavaScript host</span><span data-l="zh">lib-with-bindings · JavaScript 宿主下的 Rust 内核</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Measured: 185 ms on a 25,000-row query, plus a ~14 MB bundle.</span><span data-l="zh">实测：25,000 行查询 185 ms，外加约 14 MB 的产物。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果归属</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">Boundary cost was 2.36× the baseline&#x27;s total runtime.</span><span data-l="zh">跨界开销是基线总运行时间的 2.36×。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Dropping the boundary measured 3.4× faster and ~90% smaller.</span><span data-l="zh">把边界去掉，实测快 3.4×，体积小约 90%。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">It shipped: GA in v6.16.0, default in Prisma 7.</span><span data-l="zh">已经发出去了：v6.16.0 GA，Prisma 7 默认。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Measured, before → after</span><span data-l="zh">实测 前 → 后</span></div><div class="value mono">185 → 55<span class="unit"><span data-l="en">ms</span><span data-l="zh">ms</span></span></div><div class="note"><span data-l="en">findMany 25,000 rows · first-party benchmark</span><span data-l="zh">findMany 25,000 行 · 一方基准</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Boundary cost</span><span data-l="zh">跨界开销</span></div><div class="value mono">2.36<span class="unit"><span data-l="en">× baseline</span><span data-l="zh">× 基线</span></span></div><div class="note"><span data-l="en">derived from Prisma&#x27;s own before/after</span><span data-l="zh">由 Prisma 自己的前后数据推出</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Ceiling with an infinite kernel</span><span data-l="zh">内核无穷快时的天花板</span></div><div class="value mono">0.42<span class="unit"><span data-l="en">×</span><span data-l="zh">×</span></span></div><div class="note"><span data-l="en">decision_math.py · share=1.0, b=2.3636</span><span data-l="zh">decision_math.py · share=1.0, b=2.3636</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Bundle size</span><span data-l="zh">产物体积</span></div><div class="value mono">14 → 1.6<span class="unit"><span data-l="en">MB</span><span data-l="zh">MB</span></span></div><div class="note"><span data-l="en">roughly 90% smaller after removal</span><span data-l="zh">移除之后小了大约 90%</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Rust still in this repo</span><span data-l="zh">仓库里仍然有的 Rust</span></div><div class="value mono">394,195<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">1,647 files — the reversal was scoped</span><span data-l="zh">1,647 个文件——这次回退是有范围的</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Retained Rust component</span><span data-l="zh">保留下来的 Rust 组件</span></div><div class="value mono">43,995<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">query-compiler/*.rs · 230 files, incl. the WASM crate</span><span data-l="zh">query-compiler/*.rs · 230 个文件，含 WASM crate</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Same objective for every option: cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes.</span><span data-l="zh">所有选项对着同一个目标：降低 JavaScript 和 TypeScript 应用的 ORM 查询延迟与发布产物体积，边缘运行时也要能跑。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="excluded"><td><span class="option-name"><span data-l="en">Keep the Rust query engine</span><span data-l="zh">保留 Rust 查询引擎</span></span><span class="source"><span data-l="en">exclude · measured worse on the stated objective</span><span data-l="zh">排除 · 在既定目标上实测更差</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">measured 3.4× slower than the alternative</span><span data-l="zh">实测比另一条路慢 3.4×</span></td><td><span data-l="en">sunk; per-OS binaries + dual skills</span><span data-l="zh">已沉没；每 OS 一套二进制 + 双语言技能</span></td><td><span data-l="en">n/a</span><span data-l="zh">不适用</span></td><td><span data-l="en">no edge support · n/a</span><span data-l="zh">不支持边缘运行时 · 不适用</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="selected"><td><span class="option-name"><span data-l="en">Query execution in TypeScript</span><span data-l="zh">查询执行改用 TypeScript</span></span><span class="source"><span data-l="en">recommended · shipped, measured, and default in Prisma 7</span><span data-l="zh">推荐 · 已发布、已实测，Prisma 7 里是默认</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">measured 3.4× on 25k rows; ~90% smaller bundle</span><span data-l="zh">25k 行实测 3.4×；产物小约 90%</span></td><td><span data-l="en">one major version; single-language</span><span data-l="zh">一个大版本；单语言维护</span></td><td><span data-l="en">shipped in v6.16.0</span><span data-l="zh">v6.16.0 已发布</span></td><td><span data-l="en">same API · version pin to roll back</span><span data-l="zh">API 不变 · 锁版本即可回退</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust retained at a coarse seam</span><span data-l="zh">在粗接缝上保留 Rust</span></span><span class="source"><span data-l="en">retain · in the tree today; the part the headline hides</span><span data-l="zh">保留 · 今天还在树里；标题盖住的就是这一块</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">keeps query-plan compilation native</span><span data-l="zh">查询计划编译继续走原生</span></td><td><span data-l="en">already built; one WASM artifact</span><span data-l="zh">已经建好；只有一个 WASM 产物</span></td><td><span data-l="en">shipped alongside</span><span data-l="zh">与主变更同期发布</span></td><td><span data-l="en">coarse seam · replaceable</span><span data-l="zh">粗接缝 · 可替换</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Keep Rust, batch the boundary</span><span data-l="zh">保留 Rust，把跨界改成批量</span></span><span class="source"><span data-l="en">retain · the steelman for keeping Rust, recorded and priced</span><span data-l="zh">保留 · 留住 Rust 的最强论证，记录在案并已标价</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">unmeasured; would have to beat 55 ms</span><span data-l="zh">没测过；得先打赢 55 ms</span></td><td><span data-l="en">protocol redesign; per-OS binaries remain</span><span data-l="zh">重做协议；每 OS 一套二进制照旧</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">new wire protocol · hard rollback</span><span data-l="zh">新的传输协议 · 回滚困难</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Adopt a different ORM</span><span data-l="zh">换一个 ORM</span></span><span class="source"><span data-l="en">retain · a consumer&#x27;s option, not the project&#x27;s</span><span data-l="zh">保留 · 这是使用方的选项，不是项目的</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">depends on the application&#x27;s own measurement</span><span data-l="zh">取决于各应用自己的测量</span></td><td><span data-l="en">per application; new schema tooling</span><span data-l="zh">按应用逐个迁移；换一套 schema 工具</span></td><td><span data-l="en">weeks per project</span><span data-l="zh">每个项目数周</span></td><td><span data-l="en">different API · switch back</span><span data-l="zh">API 不同 · 可以换回来</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">States are option-scoped evidence, not additive points. The boundary figure is derived from Prisma&#x27;s own published before/after and recomputed with scripts/decision_math.py.</span><span data-l="zh">每个状态都绑定具体选项，不是可以相加的分数。边界数值取自 Prisma 公布的前后对比，再用 scripts/decision_math.py 重算一遍。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag neutral">SUPPORTS · all options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Prisma measured the gap on their own benchmark: 185 ms for a 25,000-row findMany, 207 ms for complex joins. The bundle was also too big for edge runtimes to carry.</span><span data-l="zh">Prisma 在自家基准上量出了这个差距：25,000 行 findMany 185 ms，复杂 join 207 ms。产物体积也超出了边缘运行时能承载的范围。</span></div><div class="source mono">https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-query-engine</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Take the TypeScript implementation as baseline and the Rust path&#x27;s added boundary cost is 2.36 in baseline-time units. Give the kernel an infinite speedup and the ceiling is still 0.42×. Parity was physically out of reach.</span><span data-l="zh">以 TypeScript 实现为基线，Rust 路径多出来的跨界开销是 2.36 个基线时间单位。把内核提速设成无穷大，天花板仍然是 0.42×。追平在物理上做不到。</span></div><div class="source mono">scripts/decision_math.py · share=1.0, kernel=inf, boundary=2.3636, target=1.0</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Neither side reports a GC-correlated tail violation. The reported latency difference is serialization work, not collector pauses.</span><span data-l="zh">两边都没有报告与 GC 相关的尾延迟违约。报告里的延迟差来自序列化，不是回收停顿。</span></div><div class="source mono">first-party account attributes the cost to serialization</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队足迹</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · ts-query-execution</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The shipped artifact fell from roughly 14 MB to 1.6 MB, about 90%. That lands directly on serverless cold starts and edge deployment limits.</span><span data-l="zh">发布产物从大约 14 MB 降到 1.6 MB，约 90%。这直接打在 serverless 冷启动和边缘部署的体积上限上。</span></div><div class="source mono">https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">For the primary deployment target the engine lives inside a long-lived Node process. Startup folds into the bundle-size constraint recorded at D4.</span><span data-l="zh">在主要部署目标上，引擎跑在长驻的 Node 进程里。启动这件事已经并入 D4 记录的产物体积约束。</span></div><div class="source mono">long-lived host process</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Both sides are memory-safe at application scope. Across 394,195 lines of Rust there are 17 `unsafe` keyword occurrences, 12 of them outside comments, against 15 crate roots declaring #![deny(unsafe_code)]. Safety is not part of this objective.</span><span data-l="zh">在应用层面两边都是内存安全的。394,195 行 Rust 里出现 17 处 `unsafe` 关键字，注释之外 12 处，同时有 15 个 crate 根声明了 #![deny(unsafe_code)]。这个目标里不包含任何安全性主张。</span></div><div class="source mono">17 unsafe keyword occurrences · 15 deny(unsafe_code) declarations · *.rs, this commit</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Query execution is I/O-bound on the database. Host-language parallelism was never the constraint.</span><span data-l="zh">查询执行受限于数据库 I/O。宿主语言的并行能力从来不是瓶颈。</span></div><div class="source mono">database round-trip bound workload</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-query-engine, rust-tune-boundary</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">A native engine meant per-OS and per-OpenSSL binaries. Edge runtimes that refuse native binaries could not run it at all. No amount of boundary tuning removes that.</span><span data-l="zh">原生引擎意味着按 OS、按 OpenSSL 各出一套二进制。不接受原生二进制的边缘运行时根本跑不起来。这条约束再怎么调边界也去不掉。</span></div><div class="source mono">https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Database drivers exist in both ecosystems, and consumers have alternative ORMs. Ecosystem availability did not decide this.</span><span data-l="zh">两个生态都有数据库驱动，使用方也有别的 ORM 可选。生态供给不是这次决策的决定因素。</span></div><div class="source mono">driver and ORM landscape</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-query-engine</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The first-party diagnosis is explicit: data was serialized from JavaScript into Rust and back to JavaScript. That crossing happened once per operation. Per-operation is the shape that lets a boundary dominate.</span><span data-l="zh">一方给出的诊断很直接：数据要从 JavaScript 序列化进 Rust，再序列化回 JavaScript。这次跨界每做一次操作就发生一次。按操作计频，正是让边界吃掉全部收益的那种形态。</span></div><div class="source mono">https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-query-engine</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">An open-source ORM that demands both Rust and TypeScript competence draws from a smaller pool. Maintaining per-OS binaries sits on top of that.</span><span data-l="zh">一个开源 ORM 同时要求 Rust 和 TypeScript 能力，能招到的人就少了一截。每 OS 一套二进制的维护还压在上面。</span></div><div class="source mono">https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · ts-query-execution, rust-coarse-wasm</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The counterfactual was run and shipped, which is rare. Query execution moved to TypeScript; the Rust WASM query-plan compiler stayed. The repository carries both halves of that outcome.</span><span data-l="zh">反事实这次真的跑过，也发布了，这种情况少见。查询执行搬到 TypeScript，Rust 的 WASM 查询计划编译器留在原地。仓库里两半都能看到。</span></div><div class="source mono">query-compiler/*.rs 43,995 lines incl. query-compiler-wasm · query-engine/ reduced to connectors and a test kit</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">N/A lenses: D5 startup shape and D7 concurrency do not bear on this objective — the engine runs inside a long-lived Node process and query execution was never blocked by host-language parallelism.</span><span data-l="zh">N/A 维度：D5 启动形态和 D7 并发与这个目标无关——引擎跑在长驻的 Node 进程里，查询执行也从来不是被宿主语言的并行能力卡住的。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">The boundary cost exceeded the entire baseline runtime</span><span data-l="zh">跨界开销超过了整段基线运行时间</span></h3><p><span data-l="en">Prisma&#x27;s own 185 ms and 55 ms put the added crossing cost at 2.36 times the TypeScript implementation&#x27;s total time. Feed that to the boundary formula with an infinite kernel speedup and the ceiling is 0.42×. There was no fast-enough Rust engine to write.</span><span data-l="zh">用 Prisma 自己的 185 ms 和 55 ms 换算，多出来的跨界开销是 TypeScript 实现总耗时的 2.36 倍。把它放进边界公式，内核提速取无穷大，天花板是 0.42×。那台「够快的 Rust 引擎」根本写不出来。</span></p><span class="ref mono">decision_math.py · share=1.0, kernel=inf, b=2.3636</span></div>
+<div class="card current"><h3><span data-l="en">The diagnosis was call frequency, not language speed</span><span data-l="zh">诊断结论是调用频率，不是语言速度</span></h3><p><span data-l="en">The first-party root cause: data serialized from JavaScript into Rust and back, on every operation. A boundary crossed once per query plan behaves nothing like one crossed once per row. Same language, same compiler, different bill.</span><span data-l="zh">一方给出的根因是：每做一次操作，数据都要从 JavaScript 序列化进 Rust 再回来。每个查询计划过一次的边界，和每行过一次的边界，完全是两回事。同一门语言，同一个编译器，账单不一样。</span></p><span class="ref mono">prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm</span></div>
+<div class="card rust"><h3><span data-l="en">394,195 lines of Rust are still in this repository</span><span data-l="zh">这个仓库里仍然有 394,195 行 Rust</span></h3><p><span data-l="en">The reversal had a scope. query-compiler/ holds 43,995 lines of Rust including a WASM crate; schema-engine/ holds 135,240. What went away was the per-operation execution path — the one seam where the boundary tax was charged.</span><span data-l="zh">这次回退是有范围的。query-compiler/ 有 43,995 行 Rust，含一个 WASM crate；schema-engine/ 有 135,240 行。被拿掉的是按操作走的执行路径——收边界税的就是那一条缝。</span></p><span class="ref mono">query-compiler/*.rs 230 files · schema-engine/*.rs 463 files</span></div>
+<div class="card current"><h3><span data-l="en">The query-engine directory tells the story on its own</span><span data-l="zh">query-engine 目录自己就把事情说清楚了</span></h3><p><span data-l="en">At this commit, query-engine/ holds connectors and a connector test kit. The engine binary is gone. So is its per-operation Node boundary. The compiler that produces query plans is still there, shipping as WASM.</span><span data-l="zh">在这个 commit 上，query-engine/ 里只剩连接器和一套连接器测试工具。引擎二进制没了。它那条按操作走的 Node 边界也没了。生成查询计划的编译器还在，以 WASM 形式发布。</span></p><span class="ref mono">query-engine/{connectors, connector-test-kit-rs}</span></div>
+<div class="card current"><h3><span data-l="en">Distribution ruled the native option out on its own</span><span data-l="zh">分发这一条自己就把原生方案否掉了</span></h3><p><span data-l="en">Per-OS and per-OpenSSL native binaries cannot ship to an edge runtime at all. Boundary tuning does not touch that. It is why the &#x27;keep Rust and batch the crossings&#x27; option stays on the table but is not selected.</span><span data-l="zh">按 OS、按 OpenSSL 编出来的原生二进制，在边缘运行时上根本发不出去。调边界改变不了这一点。所以「保留 Rust、把跨界改成批量」这个选项留着，但没被选中。</span></p><span class="ref mono">D8 · first-party account</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Nothing at a per-operation boundary</span><span data-l="zh">在按操作计频的边界上，什么都买不到</span></b> — <span data-l="en">when the caller crosses once per row, serialization can exceed the entire baseline runtime — as it did here, by 2.36×.</span><span data-l="zh">调用方每行过一次边界时，序列化开销可以超过整段基线运行时间——这里就超了 2.36×。</span></li><li><b><span data-l="en">Value where the seam is coarse</span><span data-l="zh">接缝够粗的地方，买得到东西</span></b> — <span data-l="en">the retained WASM query-plan compiler crosses once per plan, and it stayed for exactly that reason.</span><span data-l="zh">保留下来的 WASM 查询计划编译器每个计划才过一次边界，它留下来就是因为这个。</span></li><li><b><span data-l="en">A number to carry into the next proposal</span><span data-l="zh">一个可以带进下一份提案的数字</span></b> — <span data-l="en">2.36× baseline is a measured boundary cost from a system that shipped. Put it in the sensitivity analysis of every extraction proposal.</span><span data-l="zh">2.36× 基线是从一个真正发布过的系统上量出来的边界开销。把它放进每一份抽取提案的敏感性分析里。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Faster ORM queries in a JavaScript host</span><span data-l="zh">在 JavaScript 宿主里跑更快的 ORM 查询</span></b> — <span data-l="en">measured 3.4× slower on the project&#x27;s own 25,000-row benchmark once the boundary is counted.</span><span data-l="zh">把边界算进去之后，在项目自己的 25,000 行基准上实测慢 3.4×。</span></li><li><b><span data-l="en">Edge-runtime deployment</span><span data-l="zh">边缘运行时部署</span></b> — <span data-l="en">per-OS native binaries cannot ship where native binaries are not accepted; only the WASM path can.</span><span data-l="zh">不接受原生二进制的地方，按 OS 编出来的二进制就是发不进去；只有 WASM 那条路走得通。</span></li><li><b><span data-l="en">A wider contributor pool</span><span data-l="zh">更大的贡献者池</span></b> — <span data-l="en">requiring Rust and TypeScript together narrowed it, by the project&#x27;s own account.</span><span data-l="zh">按项目自己的说法，同时要求 Rust 和 TypeScript 反而把池子收窄了。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Microsoft · VS Code native text buffer</h3><span class="outcome">REVERTED</span></div><p><span data-l="en">They tried a native buffer implementation. Then they abandoned it: converting strings between the native representation and V8 &#x27;compromised any performance gained&#x27;. The fix was a better data structure in TypeScript.</span><span data-l="zh">他们试过原生缓冲区实现。后来放弃了：在原生表示和 V8 之间来回转换字符串，&#x27;compromised any performance gained&#x27;。真正的解法是在 TypeScript 里换一个更好的数据结构。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">identical failure mode — a chatty boundary between a native core and a JavaScript host</span><span data-l="zh">失效模式完全一样——原生内核和 JavaScript 宿主之间一条话很多的边界</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">an editor text buffer rather than database query execution</span><span data-l="zh">对象是编辑器的文本缓冲区，不是数据库查询执行</span></div><a class="ref mono" href="https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation">first-party · project blog</a></article>
+<article class="precedent"><div class="top"><h3>pydantic · pydantic-core</h3><span class="outcome">EXTRACT</span></div><p><span data-l="en">The same pairing with the opposite result. A Rust validation core behind an unchanged Python API keeps its native win, because the seam is coarse. The reported kernel gain was around 17×, with application-level gains around 2–3×.</span><span data-l="zh">同样的搭配，结果相反。Rust 验证内核藏在没有改动的 Python API 后面，原生收益留住了，原因是接缝够粗。内核层面报出来大约 17×，应用层面大约 2–3×。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the coarse-versus-chatty boundary distinction this decision turns on</span><span data-l="zh">这次决策的关键分野——接缝是粗的还是话多的</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Python rather than JavaScript, and validation is CPU-bound where ORM work is I/O-bound</span><span data-l="zh">语言是 Python 不是 JavaScript；验证是 CPU 密集，ORM 是 I/O 密集</span></div><a class="ref mono" href="https://pydantic.dev/articles/pydantic-v2">first-party · vendor article</a></article>
+<article class="precedent"><div class="top"><h3>ast-grep · measured napi tax</h3><span class="outcome">QUANTIFIED</span></div><p><span data-l="en">An independent measurement of the Node native-binding boundary puts a synchronous parse at roughly 6% overhead. Pass whole trees across and serialization takes over.</span><span data-l="zh">对 Node 原生绑定边界的一次独立测量显示，同步解析的开销大约 6%。一旦把整棵树传过去，序列化就占了大头。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">quantifies the same boundary this decision failed on</span><span data-l="zh">量化的正是这次决策栽进去的那条边界</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a parser rather than an ORM, and a much lower call frequency</span><span data-l="zh">对象是解析器不是 ORM，调用频率也低得多</span></div><a class="ref mono" href="https://medium.com/@hchan_nvim/benchmark-typescript-parsers-demystify-rust-tooling-performance-025ebfd391a3">third-party · author benchmark</a></article>
+<article class="precedent"><div class="top"><h3>Amazon · Prime Video living-room UI</h3><span class="outcome">EXTRACT SHIPPED</span></div><p><span data-l="en">A Rust and WASM core sits under a JavaScript UI, and it works. The seam is why. The WASM VM adds up to 7.5 MB while saving 30 MB of JavaScript heap on constrained devices.</span><span data-l="zh">JavaScript UI 下面挂着一个 Rust + WASM 内核，而且是成的。成在接缝上。WASM 虚拟机最多多占 7.5 MB，却在受限设备上省下 30 MB 的 JavaScript 堆。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">Rust-plus-WASM under a JavaScript host, which is the shape Prisma retained</span><span data-l="zh">JavaScript 宿主下的 Rust + WASM，正是 Prisma 留下来的那个形态</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a rendering core on embedded devices, not a database access layer</span><span data-l="zh">是嵌入式设备上的渲染内核，不是数据库访问层</span></div><a class="ref mono" href="https://www.amazon.science/blog/how-prime-video-updates-its-app-for-more-than-8-000-device-types">first-party · research blog</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Measure the boundary before choosing a seam</span><span data-l="zh">先量边界，再挑接缝</span></h3><p><span data-l="en">Whoever proposes the native core builds a null-kernel benchmark first. Cross the boundary at the real call frequency and do no work on the other side. Express the crossing cost in baseline-time units and put it beside the target speedup. If crossing alone costs more than the kernel could ever return, stop. That is what happened here, at 2.36×. Nothing ships, so there is nothing to roll back.</span><span data-l="zh">提出原生内核的那一方先做一个空内核基准。按真实调用频率过边界，另一边什么都不做。把跨界开销换算成基线时间单位，和目标加速比摆在一起看。如果光是过边界就比内核能还回来的还多，就停。这里就是这么停的，2.36×。这一步不发任何东西，也就没有回滚。</span></p></div><span class="cost"><span data-l="en">2–3 days</span><span data-l="zh">2–3 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Let call frequency pick the seam</span><span data-l="zh">让调用频率来决定接缝在哪</span></h3><p><span data-l="en">The architect writes a seam proposal with two numbers in it: crossings per user-visible operation, and bytes carried by each. It passes when that count is bounded and constant. Proportional to result-set size is a reject. Any seam whose crossings scale with rows, nodes or events goes back. No code exists yet, so the whole loss is a week of design.</span><span data-l="zh">架构师写一份接缝提案，里面要有两个数：每次用户可见操作跨界多少次，每次带多少字节。跨界次数有界且恒定才算通过。跟结果集大小成正比就退回。任何跨界次数随行数、节点数或事件数增长的接缝都退回。这一步还没写代码，最多损失一周设计时间。</span></p></div><span class="cost"><span data-l="en">1 week</span><span data-l="zh">1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Price distribution as a hard constraint</span><span data-l="zh">把分发当成硬约束来定价</span></h3><p><span data-l="en">The platform owner lists the deployment targets that cannot accept a native binary, and says for each whether WASM covers it. Every required target is either supported by the chosen artifact format or explicitly dropped. If a required target cannot take the artifact, the native-binary option stops there. Benchmark results do not override this. It is a document; there is nothing to undo.</span><span data-l="zh">平台负责人列出所有不能接受原生二进制的部署目标，并逐个说明 WASM 覆不覆盖得了。每一个必需目标要么被选定的产物格式支持，要么被明确放弃。只要有一个必需目标装不下这个产物，原生二进制方案就到此为止。基准成绩推翻不了这一条。这一步只产出文档，没有什么要撤销的。</span></p></div><span class="cost"><span data-l="en">2–3 days</span><span data-l="zh">2–3 天</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Keep the reversal reversible</span><span data-l="zh">让这次回退本身可以回退</span></h3><p><span data-l="en">The release owner ships this as a major-version transition, keeps the previous engine reachable by version pin, and publishes a migration note. Consumers can pin the old behaviour for at least one release cycle. Hold the default flip until the parity report is clean. If it goes wrong, pin the previous major. That is the rollback.</span><span data-l="zh">发布负责人把这次变更做成一个大版本切换，旧引擎通过锁版本仍然可达，并配一篇迁移说明。使用方至少能在一个发布周期里锁住旧行为。对等性报告没跑干净之前，默认值先不翻。出问题就锁回上一个大版本。回滚就是这一句。</span></p></div><span class="cost"><span data-l="en">one major version</span><span data-l="zh">一个大版本</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响</span></b> — <span data-l="en">The Rust option&#x27;s boundary cost exceeded the whole baseline runtime. No kernel speedup could have delivered parity.</span><span data-l="zh">Rust 方案的边界开销超过了整段基线运行时间。任何内核加速都换不来对等。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The report puts the outcome on call frequency and copies rather than on Rust&#x27;s execution speed, and states that in the text.</span><span data-l="zh">报告把结果归到调用频率和拷贝上，而不是 Rust 的执行速度，并且是明写出来的。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与测量口径</span></b> — <span data-l="en">The 185 ms and 55 ms figures are first-party, with no published harness. Bundle size and edge runtimes are structural constraints, and they point the same way.</span><span data-l="zh">185 ms 和 55 ms 是一方数据，没有公开的测量脚手架。产物体积和边缘运行时是结构性约束，指向同一个方向。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">Boundary cost is quantified in baseline-time units instead of described in adjectives, and the retained coarse seam is kept distinct from the removed chatty one.</span><span data-l="zh">边界开销用基线时间单位量化，没有停留在形容词上；保留的粗接缝和被移除的高频接缝分开记录。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Scope control</span><span data-l="zh">范围控制</span></b> — <span data-l="en">The report does not generalize to every Rust extraction. 394,195 lines of Rust remain in the tree, and the WASM compiler is recorded as correctly retained.</span><span data-l="zh">报告没有推广到所有 Rust 抽取场景。树里仍有 394,195 行 Rust，WASM 编译器被记录为「保留得对」。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">反事实有没有真做</span></b> — <span data-l="en">The TypeScript option was built, measured and shipped as the default. Nothing hypothetical about it.</span><span data-l="zh">TypeScript 方案是真做出来、量过、并且作为默认发布的。没有一点假设成分。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Keeping the Rust engine meant a measured 185 ms baseline, a ~14 MB bundle, and no edge-runtime support. The report names all three.</span><span data-l="zh">继续用 Rust 引擎的代价是：实测 185 ms 的基线、约 14 MB 的产物、边缘运行时不可用。这三条报告里都写了。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">有没有否认原生优势</span></b> — <span data-l="en">Nothing here denies native value. A Rust WASM query-plan compiler was kept because its seam is coarse.</span><span data-l="zh">这里没有否认原生的价值。Rust 的 WASM 查询计划编译器被留下来，就是因为它的接缝够粗。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Hypothetical perfect counterfactual</span><span data-l="zh">完美反事实假设</span></b> — <span data-l="en">The &#x27;keep Rust and batch the crossings&#x27; option is retained and steelmanned. Nobody ever measured it. This report rules it out on distribution, not on latency.</span><span data-l="zh">「保留 Rust、把跨界改成批量」这个选项被保留，也做了最强论证。它从来没有被测过。这份报告只能从分发上排除它，延迟上排除不了。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The transferable rule is narrow and testable: crossings per operation must be bounded and constant, not proportional to result size.</span><span data-l="zh">可迁移的规则很窄，也能验证：每次操作的跨界次数必须有界且恒定，不能随结果集大小增长。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">prisma/prisma-engines at 9bae2a3 · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">prisma/prisma-engines 于 commit 9bae2a3 · 只读静态分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/prisma/prisma-engines at commit 9bae2a3, shallow clone, 2,794 tracked files. Scope: the query-execution path. Sampling: 394,195 lines of Rust across 1,647 files. query-engine/ holds 100,992 lines and now contains only connectors and a connector test kit — no engine binary and no node-api crate exists anywhere in the workspace. query-compiler/ holds 43,995 lines including query-compiler-wasm; schema-engine/ holds 135,240. 68 files carry wasm in their path. 17 `unsafe` keyword occurrences, 12 outside comments, against 15 crate roots declaring #![deny(unsafe_code)]. Per-directory figures count .rs only, so they are comparable with the 394,195 total. No build, test, benchmark or network call was run against the project. Objective: cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications including edge runtimes. User-supplied facts: none. Amdahl/boundary inputs: share=1.0, kernel speedup=infinite, boundary=2.3636, target=1.0 → end-to-end 0.4230834320528008x, infinite-kernel ceiling 0.4230834320528008x, target physically IMPOSSIBLE. The boundary figure comes from Prisma&#x27;s published 185 ms (with Rust) and 55 ms (without) on a 25,000-row findMany, taking the TypeScript implementation as baseline: (185-55)/55 = 2.3636 in baseline-time units. This is the one case in the published set where the evidence points away from Rust on a performance objective. The finding concerns the shape of the boundary rather than the speed of the language, which is why 394,195 lines of Rust remain in the tree. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/prisma/prisma-engines，commit 9bae2a3，浅克隆，2,794 个受控文件。范围：查询执行路径。采样：Rust 共 394,195 行，分布在 1,647 个文件里。query-engine/ 有 100,992 行，现在只剩连接器和一套连接器测试工具——整个 workspace 里既没有引擎二进制，也没有 node-api crate。query-compiler/ 有 43,995 行，含 query-compiler-wasm；schema-engine/ 有 135,240 行。路径里带 wasm 的文件 68 个。`unsafe` 关键字出现 17 次，注释之外 12 次，对应 15 个 crate 根声明了 #![deny(unsafe_code)]。分目录数字只统计 .rs，因此可以和 394,195 的总数对齐。没有对项目执行任何构建、测试、基准或网络调用。目标：降低 JavaScript 和 TypeScript 应用的 ORM 查询延迟与发布产物体积，含边缘运行时。用户提供的事实：无。Amdahl/边界输入：share=1.0，kernel speedup=infinite，boundary=2.3636，target=1.0 → 端到端 0.4230834320528008x，内核无穷快时的天花板 0.4230834320528008x，目标在物理上 IMPOSSIBLE。边界数值来自 Prisma 公布的 25,000 行 findMany 数据：带 Rust 185 ms，不带 55 ms；以 TypeScript 实现为基线，(185-55)/55 = 2.3636 个基线时间单位。在已发布的这批案例里，只有这一次证据在性能目标上指向「不要 Rust」。结论说的是边界的形态，而不是语言的速度，所以树里还留着 394,195 行 Rust。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A published benchmark harness for the 185/55 ms pair</span><span data-l="zh">185/55 ms 这一对数字缺公开的测量脚手架</span></td><td><span data-l="en">The figures are first-party. An independent reproduction would move D1 and D2 from strong-with-caveat to fully checkable. The structural constraints stand either way.</span><span data-l="zh">这两个数是一方给的。有人独立复现，D1 和 D2 就能从「强但有保留」变成完全可核对。结构性约束无论如何都在。</span></td></tr><tr><td><span data-l="en">A measured batched-boundary variant</span><span data-l="zh">批量边界的版本没有实测</span></td><td><span data-l="en">Nobody published a Rust engine with batched, zero-copy crossings. Until one exists, &#x27;keep Rust and tune the boundary&#x27; is excluded on distribution grounds and not on latency.</span><span data-l="zh">没有人公布过采用批量、零拷贝跨界的 Rust 引擎。在它出现之前，「保留 Rust、调边界」只能以分发理由排除，延迟上排除不了。</span></td></tr><tr><td><span data-l="en">Per-operation crossing count for other workloads</span><span data-l="zh">其他负载的单次操作跨界次数</span></td><td><span data-l="en">The 2.36× figure belongs to this query shape at this call frequency. Any transfer requires the target&#x27;s own crossing count.</span><span data-l="zh">2.36× 这个数字属于这种查询形态、这个调用频率。要搬到别处，先数清楚目标自己的跨界次数。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 9bae2a3 · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在 commit 9bae2a3 上做静态分析 · 未执行构建、基准或网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/prisma/prisma-engines",
+    "commit": "9bae2a3a63b4f966c4855ad11503f44f50f4db47",
+    "scope": "the query-execution path; the schema engine and query compiler are separate targets",
+    "sampling": "shallow clone; 2,794 tracked files enumerated; query-engine/, query-compiler/, schema-engine/, libs/ and psl/ measured; no build or benchmark was run"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A published benchmark harness for the 185/55 ms pair",
+      "A measured batched-boundary variant",
+      "Per-operation crossing count for other workloads"
+    ]
+  },
+  "objective": {
+    "driver": "performance and distribution",
+    "requirement": "cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes",
+    "baseline": "185 ms for a 25,000-row findMany and roughly a 14 MB bundle, with the Rust query engine",
+    "target": "at minimum parity on latency, plus deployability where native binaries are not accepted"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "ts-query-execution",
+    "confidence": "HIGH",
+    "robustness": "STABLE",
+    "because": "This is the one case in the set where the measurement pointed away from Rust. Prisma published both halves: a 25,000-row query at 185 ms through the Rust query engine, 55 ms without it. Feed that pair into the boundary formula and the added crossing cost is 2.36× the TypeScript baseline's entire runtime. Even an infinite kernel speedup misses parity. G2 fails on call frequency. The data crossed the boundary on every operation, and execution speed never got to matter.",
+    "change_trigger": "Stable for a chatty per-operation boundary. It does not transfer to coarse seams. This repository still holds 394,195 lines of Rust, including the WASM query compiler that was kept on purpose — those crossings happen in bulk, not per call."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "ts-query-execution",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "The requirement was measured, not assumed: findMany over 25,000 rows at 185 ms, complex joins at 207 ms, per-OS/OpenSSL binaries, and a bundle edge runtimes could not carry."
+    },
+    {
+      "id": "G2",
+      "option_id": "ts-query-execution",
+      "name": "rust-specific causality",
+      "state": "FAIL",
+      "evidence": "Computed from Prisma's own before/after: with an infinite kernel speedup and the measured boundary cost, the ceiling is 0.42× — a slowdown. No Rust-specific advantage survives a per-operation JavaScript boundary at this call frequency."
+    },
+    {
+      "id": "G3",
+      "option_id": "ts-query-execution",
+      "name": "economics and smallest sufficient option",
+      "state": "PASS",
+      "evidence": "185 ms → 55 ms and roughly 14 MB → 1.6 MB, while also widening the contributor pool by dropping the Rust-plus-TypeScript dual-skill requirement."
+    },
+    {
+      "id": "G4",
+      "option_id": "ts-query-execution",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "The change reached general availability and became the default, with the previous engine available by version pin during the transition. This repository's own layout confirms the outcome."
+    }
+  ],
+  "options": [
+    {
+      "id": "rust-query-engine",
+      "name": "Keep the Rust query engine",
+      "implementation": "rust",
+      "scope": "stay",
+      "target": "cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes",
+      "benefit_interval": "measured 3.4× slower than the alternative",
+      "one_time_cost": "already sunk",
+      "recurring_cost": "per-OS binaries; dual-skill contributor pool",
+      "time_to_value": "n/a",
+      "compatibility": "cannot ship to edge runtimes",
+      "reversibility": "n/a",
+      "evidence_strength": "STRONG",
+      "disposition": "exclude",
+      "reason": "Per-operation serialization across the JavaScript boundary dominated the native execution gain."
+    },
+    {
+      "id": "ts-query-execution",
+      "name": "Query execution in TypeScript",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes",
+      "benefit_interval": "measured 3.4× on 25k rows; ~90% smaller bundle",
+      "one_time_cost": "one major-version transition",
+      "recurring_cost": "single-language maintenance",
+      "time_to_value": "shipped in v6.16.0",
+      "compatibility": "same client API; edge runtimes now work",
+      "reversibility": "pin the previous major",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "Removes the boundary that the math shows was the bottleneck, and meets both halves of the objective."
+    },
+    {
+      "id": "rust-coarse-wasm",
+      "name": "Rust retained at a coarse seam",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes",
+      "benefit_interval": "keeps query-plan compilation native",
+      "one_time_cost": "already built",
+      "recurring_cost": "one WASM artifact, not per-OS binaries",
+      "time_to_value": "shipped alongside",
+      "compatibility": "compiles plans, does not execute queries",
+      "reversibility": "swap the compiler",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "A batch-in/batch-out seam crossed once per query plan, not once per row, so the boundary tax does not apply."
+    },
+    {
+      "id": "rust-tune-boundary",
+      "name": "Keep Rust, batch the boundary",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes",
+      "benefit_interval": "unmeasured; would have to beat 55 ms",
+      "one_time_cost": "redesign the protocol and the client",
+      "recurring_cost": "still per-OS binaries",
+      "time_to_value": "months",
+      "compatibility": "client protocol change",
+      "reversibility": "poor",
+      "evidence_strength": "WEAK",
+      "disposition": "retain",
+      "reason": "Batching and zero-copy could reduce the crossing cost, but it would not remove the per-OS binary and edge-runtime constraints that were also part of the requirement."
+    },
+    {
+      "id": "adopt-other-orm",
+      "name": "Adopt a different ORM",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "cut ORM query latency and shipped bundle size for JavaScript and TypeScript applications, including edge runtimes",
+      "benefit_interval": "depends on the application's own measurement",
+      "one_time_cost": "per application migration",
+      "recurring_cost": "different schema tooling",
+      "time_to_value": "weeks per project",
+      "compatibility": "different API and migrations",
+      "reversibility": "switch back",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Available to any application, and it does not address the engine architecture question this decision is about."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "ts-query-execution",
+        "rust-tune-boundary",
+        "rust-coarse-wasm",
+        "rust-query-engine",
+        "adopt-other-orm"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Prisma measured the gap on their own benchmark: 185 ms for a 25,000-row findMany, 207 ms for complex joins. The bundle was also too big for edge runtimes to carry.",
+      "source": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm",
+      "baseline_regime": "first-party internal benchmark, 25,000-row findMany",
+      "caveat": "First-party numbers with no published harness; the direction is corroborated by the bundle-size and edge-runtime constraints, which are structural.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-query-engine"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "Take the TypeScript implementation as baseline and the Rust path's added boundary cost is 2.36 in baseline-time units. Give the kernel an infinite speedup and the ceiling is still 0.42×. Parity was physically out of reach.",
+      "source": "scripts/decision_math.py · share=1.0, kernel=inf, boundary=2.3636, target=1.0",
+      "baseline_regime": "derived from the first-party 185 ms / 55 ms pair",
+      "caveat": "The derivation assumes the whole query path was the candidate kernel; a narrower kernel would make the ceiling worse, not better.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Neither side reports a GC-correlated tail violation. The reported latency difference is serialization work, not collector pauses.",
+      "source": "first-party account attributes the cost to serialization",
+      "baseline_regime": "first-party attribution",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [
+        "ts-query-execution"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The shipped artifact fell from roughly 14 MB to 1.6 MB, about 90%. That lands directly on serverless cold starts and edge deployment limits.",
+      "source": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm",
+      "baseline_regime": "first-party bundle measurement",
+      "caveat": "Bundle size is a deployment constraint here rather than a steady-state compute cost.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "MODERATE",
+      "claim": "For the primary deployment target the engine lives inside a long-lived Node process. Startup folds into the bundle-size constraint recorded at D4.",
+      "source": "long-lived host process",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Both sides are memory-safe at application scope. Across 394,195 lines of Rust there are 17 `unsafe` keyword occurrences, 12 of them outside comments, against 15 crate roots declaring #![deny(unsafe_code)]. Safety is not part of this objective.",
+      "source": "17 unsafe keyword occurrences · 15 deny(unsafe_code) declarations · *.rs, this commit",
+      "baseline_regime": "static count",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "MODERATE",
+      "claim": "Query execution is I/O-bound on the database. Host-language parallelism was never the constraint.",
+      "source": "database round-trip bound workload",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-query-engine",
+        "rust-tune-boundary"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "A native engine meant per-OS and per-OpenSSL binaries. Edge runtimes that refuse native binaries could not run it at all. No amount of boundary tuning removes that.",
+      "source": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm",
+      "baseline_regime": "first-party account of the deployment constraint",
+      "caveat": "WASM is the exception. That is what the retained component is built as.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Database drivers exist in both ecosystems, and consumers have alternative ORMs. Ecosystem availability did not decide this.",
+      "source": "driver and ORM landscape",
+      "baseline_regime": "market inventory",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-query-engine"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The first-party diagnosis is explicit: data was serialized from JavaScript into Rust and back to JavaScript. That crossing happened once per operation. Per-operation is the shape that lets a boundary dominate.",
+      "source": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm",
+      "baseline_regime": "first-party root-cause statement",
+      "caveat": "This is a statement about call frequency and copies, not about Rust's execution speed.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-query-engine",
+        "rust-tune-boundary"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "An open-source ORM that demands both Rust and TypeScript competence draws from a smaller pool. Maintaining per-OS binaries sits on top of that.",
+      "source": "https://www.prisma.io/blog/from-rust-to-typescript-a-new-chapter-for-prisma-orm",
+      "baseline_regime": "first-party account of contributor dynamics",
+      "caveat": "A staffing observation from one project; it does not generalize to teams that are already polyglot.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "ts-query-execution",
+        "rust-coarse-wasm"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The counterfactual was run and shipped, which is rare. Query execution moved to TypeScript; the Rust WASM query-plan compiler stayed. The repository carries both halves of that outcome.",
+      "source": "query-compiler/*.rs 43,995 lines incl. query-compiler-wasm · query-engine/ reduced to connectors and a test kit",
+      "baseline_regime": "static layout of this commit",
+      "caveat": "Layout is consistent with the published account; it is structural corroboration, not an independent benchmark.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": {
+      "kernel_share": 1.0,
+      "kernel_speedup": "unbounded",
+      "boundary_cost_share": 2.3636,
+      "end_to_end_speedup": 0.4230834320528008,
+      "infinite_kernel_ceiling": 0.4230834320528008,
+      "target_speedup": 1.0,
+      "target_physically_possible": false,
+      "target_met_by_candidate": false,
+      "inputs_note": "Derived from Prisma's published findMany 25,000-row figures: 185 ms with the Rust query engine, 55 ms without it. Taking the TypeScript implementation as baseline, the added boundary cost is (185-55)/55 = 2.3636 in baseline-time units, and the whole query path is treated as the candidate kernel (share=1.0). Even an infinite kernel speedup yields 0.4230834320528008x — a slowdown — so parity (target 1.0x) was physically impossible at that boundary."
+    },
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Microsoft · VS Code native text buffer",
+      "outcome": "REVERTED",
+      "match": "identical failure mode — a chatty boundary between a native core and a JavaScript host",
+      "mismatch": "an editor text buffer rather than database query execution",
+      "workload_regime": "first-party engineering account",
+      "source_class": "first-party · project blog",
+      "url": "https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation"
+    },
+    {
+      "name": "pydantic · pydantic-core",
+      "outcome": "EXTRACT",
+      "match": "the coarse-versus-chatty boundary distinction this decision turns on",
+      "mismatch": "Python rather than JavaScript, and validation is CPU-bound where ORM work is I/O-bound",
+      "workload_regime": "vendor benchmark plus user-reported figures",
+      "source_class": "first-party · vendor article",
+      "url": "https://pydantic.dev/articles/pydantic-v2"
+    },
+    {
+      "name": "ast-grep · measured napi tax",
+      "outcome": "QUANTIFIED",
+      "match": "quantifies the same boundary this decision failed on",
+      "mismatch": "a parser rather than an ORM, and a much lower call frequency",
+      "workload_regime": "third-party benchmark of TypeScript parsers",
+      "source_class": "third-party · author benchmark",
+      "url": "https://medium.com/@hchan_nvim/benchmark-typescript-parsers-demystify-rust-tooling-performance-025ebfd391a3"
+    },
+    {
+      "name": "Amazon · Prime Video living-room UI",
+      "outcome": "EXTRACT SHIPPED",
+      "match": "Rust-plus-WASM under a JavaScript host, which is the shape Prisma retained",
+      "mismatch": "a rendering core on embedded devices, not a database access layer",
+      "workload_regime": "first-party account across 8,000+ device types",
+      "source_class": "first-party · research blog",
+      "url": "https://www.amazon.science/blog/how-prime-video-updates-its-app-for-more-than-8-000-device-types"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Measure the boundary before choosing a seam",
+      "owner": "the team proposing a native core",
+      "cost_range": "2–3 days",
+      "artifact": "a null-kernel benchmark that crosses the boundary at the real call frequency and does no work on the other side",
+      "acceptance": "the measured crossing cost is expressed in baseline-time units and compared with the target speedup",
+      "deadline_or_stop": "stop if crossing cost alone exceeds the benefit the kernel could deliver — as it did here at 2.36×",
+      "rollback": "measurement only"
+    },
+    {
+      "step": 2,
+      "title": "Let call frequency pick the seam",
+      "owner": "the architect",
+      "cost_range": "1 week",
+      "artifact": "a written seam proposal stating how many crossings occur per user-visible operation and how much data each carries",
+      "acceptance": "crossings per operation are bounded and constant, not proportional to result-set size",
+      "deadline_or_stop": "reject any seam whose crossing count scales with rows, nodes or events",
+      "rollback": "no code written yet"
+    },
+    {
+      "step": 3,
+      "title": "Price distribution as a hard constraint",
+      "owner": "the platform owner",
+      "cost_range": "2–3 days",
+      "artifact": "the list of deployment targets that cannot accept a native binary, and whether WASM covers them",
+      "acceptance": "every required target is either supported by the chosen artifact format or explicitly dropped",
+      "deadline_or_stop": "stop the native-binary option if a required target cannot accept it, regardless of benchmark results",
+      "rollback": "documentation only"
+    },
+    {
+      "step": 4,
+      "title": "Keep the reversal reversible",
+      "owner": "the release owner",
+      "cost_range": "one major version",
+      "artifact": "a major-version transition with the previous engine reachable by version pin, and a published migration note",
+      "acceptance": "consumers can pin the previous behaviour for at least one release cycle",
+      "deadline_or_stop": "hold the default flip until the parity report is clean",
+      "rollback": "pin the previous major version"
+    }
+  ],
+  "assumptions": [
+    "The boundary derivation treats the whole query path as the candidate kernel; a narrower kernel would make the ceiling worse, not better.",
+    "Prisma's published 185 ms and 55 ms figures describe the same workload on comparable hardware, as their post states.",
+    "The shallow clone at the named commit reflects the post-reversal layout; directory contents are read as shipped."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "The Rust option's boundary cost exceeded the whole baseline runtime. No kernel speedup could have delivered parity.",
+        "evidence": "decision_math.py · ceiling 0.42×"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "The report puts the outcome on call frequency and copies rather than on Rust's execution speed, and states that in the text.",
+        "evidence": "D10 · first-party root-cause statement"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The 185 ms and 55 ms figures are first-party, with no published harness. Bundle size and edge runtimes are structural constraints, and they point the same way.",
+        "evidence": "D1 caveat"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "PASS",
+        "claim": "Boundary cost is quantified in baseline-time units instead of described in adjectives, and the retained coarse seam is kept distinct from the removed chatty one.",
+        "evidence": "D2, D12"
+      },
+      {
+        "id": "M5",
+        "name": "Scope control",
+        "state": "PASS",
+        "claim": "The report does not generalize to every Rust extraction. 394,195 lines of Rust remain in the tree, and the WASM compiler is recorded as correctly retained.",
+        "evidence": "query-compiler/*.rs 43,995 lines"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "The TypeScript option was built, measured and shipped as the default. Nothing hypothetical about it.",
+        "evidence": "GA v6.16.0; default in Prisma 7"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "PASS",
+        "claim": "Keeping the Rust engine meant a measured 185 ms baseline, a ~14 MB bundle, and no edge-runtime support. The report names all three.",
+        "evidence": "D1, D4, D8"
+      },
+      {
+        "id": "S3",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "Nothing here denies native value. A Rust WASM query-plan compiler was kept because its seam is coarse.",
+        "evidence": "D12 · rust-coarse-wasm retained"
+      },
+      {
+        "id": "S4",
+        "name": "Hypothetical perfect counterfactual",
+        "state": "HIT",
+        "claim": "The 'keep Rust and batch the crossings' option is retained and steelmanned. Nobody ever measured it. This report rules it out on distribution, not on latency.",
+        "evidence": "rust-tune-boundary · WEAK evidence"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The transferable rule is narrow and testable: crossings per operation must be bounded and constant, not proportional to result size.",
+        "evidence": "reversible path step 2"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

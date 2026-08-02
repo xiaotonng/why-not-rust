@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · FFmpeg/FFmpeg</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-partial a-approve">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">FFmpeg/FFmpeg</span><span>2026-08-01</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">C + assembly · media framework · 1,827,590 lines of C/headers plus 194,278 lines of hand-written asm</span><span data-l="zh">C + 汇编 · 媒体框架 · C 与头文件 1,827,590 行，另有手写汇编 194,278 行</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">PARTIAL</div>
+      <div class="scope-sub"><span data-l="en">replace the layer attacker bytes reach first</span><span data-l="zh">替换攻击者字节最先抵达的那一层</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · APPROVE</div>
+      <p class="why"><span data-l="en">Hostile bytes hit the container demux and bitstream parse layer first. That layer is 72,465 lines across 210 files, 3.6% of a 2,021,868-line tree, and it already sits behind a table-driven interface hosting 368 independent demuxer modules. Requirement and seam line up. The other 96% is excluded for one reason: 194,278 lines of it are hand-written assembly that carries the throughput and no part of the safety objective, and a rewrite inherits none of it.</span><span data-l="zh">攻击者的字节最先落在容器 demux 与 bitstream parse 层。这一层 72,465 行，分布在 210 个文件里，占 2,021,868 行代码树的 3.6%，而且早就位于一个表驱动接口之后，接口上挂着 368 个互相独立的 demuxer 模块。需求和接缝对得上。剩下的 96% 被排除只有一个理由：其中 194,278 行是手写汇编，扛的是吞吐量，不承担安全目标的任何部分，重写一行也继承不到。</span></p>
+      <p class="trigger"><span data-l="en">Conditional. Re-open if a demuxer replacement cannot reach bit-exact output parity on the FATE corpus, if the per-module boundary adds measurable decode overhead, or if no maintainer commits to the Rust modules. With this many modules, an unowned subsystem rots fast.</span><span data-l="zh">有条件。出现下面任何一种情况就重开：替换后的 demuxer 在 FATE 语料上达不到逐位一致的输出；按模块划分的边界带来可测的解码开销；没有 maintainer 认领这些 Rust 模块。模块这么多，无人认领的子系统烂得很快。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">the container demux/parse layer only, behind the existing module interface</span><span data-l="zh">只做容器 demux/parse 层，走现有模块接口</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>MEDIUM</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>CONDITIONAL</b></span>
+        <span><span data-l="en">security-parser · table-driven module framework with hand-tuned SIMD</span><span data-l="zh">安全解析器 · 表驱动模块框架，配手工调优的 SIMD</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">368 demuxer modules parse attacker-supplied containers in C.</span><span data-l="zh">368 个 demuxer 模块用 C 解析攻击者提供的容器。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Container/bitstream parsing in C is the canonical Rust safety case.</span><span data-l="zh">用 C 做容器/bitstream 解析，正是 Rust 安全论证的标准场景。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">3.6% of the codebase, versus 100%, with no additional safety benefit.</span><span data-l="zh">3.6% 对 100%，后者不带来额外的安全收益。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Table-driven module ABI plus a bit-exact regression corpus.</span><span data-l="zh">表驱动的模块 ABI，加一套逐位一致的回归语料。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Total code measured</span><span data-l="zh">测得的代码总量</span></div><div class="value mono">2,021,868<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">C 1,567,523 + headers 260,067 + asm 194,278</span><span data-l="zh">C 1,567,523 + 头文件 260,067 + 汇编 194,278</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Authorized scope</span><span data-l="zh">授权范围</span></div><div class="value mono">72,465<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">demux 59,433 + bitstream parsers 13,032 · 210 files · 3.6%</span><span data-l="zh">demux 59,433 + bitstream parser 13,032 · 210 个文件 · 3.6%</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Excluded: hand-written asm</span><span data-l="zh">排除项：手写汇编</span></div><div class="value mono">194,278<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">.asm and .S · a rewrite inherits none of it</span><span data-l="zh">.asm 与 .S · 重写一行也继承不到</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Demuxer modules behind one struct</span><span data-l="zh">挂在同一个 struct 后的 demuxer 模块</span></div><div class="value mono">368<span class="unit"><span data-l="en">modules</span><span data-l="zh">个模块</span></span></div><div class="note"><span data-l="en">libavformat/allformats.c registrations</span><span data-l="zh">libavformat/allformats.c 里的注册项</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Decoder modules (out of scope)</span><span data-l="zh">decoder 模块（范围外）</span></div><div class="value mono">604<span class="unit"><span data-l="en">modules</span><span data-l="zh">个模块</span></span></div><div class="note"><span data-l="en">libavcodec/allcodecs.c registrations</span><span data-l="zh">libavcodec/allcodecs.c 里的注册项</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Codec layer left alone</span><span data-l="zh">不动的编解码层</span></div><div class="value mono">999,497<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">libavcodec .c+.h · 55% of C and headers</span><span data-l="zh">libavcodec 的 .c+.h · 占 C 与头文件的 55%</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Same objective for every option: eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput.</span><span data-l="zh">每个方案的目标都一样：在 FFmpeg 首次解释攻击者控制的字节的地方消除内存不安全这一整类缺陷，同时不改变解码输出，也不损失 SIMD 吞吐。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class=""><td><span class="option-name"><span data-l="en">Fuzz and harden the C demuxers</span><span data-l="zh">对 C demuxer 做模糊测试和加固</span></span><span class="source"><span data-l="en">retain · the funded baseline, and it stays after the Rust modules land</span><span data-l="zh">保留 · 有预算的基线，Rust 模块上线后继续保留</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">reduces incidence, class stays reachable</span><span data-l="zh">降低发生率，整类缺陷仍然可达</span></td><td><span data-l="en">none new; existing triage load</span><span data-l="zh">无新增；现有的分诊负担</span></td><td><span data-l="en">already running</span><span data-l="zh">已经在跑</span></td><td><span data-l="en">native · no risk</span><span data-l="zh">原生 · 无风险</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Sandbox the whole framework in the host</span><span data-l="zh">在宿主里把整个框架沙箱化</span></span><span class="source"><span data-l="en">retain · what most large consumers actually do, and it composes with the Rust option</span><span data-l="zh">保留 · 大型使用方实际就这么做，而且能和 Rust 方案叠加</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">contains the class rather than removing it</span><span data-l="zh">把这类缺陷关住，而不是移除</span></td><td><span data-l="en">host-side; IPC per stream</span><span data-l="zh">宿主侧；每路流一次 IPC</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">unchanged framework · trivial rollback</span><span data-l="zh">框架不变 · 回滚很轻</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class="selected"><td><span class="option-name"><span data-l="en">Rust demux/parse modules</span><span data-l="zh">Rust 写的 demux/parse 模块</span></span><span class="source"><span data-l="en">recommended · smallest scope that removes the class where it matters</span><span data-l="zh">推荐 · 在要紧的位置移除这类缺陷的最小范围</span></span></td><td><span class="scope-tag">PARTIAL</span></td><td><span data-l="en">class eliminated in the layer attacker bytes reach first</span><span data-l="zh">在攻击者字节最先抵达的那一层消除整类缺陷</span></td><td><span data-l="en">per module; Rust toolchain + owners</span><span data-l="zh">按模块计价；Rust 工具链 + 模块负责人</span></td><td><span data-l="en">one format</span><span data-l="zh">一个格式的工期</span></td><td><span data-l="en">same module ABI · per-format rollback</span><span data-l="zh">沿用同一模块 ABI · 按格式回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Rewrite FFmpeg in Rust</span><span data-l="zh">用 Rust 重写 FFmpeg</span></span><span class="source"><span data-l="en">exclude · fails G3; the excluded 96% carries no part of the objective</span><span data-l="zh">排除 · G3 不过；被排除的 96% 不承担目标的任何部分</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">no additional safety benefit over the demux layer</span><span data-l="zh">相比只做 demux 层，没有额外的安全收益</span></td><td><span data-l="en">re-create asm + 604 decoders</span><span data-l="zh">重造汇编 + 604 个 decoder</span></td><td><span data-l="en">years</span><span data-l="zh">数年</span></td><td><span data-l="en">whole framework · no rollback</span><span data-l="zh">整个框架 · 无回滚</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Consumers adopt Rust media crates</span><span data-l="zh">使用方改用 Rust 媒体 crate</span></span><span class="source"><span data-l="en">retain · works where the format set is small and known</span><span data-l="zh">保留 · 格式集合小且已知时可行</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">class removed for the formats the crate covers</span><span data-l="zh">crate 覆盖到的格式上，这类缺陷被移除</span></td><td><span data-l="en">per consumer; narrow format coverage</span><span data-l="zh">按使用方计价；格式覆盖窄</span></td><td><span data-l="en">days per project</span><span data-l="zh">每个项目数天</span></td><td><span data-l="en">different API · caller-side rollback</span><span data-l="zh">API 不同 · 在调用方回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">States are evidence scoped to named options. They do not add up to a score. The performance half of the usual proposal is recorded as UNKNOWN rather than argued, because no public FFmpeg profile exists.</span><span data-l="zh">每个状态都是绑定到具体方案的证据，不能相加成分数。常见提案里性能那一半记为 UNKNOWN，不拿来论证：没有公开的 FFmpeg 性能剖析。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">368 demuxer modules and 68 bitstream parsers own the first interpretation of attacker-controlled container data, in 72,465 lines of C.</span><span data-l="zh">368 个 demuxer 模块和 68 个 bitstream parser 负责第一次解释攻击者控制的容器数据，共 72,465 行 C。</span></div><div class="source mono">libavformat/*dec.c and *demux*.c (142 files) · libavcodec/*_parser.c (68 files)</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-full</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">The performance half of a full-rewrite proposal cannot be evaluated. No public FFmpeg profile gives the time share of the C that a Rust port would replace, and a line share is not a time share.</span><span data-l="zh">全量重写提案里性能那一半无法评估。没有公开的 FFmpeg 剖析给出 Rust 移植要替换的那部分 C 占多少时间，而行数占比不等于时间占比。</span></div><div class="source mono">no public end-to-end decode profile</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">No managed runtime or collector exists, so there is no runtime mechanism in any tail to remove.</span><span data-l="zh">没有托管运行时，也没有回收器，尾部里没有可以拿掉的运行时机制。</span></div><div class="source mono">C framework, no GC</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机群规模</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">FFmpeg runs inside the caller&#x27;s process or batch job; this decision changes no fleet density.</span><span data-l="zh">FFmpeg 跑在调用方的进程或批处理作业里；这个决策不改变任何机群密度。</span></div><div class="source mono">library and CLI invocation model</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Transcode jobs are long-lived relative to process start; startup is not a stated constraint.</span><span data-l="zh">相对于进程启动，转码作业是长时任务；启动时间不在已声明的约束里。</span></div><div class="source mono">no startup requirement asserted</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-demux-partial</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The demux/parse layer interprets length fields, offsets and indices supplied by the file; replacing it in Rust removes that class by construction at the exact boundary.</span><span data-l="zh">demux/parse 层解释的是文件给出的长度字段、偏移量和索引；用 Rust 替换它，就在这条边界上从构造上消除了这类缺陷。</span></div><div class="source mono">libavformat demuxer read_header/read_packet implementations</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · all</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Frame- and slice-level threading already exists in the C implementation; no option is blocked by the language on this axis.</span><span data-l="zh">C 实现里已经有帧级和 slice 级线程；在这条轴上没有方案被语言卡住。</span></div><div class="source mono">libavcodec/pthread_frame.c · pthread_slice.c</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution</span><span data-l="zh">分发</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">FFmpeg builds across an unusually wide platform and architecture matrix, including targets carried mainly by their C toolchain and per-architecture assembly.</span><span data-l="zh">FFmpeg 要在一个异常宽的平台与架构矩阵上构建，其中一些目标主要靠各自的 C 工具链和按架构写的汇编撑着。</span></div><div class="source mono">libavcodec/{x86,aarch64,arm,ppc,riscv,loongarch,mips}/ subtrees</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-demux-partial</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Rust container parsers exist and one is shipped inside a major C/C++ media stack behind a C API, so the integration shape is demonstrated rather than theoretical.</span><span data-l="zh">Rust 的容器解析器是存在的，其中一个已经带着 C API 发布在一个主流 C/C++ 媒体栈里，集成形态有实物可看。</span></div><div class="source mono">https://github.com/mozilla/mp4parse-rust — mp4parse plus mp4parse_capi, shipped into mozilla-central</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-demux-partial</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Demuxers register through a struct-shaped module interface, so the boundary is one registration per format with packets crossing in bulk — not a per-sample FFI call.</span><span data-l="zh">demuxer 通过一个 struct 形态的模块接口注册，边界就是每个格式注册一次，packet 成批穿过，不是每个 sample 调一次 FFI。</span></div><div class="source mono">libavformat/avformat.h:565 typedef struct AVInputFormat · 368 registered demuxers</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-full</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">A full rewrite must re-create 194,278 lines of hand-written assembly and 604 decoder modules, none of which serve the safety objective; the per-module option prices only the formats it replaces.</span><span data-l="zh">全量重写必须重造 194,278 行手写汇编和 604 个 decoder 模块，它们都不服务于安全目标；按模块推进的方案只为自己替换掉的那些格式付钱。</span></div><div class="source mono">*.asm and *.S (420 files, 194,278 lines) · 604 registered decoders</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">反事实</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · c-fuzz, sandbox</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Two funded alternatives already operate: continuous fuzzing with an active triage pipeline, and host-side sandboxing by large consumers. The Rust option composes with both rather than replacing them.</span><span data-l="zh">已经有两条有预算的替代路线在跑：带活跃分诊流程的持续模糊测试，以及大型使用方在宿主侧做的沙箱。Rust 方案和这两条叠加，不取代它们。</span></div><div class="source mono">https://ffmpeg.org/security.html — project security process and CVE ledger</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">N/A lenses: D4 fleet footprint and D5 startup shape do not bear on this objective. FFmpeg is invoked as a library or a batch process inside the caller&#x27;s own deployment.</span><span data-l="zh">N/A 维度：D4 机群规模和 D5 启动形态与本目标无关。FFmpeg 是在调用方自己的部署里以库或批处理进程的形式被调用的。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card rust"><h3><span data-l="en">The attack surface is 3.6% of the codebase</span><span data-l="zh">攻击面只占代码库的 3.6%</span></h3><p><span data-l="en">Container demux is 59,433 lines across 142 files. The bitstream parsers add 13,032 across 68 more. Total: 72,465 lines, 3.6% of the tree. Attacker-controlled bytes get interpreted there first. Framework-wide proposals target something about twenty-eight times bigger.</span><span data-l="zh">容器 demux 是 142 个文件、59,433 行。bitstream parser 再加 68 个文件、13,032 行。合计 72,465 行，占代码树的 3.6%。攻击者控制的字节最先在这里被解释。而面向整个框架的提案，瞄准的体量大约是它的二十八倍。</span></p><span class="ref mono">libavformat/*dec.c, *demux*.c · libavcodec/*_parser.c</span></div>
+<div class="card current"><h3><span data-l="en">194,278 lines of hand-written assembly are the reason not to widen</span><span data-l="zh">不该扩大范围的理由：194,278 行手写汇编</span></h3><p><span data-l="en">FFmpeg&#x27;s throughput lives in .asm and .S files spread over seven architecture subtrees. A Rust rewrite inherits none of it. Either you keep that assembly over FFI or you write it again. Both add cost, and the safety objective is already satisfied by 3.6% of the tree.</span><span data-l="zh">FFmpeg 的吞吐量在 .asm 和 .S 里，散布在七个架构子树中。Rust 重写一行也继承不到。要么用 FFI 把这些汇编留着，要么重新写一遍。两条路都加成本，而安全目标靠代码树的 3.6% 就已经满足。</span></p><span class="ref mono">420 asm files · libavcodec&#x27;s x86, aarch64 and arm subtrees are 147,380 lines with their C wrappers</span></div>
+<div class="card rust"><h3><span data-l="en">The seam is already a module table</span><span data-l="zh">接缝已经是一张模块表</span></h3><p><span data-l="en">Demuxers register as struct instances. There are 368. A Rust demuxer is one more registration: selectable per format, removable per format. Packets cross in bulk, not one sample at a time.</span><span data-l="zh">demuxer 以 struct 实例的形式注册，一共 368 个。一个 Rust demuxer 就是多一条注册记录：按格式启用，按格式移除。packet 成批穿过，不是一个 sample 过一次。</span></p><span class="ref mono">libavformat/avformat.h:565 · 300 ff_*_demuxer definitions</span></div>
+<div class="card rust"><h3><span data-l="en">The integration shape has shipped elsewhere</span><span data-l="zh">这种集成形态别处已经上线了</span></h3><p><span data-l="en">Mozilla maintains a Rust ISO-BMFF parser with a C API wrapper, and ships pinned revisions of it into Firefox. The project describes it as a pure-Rust replacement for the metadata parser the browser needs. Same language pair. Same boundary shape, same kind of host.</span><span data-l="zh">Mozilla 维护一个带 C API 包装的 Rust ISO-BMFF 解析器，并以固定 revision 的方式发进 Firefox。项目自己的说法是：这是浏览器所需元数据解析器的纯 Rust 替代。语言组合相同。边界形态相同，宿主类型也相同。</span></p><span class="ref mono">github.com/mozilla/mp4parse-rust · mp4parse + mp4parse_capi</span></div>
+<div class="card unknown"><h3><span data-l="en">The performance half of the proposal is unmeasurable today</span><span data-l="zh">提案里性能那一半，今天量不出来</span></h3><p><span data-l="en">No public FFmpeg profile separates time in SIMD kernels from time in C control flow. Without that split, a speedup claim is arithmetic on line counts. D2 stays UNKNOWN. The full-rewrite option carries no benefit interval as a result.</span><span data-l="zh">没有公开的 FFmpeg 剖析把 SIMD kernel 的时间和 C 控制流的时间分开。缺了这一刀，任何加速比都只是拿行数做算术。D2 保持 UNKNOWN。全量重写方案因此没有收益区间。</span></p><span class="ref mono">no public end-to-end decode profile</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Class elimination at the entry point</span><span data-l="zh">在入口处消除整类缺陷</span></b> — <span data-l="en">a Rust demuxer cannot produce a memory-unsafety defect while interpreting the length fields and offsets a hostile file supplies.</span><span data-l="zh">Rust 写的 demuxer 在解释恶意文件给出的长度字段和偏移量时，产生不了内存不安全缺陷。</span></li><li><b><span data-l="en">Per-format blast radius</span><span data-l="zh">爆炸半径收敛到单个格式</span></b> — <span data-l="en">the module table means one format can be replaced, shipped, and unregistered independently of the other 367.</span><span data-l="zh">有模块表在，一个格式可以独立于另外 367 个被替换、发布、下架。</span></li><li><b><span data-l="en">A parity harness that already exists</span><span data-l="zh">对齐用的验收台已经有了</span></b> — <span data-l="en">FFmpeg&#x27;s own bit-exact regression suite answers &#x27;did the output change&#x27; before release, which keeps this option cheap to try.</span><span data-l="zh">FFmpeg 自带的逐位一致回归套件能在发布前回答「输出变了没有」，这让这个方案试起来很便宜。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Any throughput improvement</span><span data-l="zh">任何吞吐提升</span></b> — <span data-l="en">the speed is in 194,278 lines of hand-written assembly; a Rust demuxer neither helps nor is meant to.</span><span data-l="zh">速度在那 194,278 行手写汇编里；Rust demuxer 帮不上忙，也不打算帮。</span></li><li><b><span data-l="en">Safety for the codec layer</span><span data-l="zh">编解码层的安全性</span></b> — <span data-l="en">999,497 lines of libavcodec stay in C; this scope does not reach them and the report does not pretend otherwise.</span><span data-l="zh">libavcodec 的 999,497 行继续留在 C；本范围够不到那里，报告也不假装够得到。</span></li><li><b><span data-l="en">Freedom from logic bugs</span><span data-l="zh">摆脱逻辑缺陷</span></b> — <span data-l="en">format confusion, integer semantics and resource exhaustion survive the language change and still need fuzzing.</span><span data-l="zh">格式混淆、整数语义、资源耗尽都能挺过换语言，仍然要靠模糊测试。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Mozilla · mp4parse-rust</h3><span class="outcome">PARTIAL SHIPPED</span></div><p><span data-l="en">A Rust ISO-BMFF parser with a C API wrapper lives as a standalone crate. Firefox ships pinned revisions of it, in place of the metadata parser the browser relied on before.</span><span data-l="zh">一个带 C API 包装的 Rust ISO-BMFF 解析器以独立 crate 的形式维护。Firefox 以固定 revision 的方式引入，取代浏览器原先依赖的元数据解析器。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same language pair, same container-parsing boundary, C API in a large native media stack</span><span data-l="zh">语言组合相同，容器解析的边界相同，同样是大型原生媒体栈里的 C API</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">track metadata only, one container family, and a browser&#x27;s threat model rather than a general transcoder</span><span data-l="zh">只做 track 元数据，只覆盖一个容器家族，威胁模型是浏览器的，不是通用转码器的</span></div><a class="ref mono" href="https://github.com/mozilla/mp4parse-rust">first-party · project README</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Stylo</h3><span class="outcome">PARTIAL SHIPPED</span></div><p><span data-l="en">One subsystem with a clean interface got replaced in Rust inside a large C++ codebase, and shipped in about two years. The same organisation&#x27;s whole-engine replacement was cancelled.</span><span data-l="zh">在一个大型 C++ 代码库里，一个接口干净的子系统被 Rust 替换，大约两年上线。同一家机构的整引擎替换则被取消。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">component-scoped replacement inside a large native codebase with an existing internal interface</span><span data-l="zh">在已有内部接口的大型原生代码库里做组件级替换</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">CSS styling had a parallelism benefit; this scope claims safety only</span><span data-l="zh">CSS 样式计算有并行化收益；本范围只主张安全性</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineer account</a></article>
+<article class="precedent"><div class="top"><h3>Google · Android memory-safety program</h3><span class="outcome">INCREMENTAL</span></div><p><span data-l="en">Memory safety&#x27;s share of Android vulnerabilities fell from 76% to below 20%. Mass rewriting was explicitly not the method. New code was made safe and old C/C++ was left to age out. Their data puts vulnerability density in older code 3.4–7.4× below new code.</span><span data-l="zh">内存安全类缺陷在 Android 漏洞中的占比从 76% 降到 20% 以下。大规模重写被明确排除在做法之外。路线是让新代码安全，让旧的 C/C++ 自然老化。他们的数据显示，旧代码的漏洞密度比新代码低 3.4–7.4×。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">same requirement class and the same &#x27;scope the replacement&#x27; conclusion</span><span data-l="zh">需求类别相同，结论同样是「把替换范围划小」</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">OS-wide programme; figures are C/C++-relative rather than component-attributed</span><span data-l="zh">那是操作系统级的计划；数字相对的是 C/C++ 整体，没有按组件归因</span></div><a class="ref mono" href="https://blog.google/security/rust-in-android-move-fast-fix-things/">first-party · vendor security blog</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Servo as Gecko replacement</h3><span class="outcome">CANCELLED</span></div><p><span data-l="en">The whole-engine replacement was costed at thousands of engineer-years against a handful of funded positions. It was cancelled. The component extractions shipped.</span><span data-l="zh">整引擎替换的估算是数千人年，对面只有为数不多的带薪岗位。项目被取消。真正上线的是拆出来的组件。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the outcome the excluded full-rewrite option is heading toward at 2,021,868 lines</span><span data-l="zh">被排除的全量重写方案在 2,021,868 行的体量下，正走向同样的结局</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a browser engine, and Servo had a research budget FFmpeg does not</span><span data-l="zh">对象是浏览器引擎，而且 Servo 有 FFmpeg 没有的研究预算</span></div><a class="ref mono" href="https://en.wikipedia.org/wiki/Servo_(software)">first-party · engineer account</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Pick the format by exposure, not by taste</span><span data-l="zh">按暴露面挑格式，不按口味</span></h3><p><span data-l="en">FFmpeg&#x27;s security contacts rank the container formats by attacker reachability and by how often each one shows up in reports, then name the first target. The ranking has to come out of the project&#x27;s own CVE ledger and fuzzing findings, not out of opinion. If no format stands out, stop: sandboxing alone is the better answer. Only documentation changes here.</span><span data-l="zh">FFmpeg 的安全联系人按攻击者可达性和历史报告量给容器格式排序，并点名第一个目标。排序必须来自项目自己的 CVE 记录和模糊测试结果，不能靠印象。如果没有哪个格式明显更突出，就停：单靠沙箱是更好的答案。这一步只动文档。</span></p></div><span class="cost"><span data-l="en">1–2 weeks</span><span data-l="zh">1–2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Measure the module boundary before writing the module</span><span data-l="zh">先量接缝，再写模块</span></h3><p><span data-l="en">Two engineers who know both C and Rust register a null Rust demuxer through the existing struct interface, then time it against the C equivalent on the same inputs. Passing means boundary overhead sits inside noise under the project&#x27;s own timing methodology, with the measurement published. Visible per-packet crossing cost means stop — the seam is wrong even though the objective is right. Rollback is one deletion. Nothing was registered by default.</span><span data-l="zh">两位同时熟悉 C 和 Rust 的工程师，用现有的 struct 接口注册一个空的 Rust demuxer，在同一批输入上和 C 版本对时。通过的标准是：按项目自己的计时方法，边界开销落在噪声以内，并公开测量结果。逐 packet 的穿越成本只要看得见，就停——接缝错了，哪怕目标是对的。回滚只是删掉这个模块。默认本来就没注册它。</span></p></div><span class="cost"><span data-l="en">2 weeks</span><span data-l="zh">2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Ship one Rust demuxer behind a build flag</span><span data-l="zh">先用编译开关放出一个 Rust demuxer</span></h3><p><span data-l="en">The Rust module maintainers implement the chosen format in Rust, disabled by default, with a differential-fuzzing harness pointed at the C demuxer. Three things have to hold: bit-exact output on the project&#x27;s regression corpus, identical accept/reject decisions under differential fuzzing, and no measured decode regression. At twelve weeks without bit-exactness, stop and publish the divergences. Rollback unregisters the module. The C demuxer stays the default for that format.</span><span data-l="zh">Rust 模块维护者用 Rust 实现选定的格式，默认关闭，并配一套对着 C demuxer 跑的差分模糊测试。三条必须同时成立：在项目回归语料上输出逐位一致；差分模糊测试下接受/拒绝的判断完全相同；解码没有可测的退化。到第十二周仍然做不到逐位一致，就停下来，把差异公布出去。回滚就是取消注册。那个格式的默认实现仍然是 C demuxer。</span></p></div><span class="cost"><span data-l="en">8–12 weeks</span><span data-l="zh">8–12 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Name owners before adding the second module</span><span data-l="zh">加第二个模块之前，先把人定下来</span></h3><p><span data-l="en">Before a second module lands, FFmpeg maintainers name at least two committed reviewers for the Rust subsystem and write down what happens to unowned modules. No Rust module is enabled by default without two people who can review and release changes to it. If ownership lapses, disable them. An unmaintained parser is worse than none. The C demuxers never left, and they become the default again.</span><span data-l="zh">在第二个模块进来之前，FFmpeg maintainer 要为这个 Rust 子系统点名至少两位承诺投入的评审人，并把无人认领模块的处理写成明文政策。没有两个人能评审并发布改动的 Rust 模块，不许默认开启。归属一旦断了，就关掉。没人维护的解析器比没有更糟。C demuxer 一直都在，会重新变回默认。</span></p></div><span class="cost"><span data-l="en">ongoing</span><span data-l="zh">持续</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响</span></b> — <span data-l="en">No performance benefit is claimed for the selected option, and the full-rewrite option&#x27;s performance case is recorded UNKNOWN rather than estimated from line counts.</span><span data-l="zh">选定方案不主张任何性能收益；全量重写方案的性能论证记为 UNKNOWN，没有拿行数去估。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The safety delta is attributed to the language property at the demux boundary only; no architecture or format change is credited to Rust.</span><span data-l="zh">安全收益只归因于 demux 边界上的语言属性；没有把任何架构或格式改动算到 Rust 头上。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与口径</span></b> — <span data-l="en">Format selection currently rests on structural exposure, because the project&#x27;s CVE ledger is not published with per-component attribution.</span><span data-l="zh">格式的挑选目前靠结构性暴露面，因为项目的 CVE 记录没有按组件归因公布。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Boundary and compatibility</span><span data-l="zh">边界与兼容</span></b> — <span data-l="en">Per-packet boundary cost has not been measured yet. The path spends two weeks on a null module before anyone writes a real one.</span><span data-l="zh">逐 packet 的边界成本还没有测过。所以路径里先花两周做一个空模块，然后才动真的。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The path blocks the second Rust module on two named reviewers and defines what happens if ownership lapses.</span><span data-l="zh">路径把第二个 Rust 模块卡在「两位具名评审人」上，并规定了归属断掉时怎么办。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有预算的反事实</span></b> — <span data-l="en">Fuzzing with active triage and host-side sandboxing are both recorded as options that stay in place after the Rust modules land.</span><span data-l="zh">带活跃分诊的模糊测试和宿主侧沙箱都被记为方案，并且在 Rust 模块上线之后继续保留。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying entirely in C leaves the memory-unsafety class reachable in the 72,465 lines that interpret hostile files first.</span><span data-l="zh">完全留在 C，就是让内存不安全这一整类缺陷在最先解释恶意文件的那 72,465 行里保持可达。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏不安全面</span></b> — <span data-l="en">The report names the demux/parse surface explicitly rather than treating FFmpeg&#x27;s maturity as a substitute for safety.</span><span data-l="zh">报告明确点出 demux/parse 这块面，没有拿 FFmpeg 的成熟度当安全性的替代品。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认 Rust 侧已有战绩</span></b> — <span data-l="en">A shipped Rust container parser inside another large native media stack is cited as working evidence, not dismissed as a toy.</span><span data-l="zh">另一个大型原生媒体栈里已经上线的 Rust 容器解析器，被当作可用证据引用，没有当玩具打发掉。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The authorized scope is bounded at the demux layer with explicit acceptance thresholds, so this is neither an open-ended rewrite nor an open-ended &#x27;fuzz forever&#x27;.</span><span data-l="zh">授权范围止于 demux 层，并带明确的验收阈值：既不是没有边界的重写，也不是没有边界的「一直 fuzz 下去」。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">FFmpeg/FFmpeg at 946272b · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">FFmpeg/FFmpeg @ 946272b · 只读静态分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/FFmpeg/FFmpeg at commit 946272b, shallow clone, 10,511 tracked files. Scope: the whole repository, with the libavformat demux/parse layer as the selected component. Sampling: 1,567,523 lines of C, 260,067 of headers, 110,661 in .S and 83,617 in .asm files, for 2,021,868 lines total; libavcodec 999,497; libavformat 272,807, of which 59,433 across 142 files are demux. Module counts come from the registration tables: 368 extern const FFInputFormat demuxer declarations in libavformat/allformats.c, and 604 extern const FFCodec decoder declarations in libavcodec/allcodecs.c. Per-directory figures count .c and .h together; the 1,567,523 figure is .c only, and each lens states which. The authorized scope is 59,433 lines of libavformat demux plus 13,032 lines of libavcodec bitstream parsers, 72,465 in total across 210 files. No build, test, benchmark or network call was run against the project. Objective: eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput. User-supplied facts: none. D2 is recorded UNKNOWN, not estimated. No public profile separates time in SIMD kernels from time in C control flow, and converting the 3.6% line share into a speedup would be a method error. The full-rewrite option therefore carries no benefit interval instead of a favourable one. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/FFmpeg/FFmpeg，commit 946272b，浅克隆，10,511 个纳入版本管理的文件。范围：整个仓库，选定组件是 libavformat 的 demux/parse 层。采样：C 1,567,523 行，头文件 260,067 行，.S 文件 110,661 行，.asm 文件 83,617 行，合计 2,021,868 行；libavcodec 999,497 行；libavformat 272,807 行，其中 142 个文件、59,433 行属于 demux。模块数量取自注册表：libavformat/allformats.c 中 368 条 extern const FFInputFormat demuxer 声明，libavcodec/allcodecs.c 中 604 条 extern const FFCodec decoder 声明。按目录统计的数字把 .c 和 .h 一起计入；1,567,523 这个数字只算 .c，每个维度都会写明用的是哪一种。授权范围是 libavformat demux 的 59,433 行，加 libavcodec bitstream parser 的 13,032 行，合计 72,465 行，分布在 210 个文件中。没有对该项目执行任何构建、测试、基准或网络调用。目标：在 FFmpeg 首次解释攻击者控制的字节的地方消除内存不安全这一整类缺陷，同时不改变解码输出，也不损失 SIMD 吞吐。用户提供的事实：无。D2 记为 UNKNOWN，不做估算：没有公开剖析把 SIMD kernel 的时间与 C 控制流的时间分开，把 3.6% 的行数占比换算成加速比属于方法错误。全量重写方案因此没有收益区间，而不是拿到一个好看的区间。这是一套结构化的决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">Per-component attribution of FFmpeg&#x27;s CVE ledger</span><span data-l="zh">FFmpeg CVE 记录的按组件归因</span></td><td><span data-l="en">Format selection currently rests on structural exposure. With attribution, step 1 gets a defensible first target; without it, the first module may be the wrong one.</span><span data-l="zh">格式挑选目前靠结构性暴露面。有了归因，第 1 步就能给出站得住的首个目标；没有的话，第一个模块可能选错。</span></td></tr><tr><td><span data-l="en">Measured per-packet boundary cost at the module interface</span><span data-l="zh">模块接口上逐 packet 边界成本的实测</span></td><td><span data-l="en">If crossing cost is material, the seam is wrong even though the objective is right, and the option reverts to sandboxing plus fuzzing.</span><span data-l="zh">如果穿越成本大到要紧，接缝就是错的，哪怕目标是对的，方案会退回沙箱加模糊测试。</span></td></tr><tr><td><span data-l="en">End-to-end decode profile separating asm from C</span><span data-l="zh">把汇编和 C 分开的端到端解码剖析</span></td><td><span data-l="en">Absent this, the performance half of any full-rewrite proposal stays UNKNOWN and that option keeps an empty benefit interval.</span><span data-l="zh">没有它，任何全量重写提案里性能那一半都保持 UNKNOWN，那个方案的收益区间也一直是空的。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 946272b · no build, benchmark or network call</span><span data-l="zh">公开仓库 · 在 commit 946272b 上做静态分析 · 无构建、无基准、无网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-01",
+  "repository": {
+    "path": "https://github.com/FFmpeg/FFmpeg",
+    "commit": "946272b79a325e9bce613b260e50e4e4fe7f3159",
+    "scope": "whole repository; the libavformat demux/parse layer is the selected component",
+    "sampling": "shallow clone; 10,511 tracked files enumerated; libavcodec, libavformat, libavfilter, libavutil, libswscale, libswresample and architecture subtrees measured; FATE media fixtures not downloaded"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "Per-component attribution of FFmpeg's CVE ledger",
+      "Measured per-packet boundary cost at the module interface",
+      "End-to-end decode profile separating asm from C"
+    ]
+  },
+  "objective": {
+    "driver": "safety",
+    "requirement": "eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput",
+    "baseline": "72,465 lines of C — 59,433 across 368 demuxer modules plus 13,032 across 68 bitstream parsers — interpret hostile input first",
+    "target": "class elimination in the demux/parse layer with bit-exact output parity"
+  },
+  "decision": {
+    "authorization": "APPROVE",
+    "scope": "PARTIAL",
+    "selected_option_id": "rust-demux-partial",
+    "confidence": "MEDIUM",
+    "robustness": "CONDITIONAL",
+    "because": "Hostile bytes hit the container demux and bitstream parse layer first. That layer is 72,465 lines across 210 files, 3.6% of a 2,021,868-line tree, and it already sits behind a table-driven interface hosting 368 independent demuxer modules. Requirement and seam line up. The other 96% is excluded for one reason: 194,278 lines of it are hand-written assembly that carries the throughput and no part of the safety objective, and a rewrite inherits none of it.",
+    "change_trigger": "Conditional. Re-open if a demuxer replacement cannot reach bit-exact output parity on the FATE corpus, if the per-module boundary adds measurable decode overhead, or if no maintainer commits to the Rust modules. With this many modules, an unowned subsystem rots fast."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "rust-demux-partial",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "FFmpeg's inputs are untrusted media files by definition; the project runs a dedicated security list and publishes a CVE ledger, and states it is 'currently receiving a very large number of reports'."
+    },
+    {
+      "id": "G2",
+      "option_id": "rust-demux-partial",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "The safety delta follows from replacing manual-lifetime C at the point untrusted bytes are first interpreted; no algorithm, format or architecture change is needed to obtain it."
+    },
+    {
+      "id": "G3",
+      "option_id": "rust-demux-partial",
+      "name": "economics and smallest sufficient option",
+      "state": "PASS",
+      "evidence": "The demux/parse layer is 72,465 lines across 210 files. Extending the scope to the 999,497-line codec layer adds cost without moving the objective, and requires re-creating 194,278 lines of hand-written assembly."
+    },
+    {
+      "id": "G4",
+      "option_id": "rust-demux-partial",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "Demuxers register through the AVInputFormat/FFInputFormat struct, so a Rust module is selectable per format and removable per module; the project's own FATE suite provides bit-exact acceptance. Precedent exists: Mozilla ships a Rust MP4 metadata parser behind a C API in Firefox."
+    }
+  ],
+  "options": [
+    {
+      "id": "c-fuzz",
+      "name": "Fuzz and harden the C demuxers",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput",
+      "benefit_interval": "reduces incidence, class stays reachable",
+      "one_time_cost": "none new",
+      "recurring_cost": "existing fuzzing and triage effort",
+      "time_to_value": "already running",
+      "compatibility": "native",
+      "reversibility": "n/a",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Necessary regardless; it lowers incidence but cannot remove the class from 72,465 lines of C."
+    },
+    {
+      "id": "sandbox",
+      "name": "Sandbox the whole framework in the host",
+      "implementation": "non-rust-native",
+      "scope": "adopt",
+      "target": "eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput",
+      "benefit_interval": "contains the class rather than removing it",
+      "one_time_cost": "host-side, per application",
+      "recurring_cost": "process/IPC boundary per stream",
+      "time_to_value": "weeks",
+      "compatibility": "unchanged decode behaviour",
+      "reversibility": "remove the sandbox",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "Strong containment with no upstream change; does not eliminate the class, and every consumer pays it separately."
+    },
+    {
+      "id": "rust-demux-partial",
+      "name": "Rust demux/parse modules",
+      "implementation": "rust",
+      "scope": "partial",
+      "target": "eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput",
+      "benefit_interval": "class eliminated in the layer attacker bytes reach first",
+      "one_time_cost": "per module; highest-exposure formats first",
+      "recurring_cost": "Rust in the build; module maintainers",
+      "time_to_value": "one format",
+      "compatibility": "bit-exact output required",
+      "reversibility": "unregister the module",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "Coarse existing seam, per-module rollback, bit-exact acceptance corpus, and a shipped precedent in another large native media stack."
+    },
+    {
+      "id": "rust-full",
+      "name": "Rewrite FFmpeg in Rust",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput",
+      "benefit_interval": "no additional safety benefit over the demux layer",
+      "one_time_cost": "re-create 194,278 lines of asm and 604 decoders",
+      "recurring_cost": "two toolchains on every platform",
+      "time_to_value": "years",
+      "compatibility": "bit-exactness across 972 modules",
+      "reversibility": "none",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "Adds the entire codec and SIMD surface to a safety objective that lives in the demux layer, and no public profile exists to support the performance half of the proposal."
+    },
+    {
+      "id": "adopt-rust-media",
+      "name": "Consumers adopt Rust media crates",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "eliminate the memory-unsafety class at the point FFmpeg first interprets attacker-controlled bytes, without changing decode output or losing SIMD throughput",
+      "benefit_interval": "class removed for the formats the crate covers",
+      "one_time_cost": "per consumer",
+      "recurring_cost": "far narrower format and codec coverage",
+      "time_to_value": "days per project",
+      "compatibility": "different API and coverage",
+      "reversibility": "caller-side",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Viable for applications handling a handful of formats; no crate approaches FFmpeg's 368-demuxer, 604-decoder coverage."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-demux-partial",
+        "rust-full",
+        "adopt-rust-media"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "368 demuxer modules and 68 bitstream parsers own the first interpretation of attacker-controlled container data, in 72,465 lines of C.",
+      "source": "libavformat/*dec.c and *demux*.c (142 files) · libavcodec/*_parser.c (68 files)",
+      "baseline_regime": "static structure of the shipped framework",
+      "caveat": "Structural exposure at the entry point; the project's CVE ledger is not published with per-component attribution.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "The performance half of a full-rewrite proposal cannot be evaluated. No public FFmpeg profile gives the time share of the C that a Rust port would replace, and a line share is not a time share.",
+      "source": "no public end-to-end decode profile",
+      "baseline_regime": "n/a — the measurement is absent",
+      "caveat": "Recorded as UNKNOWN rather than estimated. The safety objective does not require this number; a performance claim would.",
+      "change_trigger": "A published decode profile separating asm kernels from C control flow would make the performance claim assessable."
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "No managed runtime or collector exists, so there is no runtime mechanism in any tail to remove.",
+      "source": "C framework, no GC",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "FFmpeg runs inside the caller's process or batch job; this decision changes no fleet density.",
+      "source": "library and CLI invocation model",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "STRONG",
+      "claim": "Transcode jobs are long-lived relative to process start; startup is not a stated constraint.",
+      "source": "no startup requirement asserted",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-demux-partial",
+        "rust-full"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The demux/parse layer interprets length fields, offsets and indices supplied by the file; replacing it in Rust removes that class by construction at the exact boundary.",
+      "source": "libavformat demuxer read_header/read_packet implementations",
+      "baseline_regime": "structural, at the trust boundary",
+      "caveat": "Logic defects, format-confusion and resource-exhaustion bugs survive the language change.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "Frame- and slice-level threading already exists in the C implementation; no option is blocked by the language on this axis.",
+      "source": "libavcodec/pthread_frame.c · pthread_slice.c",
+      "baseline_regime": "existing threading model",
+      "caveat": "A Rust module must interoperate with the existing threading contract rather than replace it.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "FFmpeg builds across an unusually wide platform and architecture matrix, including targets carried mainly by their C toolchain and per-architecture assembly.",
+      "source": "libavcodec/{x86,aarch64,arm,ppc,riscv,loongarch,mips}/ subtrees",
+      "baseline_regime": "supported architecture inventory",
+      "caveat": "One optional Rust module is a much smaller distribution change than a full rewrite.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "rust-demux-partial",
+        "adopt-rust-media"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Rust container parsers exist and one is shipped inside a major C/C++ media stack behind a C API, so the integration shape is demonstrated rather than theoretical.",
+      "source": "https://github.com/mozilla/mp4parse-rust — mp4parse plus mp4parse_capi, shipped into mozilla-central",
+      "baseline_regime": "third-party project, shipped as a pinned revision in Firefox",
+      "caveat": "It parses track metadata, not the full demux path, and covers one container family.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-demux-partial"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Demuxers register through a struct-shaped module interface, so the boundary is one registration per format with packets crossing in bulk — not a per-sample FFI call.",
+      "source": "libavformat/avformat.h:565 typedef struct AVInputFormat · 368 registered demuxers",
+      "baseline_regime": "existing internal module ABI",
+      "caveat": "Bit-exact output parity is required, and boundary cost per packet must be measured rather than assumed negligible.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-full"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "A full rewrite must re-create 194,278 lines of hand-written assembly and 604 decoder modules, none of which serve the safety objective; the per-module option prices only the formats it replaces.",
+      "source": "*.asm and *.S (420 files, 194,278 lines) · 604 registered decoders",
+      "baseline_regime": "static inventory in this commit",
+      "caveat": "Assembly could in principle be kept via FFI, which is exactly what makes the full rewrite's benefit case empty rather than merely expensive.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "c-fuzz",
+        "sandbox"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Two funded alternatives already operate: continuous fuzzing with an active triage pipeline, and host-side sandboxing by large consumers. The Rust option composes with both rather than replacing them.",
+      "source": "https://ffmpeg.org/security.html — project security process and CVE ledger",
+      "baseline_regime": "current project practice",
+      "caveat": "The security page notes a very large report volume and explicitly flags a spike in AI-generated false positives, which is triage load rather than defect evidence.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Mozilla · mp4parse-rust",
+      "outcome": "PARTIAL SHIPPED",
+      "match": "same language pair, same container-parsing boundary, C API in a large native media stack",
+      "mismatch": "track metadata only, one container family, and a browser's threat model rather than a general transcoder",
+      "workload_regime": "shipped revision in mozilla-central",
+      "source_class": "first-party · project README",
+      "url": "https://github.com/mozilla/mp4parse-rust"
+    },
+    {
+      "name": "Mozilla · Stylo",
+      "outcome": "PARTIAL SHIPPED",
+      "match": "component-scoped replacement inside a large native codebase with an existing internal interface",
+      "mismatch": "CSS styling had a parallelism benefit; this scope claims safety only",
+      "workload_regime": "shipped in Firefox 57",
+      "source_class": "first-party · engineer account",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Google · Android memory-safety program",
+      "outcome": "INCREMENTAL",
+      "match": "same requirement class and the same 'scope the replacement' conclusion",
+      "mismatch": "OS-wide programme; figures are C/C++-relative rather than component-attributed",
+      "workload_regime": "2019–2025 vulnerability share",
+      "source_class": "first-party · vendor security blog",
+      "url": "https://blog.google/security/rust-in-android-move-fast-fix-things/"
+    },
+    {
+      "name": "Mozilla · Servo as Gecko replacement",
+      "outcome": "CANCELLED",
+      "match": "the outcome the excluded full-rewrite option is heading toward at 2,021,868 lines",
+      "mismatch": "a browser engine, and Servo had a research budget FFmpeg does not",
+      "workload_regime": "2012–2020 programme outcome",
+      "source_class": "first-party · engineer account",
+      "url": "https://en.wikipedia.org/wiki/Servo_(software)"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Pick the format by exposure, not by taste",
+      "owner": "FFmpeg security contacts",
+      "cost_range": "1–2 weeks",
+      "artifact": "a ranking of container formats by attacker reachability and historical report volume, with the chosen first target named",
+      "acceptance": "the ranking is derived from the project's own CVE ledger and fuzzing findings, not from opinion",
+      "deadline_or_stop": "stop if no format shows materially higher exposure than the others — then sandboxing alone is the better answer",
+      "rollback": "documentation only"
+    },
+    {
+      "step": 2,
+      "title": "Measure the module boundary before writing the module",
+      "owner": "two engineers with C and Rust experience",
+      "cost_range": "2 weeks",
+      "artifact": "a null Rust demuxer registered through the existing struct interface, measured against its C equivalent on the same inputs",
+      "acceptance": "boundary overhead is within noise on the project's own timing methodology, with the measurement published",
+      "deadline_or_stop": "stop if per-packet crossing cost is material; the seam would then be wrong even though the objective is right",
+      "rollback": "delete the null module; nothing is registered by default"
+    },
+    {
+      "step": 3,
+      "title": "Ship one Rust demuxer behind a build flag",
+      "owner": "the Rust module maintainers",
+      "cost_range": "8–12 weeks",
+      "artifact": "a Rust implementation of the chosen format with a differential-fuzzing harness against the C demuxer, disabled by default",
+      "acceptance": "bit-exact output on the project's regression corpus, identical accept/reject decisions under differential fuzzing, and no measured decode regression",
+      "deadline_or_stop": "stop at twelve weeks if bit-exactness is unreached; publish the divergences",
+      "rollback": "unregister the module; the C demuxer remains the default for that format"
+    },
+    {
+      "step": 4,
+      "title": "Name owners before adding the second module",
+      "owner": "FFmpeg maintainers",
+      "cost_range": "ongoing",
+      "artifact": "at least two committed reviewers for the Rust subsystem and a documented policy for unowned modules",
+      "acceptance": "no Rust module is enabled by default without two people who can review and release changes to it",
+      "deadline_or_stop": "if ownership lapses, disable the Rust modules by default rather than shipping unmaintained parsers",
+      "rollback": "the C demuxers are still present and become the default again"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at the named commit represents the shipped tree; module counts come from registration-symbol matches in tracked sources.",
+    "FFmpeg's bit-exact regression corpus is available to the implementing team as the acceptance harness.",
+    "No performance requirement is attached to the selected option; if one appears, D2 must be recomputed from a real profile."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "End-to-end reach",
+        "state": "PASS",
+        "claim": "No performance benefit is claimed for the selected option, and the full-rewrite option's performance case is recorded UNKNOWN rather than estimated from line counts.",
+        "evidence": "D2 UNKNOWN"
+      },
+      {
+        "id": "M2",
+        "name": "Attribution",
+        "state": "PASS",
+        "claim": "The safety delta is attributed to the language property at the demux boundary only; no architecture or format change is credited to Rust.",
+        "evidence": "D6 record"
+      },
+      {
+        "id": "M3",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "Format selection currently rests on structural exposure, because the project's CVE ledger is not published with per-component attribution.",
+        "evidence": "D1 caveat · ffmpeg.org/security.html"
+      },
+      {
+        "id": "M4",
+        "name": "Boundary and compatibility",
+        "state": "HIT",
+        "claim": "Per-packet boundary cost has not been measured yet. The path spends two weeks on a null module before anyone writes a real one.",
+        "evidence": "D10 caveat · reversible path step 2"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The path blocks the second Rust module on two named reviewers and defines what happens if ownership lapses.",
+        "evidence": "reversible path step 4"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "Fuzzing with active triage and host-side sandboxing are both recorded as options that stay in place after the Rust modules land.",
+        "evidence": "D12 · c-fuzz, sandbox"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying entirely in C leaves the memory-unsafety class reachable in the 72,465 lines that interpret hostile files first.",
+        "evidence": "D1 · G1 PASS"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The report names the demux/parse surface explicitly rather than treating FFmpeg's maturity as a substitute for safety.",
+        "evidence": "D1 and D6 records"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "A shipped Rust container parser inside another large native media stack is cited as working evidence, not dismissed as a toy.",
+        "evidence": "D9 · github.com/mozilla/mp4parse-rust"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The authorized scope is bounded at the demux layer with explicit acceptance thresholds, so this is neither an open-ended rewrite nor an open-ended 'fuzz forever'.",
+        "evidence": "selected option scope · reversible path steps 2–3"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

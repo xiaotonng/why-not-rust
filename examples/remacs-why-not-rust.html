@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · remacs/remacs</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-stay a-reject">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">remacs/remacs</span><span>2026-08-02</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Rust · in-place port of GNU Emacs 26.2.90 · 30,133 lines of Rust against 309,205 lines of C in src/</span><span data-l="zh">Rust · GNU Emacs 26.2.90 的就地移植 · 30,133 行 Rust，对面是 src/ 里 309,205 行 C</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">STAY</div>
+      <div class="scope-sub"><span data-l="en">the experiment already ran; it ran out of people before it ran out of C</span><span data-l="zh">这个实验已经跑完了；先没的是人，不是 C</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · REJECT</div>
+      <p class="why"><span data-l="en">remacs ran this experiment to the end. Four years and four months, 268 contributors, 902 merged pull requests. What came out is 26,825 lines of converted Emacs behaviour against 309,205 lines of C still sitting in src/, and five of 126 C files retired. The wall was where the maintainers said it was: the collector and the loader are C tricks, and Rust holding Lisp objects that a C collector traces is not memory-safe. 919 unsafe sites in the ported code say the same thing.</span><span data-l="zh">remacs 把这个实验做完了。四年四个月，268 个贡献者，902 个合并的 PR。最后的产出是 26,825 行转换过的 Emacs 行为，对面还站着 src/ 里 309,205 行 C；126 个 C 文件里退役了 5 个。墙就在维护者说的那个位置：收集器和加载器是 C 的把戏，而 Rust 拿着一个由 C 收集器遍历的 Lisp 对象，谈不上内存安全。移植后的代码里有 919 处 unsafe，说的是同一件事。</span></p>
+      <p class="trigger"><span data-l="en">Stable. The in-place port reopens only if Rust gains a way to let a foreign collector trace objects the borrow checker owns. That is a language-level change, not a project decision. Nothing in the Emacs tree moves it.</span><span data-l="zh">结论稳定。就地移植要重开，前提是 Rust 能让一个外部收集器去遍历 borrow checker 所有的对象。那是语言层面的改动，不是项目层面的决定。Emacs 这棵树里没有任何东西能推动它。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">keep the C core; move the work into natively-compiled Lisp instead</span><span data-l="zh">保留 C 内核；把工作挪进原生编译的 Lisp</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>HIGH</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">native-desktop-gui · incremental in-place port of a 40-year-old C core inside a hard fork</span><span data-l="zh">原生桌面 GUI · 在硬分叉里对一套四十年历史的 C 内核做渐进式就地移植</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state unknown">UNKNOWN</span></div><div class="ev"><span data-l="en">No target was ever named. The README argues tooling and ecosystem.</span><span data-l="zh">从没定过目标。README 讲的是工具链和生态。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">A C collector traces the Lisp objects Rust holds. The compiler cannot see them.</span><span data-l="zh">Rust 手里的 Lisp 对象由 C 的收集器遍历，编译器看不见它们。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">Four years, 268 contributors, five C files retired.</span><span data-l="zh">四年，268 个贡献者，退役 5 个 C 文件。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state fail">FAIL</span></div><div class="ev"><span data-l="en">The fork could not track upstream, and the port broke on macOS.</span><span data-l="zh">分叉跟不上上游，移植又在 macOS 上坏了。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Emacs behaviour converted</span><span data-l="zh">转换过的 Emacs 行为</span></div><div class="value mono">26,825<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">30,133 lines of Rust minus 3,308 of port machinery</span><span data-l="zh">30,133 行 Rust 减去 3,308 行移植脚手架</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">C still standing in src/</span><span data-l="zh">src/ 里还立着的 C</span></div><div class="value mono">309,205<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">119 files, unchanged basis: git ls-files &#x27;src/*.c&#x27;</span><span data-l="zh">119 个文件，同一口径：git ls-files &#x27;src/*.c&#x27;</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Lisp primitives moved</span><span data-l="zh">搬走的 Lisp primitive</span></div><div class="value mono">666 of 1,414<span class="unit"><span data-l="en">47%</span><span data-l="zh">47%</span></span></div><div class="note"><span data-l="en">the project&#x27;s own scoreboard: #[lisp_fn] vs DEFUN</span><span data-l="zh">项目自己的计分板：#[lisp_fn] 对 DEFUN</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">C files the port retired</span><span data-l="zh">移植真正退役的 C 文件</span></div><div class="value mono">5 of 126<span class="unit"><span data-l="en">files</span><span data-l="zh">个</span></span></div><div class="note"><span data-l="en">four more went with MS-DOS support, not with Rust</span><span data-l="zh">另有 4 个是随 MS-DOS 支持一起走的，不是 Rust 的功劳</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">unsafe in the ported Rust</span><span data-l="zh">移植代码里的 unsafe</span></div><div class="value mono">919<span class="unit"><span data-l="en">occurrences</span><span data-l="zh">处</span></span></div><div class="note"><span data-l="en">in 66 of 75 files under rust_src/src</span><span data-l="zh">分布在 rust_src/src 的 75 个文件里的 66 个</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Elapsed before &#x27;not maintained&#x27;</span><span data-l="zh">走到「不再维护」用了</span></div><div class="value mono">4 yr 4 mo<span class="unit"><span data-l="en">2016–2021</span><span data-l="zh">2016–2021</span></span></div><div class="note"><span data-l="en">created 2016-11-22 · README notice 2021-04-07</span><span data-l="zh">2016-11-22 建库 · 2021-04-07 README 公告</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option is judged against one objective: cut the memory-unsafety and maintenance exposure of Emacs&#x27;s C core without breaking 1,507,964 lines of Emacs Lisp that depend on the observable behaviour of its primitives.</span><span data-l="zh">所有方案对着同一个目标：降低 Emacs C 内核的内存不安全与维护暴露，同时不破坏那 1,507,964 行依赖 primitive 可观测行为的 Emacs Lisp。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Keep the C core; native-compile Lisp</span><span data-l="zh">保留 C 内核，把 Lisp 原生编译</span></span><span class="source"><span data-l="en">recommended · the goal remacs wanted, reached without a fork</span><span data-l="zh">推荐 · remacs 想要的效果，不分叉也拿到了</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">shipped upstream 2022-04-03 with no fork</span><span data-l="zh">2022-04-03 已在上游发布，不需要分叉</span></td><td><span data-l="en">already paid; optional libgccjit</span><span data-l="zh">已经付过；libgccjit 可选</span></td><td><span data-l="en">shipped</span><span data-l="zh">已发布</span></td><td><span data-l="en">native · configure flag</span><span data-l="zh">原生 · configure 开关</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust behind the dynamic module ABI</span><span data-l="zh">Rust 藏在动态模块 ABI 后面</span></span><span class="source"><span data-l="en">retain · what remacs&#x27;s own README now points people to</span><span data-l="zh">保留 · remacs 自己的 README 现在指的就是这条路</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">new functionality in Rust, no core change</span><span data-l="zh">新功能用 Rust 写，内核不动</span></td><td><span data-l="en">per module; maintained outside the tree</span><span data-l="zh">按模块计；在主树之外维护</span></td><td><span data-l="en">days per module</span><span data-l="zh">每个模块数天</span></td><td><span data-l="en">stable ABI · unload the module</span><span data-l="zh">ABI 稳定 · 卸掉模块即可</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Port one leaf C file behind its existing API</span><span data-l="zh">把一个叶子 C 文件搬到 API 背后</span></span><span class="source"><span data-l="en">retain · the part of remacs that actually worked</span><span data-l="zh">保留 · remacs 里真正成立的那一部分</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">class removed in that one file; remacs proved five</span><span data-l="zh">那一个文件里缺陷类消失；remacs 已经证明了 5 个</span></td><td><span data-l="en">weeks per file; Rust in every build</span><span data-l="zh">每个文件数周；每次构建都要 Rust</span></td><td><span data-l="en">weeks</span><span data-l="zh">数周</span></td><td><span data-l="en">same symbols · keep the C behind a flag</span><span data-l="zh">符号不变 · C 用开关留着</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Port the C core to Rust in place, in a fork</span><span data-l="zh">在分叉里就地把 C 内核移植成 Rust</span></span><span class="source"><span data-l="en">exclude · the experiment ran and is documented</span><span data-l="zh">排除 · 实验跑过了，而且有记录</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">measured: 26,825 lines and 5 files in 4 yr 4 mo</span><span data-l="zh">实测：四年四个月，26,825 行、5 个文件</span></td><td><span data-l="en">4 yr 4 mo; a permanent merge tax</span><span data-l="zh">四年四个月；永久的合并税</span></td><td><span data-l="en">never reached</span><span data-l="zh">没走到</span></td><td><span data-l="en">all of elisp · C deleted, no rollback</span><span data-l="zh">整个 elisp · C 已删除，无法回滚</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Use a Rust editor instead</span><span data-l="zh">干脆换一个 Rust 写的编辑器</span></span><span class="source"><span data-l="en">retain · a user&#x27;s decision, not the project&#x27;s</span><span data-l="zh">保留 · 这是用户的决定，不是项目的决定</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">class removed for that user; no Emacs Lisp</span><span data-l="zh">对那个用户缺陷类消失；但没有 Emacs Lisp</span></td><td><span data-l="en">per user; a different ecosystem</span><span data-l="zh">按用户计；换一套生态</span></td><td><span data-l="en">days per user</span><span data-l="zh">每个用户数天</span></td><td><span data-l="en">no elisp · switch back any time</span><span data-l="zh">不兼容 elisp · 随时切回</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">These states are scoped to named options and do not add up to a score. Most of them are unusually strong for this method, because remacs is not a forecast. The experiment finished, and the maintainers wrote down what happened.</span><span data-l="zh">每条状态都绑定到具体方案，不是可以相加的分数。这里的证据强度比这套方法平常拿到的高，因为 remacs 不是预测。实验做完了，维护者也把过程写下来了。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-inplace-port</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">The README&#x27;s case for Rust is learning curve, tooling, packaging, C interop and compile-time checks. All five are developer-experience arguments. No SLO appears, no vulnerability record, no cost ceiling. Nothing here has a number to beat.</span><span data-l="zh">README 给 Rust 的理由是：学习曲线、工具链、打包、和 C 的互操作、编译期检查。这五条都是开发体验层面的论证。没有 SLO，没有漏洞记录，没有成本上限。这里没有一个可以去打的数字。</span></div><div class="source mono">README.md:82-106 &#x27;Why Rust?&#x27; section</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">Reachable end-to-end impact</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The port advanced by moving DEFUNs, so its reach is bounded by where DEFUNs live. 49 of the 119 remaining C files hold none at all, which is 77,047 lines. 82 files hold five or fewer: 123,817 lines, 40% of src/. xdisp.c is 33,281 lines and 14 primitives.</span><span data-l="zh">移植的推进方式是搬 DEFUN，所以它能碰到哪里，取决于 DEFUN 在哪里。剩下 119 个 C 文件里有 49 个一个 DEFUN 都没有，合计 77,047 行。82 个文件的 DEFUN 不超过 5 个：123,817 行，占 src/ 的 40%。xdisp.c 是 33,281 行、14 个 primitive。</span></div><div class="source mono">git ls-files &#x27;src/*.c&#x27; | xargs grep -c &#x27;^DEFUN&#x27; · line counts by wc -l</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Emacs runs a C mark-and-sweep collector. No option on the table replaces it, so collector-induced pauses are identical across all five. There is nothing to compare.</span><span data-l="zh">Emacs 跑的是 C 写的 mark-and-sweep 收集器。桌面上没有任何方案要换掉它，所以收集器引起的停顿在五个方案里完全一样，没有可比的东西。</span></div><div class="source mono">src/alloc.c · 164 staticpro GC-root registrations across src/*.c</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">机队占用</span></div><div class="tags"><span class="dir-tag neutral">N/A</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Emacs is one long-lived process on one person&#x27;s machine. There is no fleet, no per-instance cost curve, and no compute bill that a language change would move.</span><span data-l="zh">Emacs 是某个人机器上的一个常驻进程。没有机队，没有单实例成本曲线，也没有一张换语言就能压下来的算力账单。</span></div><div class="source mono">desktop application, single process</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup &amp; load shape</span><span data-l="zh">启动与加载形态</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Emacs boots by dumping a pre-loaded image, and on macOS that is src/unexmacosx.c, 1,408 lines. Rust had to be bent around it. rust_src/alloc_unexecmacosx exists only to route Rust&#x27;s global allocator through unexec_malloc, and it needs a nightly-only feature to do so.</span><span data-l="zh">Emacs 的启动方式是把预加载好的镜像 dump 出来，在 macOS 上就是 src/unexmacosx.c，1,408 行。Rust 得绕着它拧。rust_src/alloc_unexecmacosx 存在的唯一目的，就是把 Rust 的全局分配器接到 unexec_malloc 上，而这需要一个只有 nightly 才有的特性。</span></div><div class="source mono">rust_src/alloc_unexecmacosx/src/lib.rs:1 #![feature(allocator_api)] · src/unexmacosx.c</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness — the collector</span><span data-l="zh">安全与正确性：收集器</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Ported Rust holds Lisp_Objects. A C collector traces them through 164 staticpro roots the borrow checker never sees, so a live object reachable only from Rust can be freed. The contributor who found it put it plainly: the compiler will not keep you safe.</span><span data-l="zh">移植后的 Rust 手里拿着 Lisp_Object。C 的收集器通过 164 个 staticpro 根去遍历它们，而 borrow checker 从来看不到这些根，于是一个只能从 Rust 到达的活对象是会被回收的。发现这件事的贡献者说得很直白：编译器保不住你。</span></div><div class="source mono">issue #1532 (2019-08-02, open) · 919 unsafe occurrences in 66 of 75 files under rust_src/src</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness — clean seams</span><span data-l="zh">安全与正确性：干净的接缝</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-module, rust-leaf-extract</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Where the seam is clean, the benefit is real. Five C files left src/ for Rust and stayed gone: floatfns.c, marker.c, cmds.c, casetab.c, decompress.c. Their functions do not hold a Lisp object across a collection point. That is the shape that worked.</span><span data-l="zh">接缝干净的地方，收益是实的。五个 C 文件离开 src/ 换成了 Rust，而且没有回来：floatfns.c、marker.c、cmds.c、casetab.c、decompress.c。它们的函数不会跨着一次回收持有 Lisp 对象。这就是成立的那种形状。</span></div><div class="source mono">diff of git ls-files &#x27;src/*.c&#x27; against the emacs-26.2 src tree via GitHub API</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Rust&#x27;s concurrency story is the one benefit Emacs cannot spend. Elisp semantics assume a single thread of execution, and src/thread.c is cooperative by design. Issue #701, &#x27;What&#x27;s the plan for multithreading?&#x27;, was opened in March 2018 and never answered.</span><span data-l="zh">Rust 的并发这条，恰好是 Emacs 花不出去的。Elisp 的语义假定只有一条执行线，src/thread.c 本身就是协作式的。issue #701「What&#x27;s the plan for multithreading?」2018 年 3 月开的，一直没有答案。</span></div><div class="source mono">src/thread.c (1,029 lines, 15 DEFUN) · issue #701 (2018-03-25, open)</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution &amp; build</span><span data-l="zh">分发与构建</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The port could not be built on stable Rust. rust-toolchain pins nightly-2020-08-14, and the code opens 9 unstable feature gates. Every Emacs packager on every platform would have needed that exact nightly. Emacs&#x27;s own C build needs no such pin.</span><span data-l="zh">这份移植没法用 stable Rust 构建。rust-toolchain 钉的是 nightly-2020-08-14，代码里开了 9 个不稳定特性开关。每个平台上的每个 Emacs 打包者都得凑出那一个具体的 nightly。Emacs 自己的 C 构建不需要这种钉法。</span></div><div class="source mono">rust-toolchain · 9 occurrences of #![feature( across tracked .rs files</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-module, rust-leaf-extract</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The ecosystem argument held up. remacs pulled base64, flate2, md5, sha1, sha2, rand and itertools from crates.io, and those crates are what let five C files go. The pull is toward leaf functionality, which is where the wins landed.</span><span data-l="zh">生态这条论证站住了。remacs 从 crates.io 拉了 base64、flate2、md5、sha1、sha2、rand、itertools，正是这些 crate 让 5 个 C 文件走掉的。这股拉力指向叶子功能，收益也确实落在那里。</span></div><div class="source mono">rust_src/Cargo.toml.in dependency list</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">1,507,964 lines of Emacs Lisp across 1,733 files depend on how these primitives behave, docstrings included. A maintainer named the standard in 2023: &#x27;Rewriting the elisp engine is going to be fun because you need to be bug compatible.&#x27; There is no spec.</span><span data-l="zh">1,733 个文件、1,507,964 行 Emacs Lisp 依赖这些 primitive 的行为，连 docstring 都算在内。维护者 2023 年把标准说了出来：&#x27;Rewriting the elisp engine is going to be fun because you need to be bug compatible.&#x27; 而这件事没有规格书。</span></div><div class="source mono">git ls-files &#x27;*.el&#x27; | xargs wc -l · issue #1571 comment 2023-09-16</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-inplace-port</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">268 contributors and 902 merged pull requests bought 26,825 lines of converted behaviour and five retired C files. Then the merge tax closed it: &#x27;we have to update remacs for code by many more people that lands in upstream&#x27;. Merged PRs went 372, 197, 15, 0.</span><span data-l="zh">268 个贡献者、902 个合并的 PR，买到 26,825 行转换过的行为和 5 个退役的 C 文件。然后合并税把它关掉了：&#x27;we have to update remacs for code by many more people that lands in upstream&#x27;。合并 PR 数是 372、197、15、0。</span></div><div class="source mono">GitHub API: contributors, search/issues merged per year · issue #1571 comment 2020-04-12</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">对照方案</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · stay-native-comp</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">Upstream reached a version of the goal without forking anything. Emacs 28.1 shipped on 2022-04-03 with native compilation of Lisp files, one year after remacs&#x27;s README declared the port unmaintained. A contributor had predicted exactly that in the same thread.</span><span data-l="zh">上游没有分叉任何东西，就拿到了目标的一个版本。Emacs 28.1 在 2022-04-03 发布，带上了 Lisp 文件的原生编译；那是 remacs 的 README 宣布移植不再维护之后一年。同一个帖子里已经有贡献者预见到了这一点。</span></div><div class="source mono">emacs-mirror/emacs tag emacs-28.1 (2022-04-03) · etc/NEWS:21 &#x27;Emacs now optionally supports native compilation of Lisp files&#x27; · issue #1571 comment 2020-05-02</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">Two lenses are N/A. D4 fleet footprint: Emacs is one process on one desktop, so there is no fleet to price. D3 tail latency: no option changes the collector, which stays C in all five.</span><span data-l="zh">两条记为 N/A。D4 机队占用：Emacs 是一台桌面上的一个进程，没有机队可算。D3 尾延迟：五个方案都不改收集器，它在每个方案里都还是 C。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card rust"><h3><span data-l="en">The compiler cannot see the objects the collector frees</span><span data-l="zh">收集器要回收的那些对象，编译器看不见</span></h3><p><span data-l="en">A contributor opened issue #1532 in August 2019 after a crash: Rust code was holding a Lisp object that the C collector could not find, so it got freed while live. His summary was that they were back in the C world, where the compiler will not keep you safe. 164 staticpro roots sit in the C. The ported Rust carries 919 unsafe sites. This is the gate the port failed.</span><span data-l="zh">2019 年 8 月，一个贡献者在一次崩溃之后开了 issue #1532：Rust 代码持有一个 C 收集器找不到的 Lisp 对象，于是它在活着的时候被回收了。他的总结是，他们又回到了 C 的世界，编译器保不住你。164 个 staticpro 根在 C 那边。移植出来的 Rust 里有 919 处 unsafe。这就是移植没过的那道门。</span></p><span class="ref mono">issue #1532 (open) · 919 unsafe in 66 of 75 files under rust_src/src</span></div>
+<div class="card current"><h3><span data-l="en">Four years and four months bought five C files</span><span data-l="zh">四年四个月，换来 5 个 C 文件</span></h3><p><span data-l="en">Upstream Emacs 26.2 has 126 C files in src/. remacs has 119. Five of the missing ones went to Rust — floatfns, marker, cmds, casetab, decompress. Four went with MS-DOS support, which is not a Rust result. Against that, 309,205 lines of C are still in src/, and 26,825 lines of converted behaviour sit beside them.</span><span data-l="zh">上游 Emacs 26.2 的 src/ 里有 126 个 C 文件，remacs 有 119 个。少掉的里面有 5 个是去了 Rust——floatfns、marker、cmds、casetab、decompress。另外 4 个是随 MS-DOS 支持一起走的，那不算 Rust 的成果。对面，309,205 行 C 还在 src/ 里，旁边放着 26,825 行转换过的行为。</span></p><span class="ref mono">git ls-files &#x27;src/*.c&#x27; vs emacs-26.2 src tree · 119 files against 126</span></div>
+<div class="card current"><h3><span data-l="en">They ported 47% of the primitives and 8% of the code</span><span data-l="zh">primitive 搬了 47%，代码只动了 8%</span></h3><p><span data-l="en">The project kept its own scoreboard in the README: functions in Rust versus functions in C. At the final commit it reads 666 to 748, so 47% of Lisp-callable primitives had moved. The line count tells the other half of the story. Small primitives are cheap and there are many of them; xdisp.c is 33,281 lines and holds 14.</span><span data-l="zh">项目在 README 里自己记着分：Rust 里多少函数，C 里多少函数。到最后一个 commit 是 666 对 748，也就是 47% 的可被 Lisp 调用的 primitive 已经搬走了。行数讲的是故事的另一半。小 primitive 便宜，而且数量多；xdisp.c 有 33,281 行，里面装着 14 个。</span></p><span class="ref mono">666 #[lisp_fn] in rust_src/src · 748 ^DEFUN in src/*.c · README.md:243</span></div>
+<div class="card current"><h3><span data-l="en">The fork could not afford to track upstream</span><span data-l="zh">分叉养不起「跟上上游」这件事</span></h3><p><span data-l="en">In April 2020 a maintainer wrote that the project had to keep re-applying remacs on top of code landing upstream from many more people, and that the work did not pay off. Merged pull requests went 372 in 2018, 197 in 2019, 15 in 2020, none in 2021. The reboot branch meant to fix the merge problem stopped in March 2020.</span><span data-l="zh">2020 年 4 月，一位维护者写道：项目必须不断把 remacs 重新贴到上游那些由更多人合进来的代码之上，而这份工作并不划算。合并的 PR 是 2018 年 372 个、2019 年 197 个、2020 年 15 个、2021 年 0 个。为了解决合并问题而开的那个重启分支，停在 2020 年 3 月。</span></p><span class="ref mono">issue #1571 comment 2020-04-12 · GitHub API merged-PR counts per year</span></div>
+<div class="card current"><h3><span data-l="en">Deleting the C removed the rollback</span><span data-l="zh">把 C 删掉，也把回滚删掉了</span></h3><p><span data-l="en">The port replaced C files by deleting them. In April 2020, planning the reboot, a maintainer described the change of approach: instead of deleting code they would ifdef it, hoping later merges would be easier. By then the port was blocking use on current macOS and nobody could locate the cause. That branch&#x27;s last commit is 2020-03-16.</span><span data-l="zh">移植替换 C 文件的方式是删掉它们。2020 年 4 月筹划重启时，一位维护者说明了做法上的变化：不再删代码，而是用 ifdef 圈起来，希望之后的合并能轻一些。那时移植已经让当前版本的 macOS 用不了，而没有人能定位原因。那个分支最后一次提交是 2020-03-16。</span></p><span class="ref mono">issue #1571 comments 2020-04-27 · branch reset-to-emacs-27, last commit 2020-03-16</span></div>
+<div class="card current"><h3><span data-l="en">The successor kept the C on purpose</span><span data-l="zh">接班的项目是故意把 C 留下的</span></h3><p><span data-l="en">remacs&#x27;s README now points readers to emacs-ng, and says what changed: that fork is not about replacing the C code base, but about adding features using Rust&#x27;s ecosystem. emacs-ng was created on 2020-08-23, six days after remacs&#x27;s last code commit. It is still being pushed to in 2026.</span><span data-l="zh">remacs 的 README 现在把读者指向 emacs-ng，并且说清了差别：那个分叉不是要替换 C 代码库，而是用 Rust 的生态去加功能。emacs-ng 建于 2020-08-23，比 remacs 最后一次代码提交晚六天。到 2026 年它还在被推送。</span></p><span class="ref mono">README.md:3 · GitHub API repos/emacs-ng/emacs-ng created_at, pushed_at</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">Leaf files, permanently</span><span data-l="zh">叶子文件，一去不回</span></b> — <span data-l="en">five C files left src/ and did not come back, because their functions never hold a Lisp object across a collection point.</span><span data-l="zh">五个 C 文件离开了 src/ 并且没有回来，因为它们的函数不会跨着一次回收持有 Lisp 对象。</span></li><li><b><span data-l="en">Crates that replace C outright</span><span data-l="zh">能整块替掉 C 的 crate</span></b> — <span data-l="en">base64, flate2, md5, sha1, sha2 did the work that made those deletions possible. The packaging argument in the README was correct.</span><span data-l="zh">base64、flate2、md5、sha1、sha2 干的活让那些删除成为可能。README 里关于打包的那条论证是对的。</span></li><li><b><span data-l="en">A demonstration worth having</span><span data-l="zh">一次值得做的示范</span></b> — <span data-l="en">a maintainer&#x27;s own framing: as a proof-of-concept that such a replacement is possible, he called it a wild success. The report takes that at face value.</span><span data-l="zh">维护者自己的说法：作为「这种替换是可能的」这一点的概念验证，他称之为 wild success。报告照原样接受这个说法。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Memory safety inside a C-collected heap</span><span data-l="zh">在 C 回收的堆里拿内存安全</span></b> — <span data-l="en">Rust holding a Lisp_Object that 164 staticpro roots and a C mark-and-sweep collector manage is not protected by the borrow checker.</span><span data-l="zh">Rust 手里那个由 164 个 staticpro 根和一个 C mark-and-sweep 收集器管理的 Lisp_Object，borrow checker 保护不了。</span></li><li><b><span data-l="en">The display engine, the collector, the loader</span><span data-l="zh">显示引擎、收集器、加载器</span></b> — <span data-l="en">49 of the 119 remaining C files hold no primitive at all — 77,047 lines the DEFUN-porting method cannot reach.</span><span data-l="zh">剩下 119 个 C 文件里有 49 个一个 primitive 都没有——77,047 行，搬 DEFUN 这套方法碰不到。</span></li><li><b><span data-l="en">Escape from bug-for-bug compatibility</span><span data-l="zh">从「连 bug 一起兼容」里脱身</span></b> — <span data-l="en">1,507,964 lines of Emacs Lisp depend on observed primitive behaviour, and no specification of that behaviour exists to build against.</span><span data-l="zh">1,507,964 行 Emacs Lisp 依赖 primitive 被观察到的行为，而没有一份关于这些行为的规格书可以照着实现。</span></li><li><b><span data-l="en">Freedom from the merge tax</span><span data-l="zh">从合并税里解脱</span></b> — <span data-l="en">a fork of a live project pays for every upstream commit forever, in a currency the fork does not mint.</span><span data-l="zh">分叉一个活着的项目，就要为上游的每一次提交永久付费，而付的这种货币分叉自己造不出来。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Mozilla · Servo as a Gecko replacement</h3><span class="outcome">NEVER SHIPPED</span></div><p><span data-l="en">Holley put the arithmetic on record: a full Gecko replacement &#x27;would probably require thousands of engineer-years&#x27; while Mozilla &#x27;could only afford a handful of heads&#x27;. In August 2020 the Servo team was laid off. The components shipped; the replacement never did.</span><span data-l="zh">Holley 把账算在了纸面上：完整替换 Gecko &#x27;would probably require thousands of engineer-years&#x27;，而 Mozilla &#x27;could only afford a handful of heads&#x27;。2020 年 8 月，Servo 团队被裁。组件发布了，整体替换没有。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">whole-core replacement of a large C/C++ desktop codebase, with funding far below the scope; the same month remacs&#x27;s work stopped</span><span data-l="zh">对一个大型 C/C++ 桌面代码库做整体内核替换，投入远低于范围；停下来的月份和 remacs 相同</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a funded corporate team with a greenfield engine, not volunteers porting in place inside a fork</span><span data-l="zh">那是有预算的公司团队在做全新引擎，不是志愿者在分叉里就地移植</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Mozilla · Stylo</h3><span class="outcome">SHIPPED</span></div><p><span data-l="en">The same organisation, the same codebase, one subsystem: the CSS style system landed in Firefox 57 in about two years, with two engineers at the start. Holley&#x27;s line is the lesson remacs&#x27;s five retired files also teach — almost everything successful is incremental in one way or another.</span><span data-l="zh">同一个组织、同一个代码库、只做一个子系统：CSS 样式系统大约两年就进了 Firefox 57，起步时两个工程师。Holley 那句话，正是 remacs 那 5 个退役文件也在讲的事——成功的东西几乎都是以某种方式渐进来的。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the extraction-versus-replacement pair inside one codebase, which is exactly the split between remacs&#x27;s five files and its 309,205 remaining lines</span><span data-l="zh">同一个代码库里「抽取」对「替换」的那一组对照，正好对应 remacs 的 5 个文件和剩下的 309,205 行</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a seam with a parallelism payoff and no foreign garbage collector tracing Rust&#x27;s objects</span><span data-l="zh">那条接缝有并行化的回报，也没有一个外部 GC 去遍历 Rust 的对象</span></div><a class="ref mono" href="https://bholley.net/blog/2017/stylo.html">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>curl · the hyper backend</h3><span class="outcome">ABANDONED</span></div><p><span data-l="en">Four years, ISRG funding, near-complete test parity, then removal. Stenberg&#x27;s reason was people: &#x27;There simply were no users asking for it and there were almost no developers interested or knowledgeable enough to work on it.&#x27; The rustls and quiche backends survived, because they hooked in more cleanly.</span><span data-l="zh">四年、ISRG 资助、测试基本全过，然后被删掉。Stenberg 给的原因是人：&#x27;There simply were no users asking for it and there were almost no developers interested or knowledgeable enough to work on it.&#x27; rustls 和 quiche 那两个后端活下来了，因为它们接得更干净。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a technically sound C-to-Rust safety migration that died on staffing at high completion, with the cleaner-seam Rust work surviving alongside it</span><span data-l="zh">一次技术上站得住的 C 到 Rust 安全迁移，在完成度很高的时候死在人力上，而接缝更干净的那部分 Rust 工作活了下来</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">one backend of a library with a stable API, not a fork tracking a live upstream editor</span><span data-l="zh">那是一个 API 稳定的库的一个后端，不是一个要追着活的上游编辑器跑的分叉</span></div><a class="ref mono" href="https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/">first-party · maintainer blog</a></article>
+<article class="precedent"><div class="top"><h3>emacs-ng</h3><span class="outcome">ALIVE</span></div><p><span data-l="en">Created 2020-08-23, six days after remacs&#x27;s last code commit, and still receiving pushes in 2026. remacs&#x27;s own README explains the difference: this fork is not about replacing the C code base, but about adding features with Rust&#x27;s ecosystem. Same community, smaller claim, longer life.</span><span data-l="zh">建于 2020-08-23，比 remacs 最后一次代码提交晚六天，到 2026 年还在收到推送。remacs 自己的 README 解释了差别：这个分叉不是要替换 C 代码库，而是用 Rust 的生态加功能。同一个社区，更小的主张，更长的寿命。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the same codebase, the same language, the same contributor pool — the only variable changed is the size of the claim</span><span data-l="zh">同一个代码库、同一门语言、同一批贡献者——唯一变的变量是主张的大小</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">its Rust is additive rather than a replacement, so it is not evidence about porting the C core at all</span><span data-l="zh">它的 Rust 是加法而不是替换，所以它完全不构成关于「移植 C 内核」的证据</span></div><a class="ref mono" href="https://github.com/emacs-ng/emacs-ng">repository metadata</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Write down what you are fixing</span><span data-l="zh">先写清楚你要修的是什么</span></h3><p><span data-l="en">Anyone proposing this again states the requirement with a number before writing Rust. A CVE class and its count, a startup budget in milliseconds, a maintenance cost in reviewer-hours. remacs skipped this step, and four years later its own thread could not agree on whether the project had succeeded. If no threshold can be written, stop here. Nothing has been built, so there is nothing to undo.</span><span data-l="zh">谁要再提这件事，先把需求连数字一起写出来，再动 Rust。一个 CVE 类别和它的数量，一份以毫秒计的启动预算，一笔以评审工时计的维护成本。remacs 跳过了这一步，四年之后自己的帖子里都没能就「项目算不算成功」达成一致。如果写不出阈值，就停在这里。什么都还没造，也就没有什么要撤。</span></p></div><span class="cost"><span data-l="en">1 week</span><span data-l="zh">1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Ship it as a module first</span><span data-l="zh">先做成模块发出去</span></h3><p><span data-l="en">Build the thing as a dynamic module against src/emacs-module.h.in and give it to users. No fork, no toolchain imposed on distributors, no merge tax. The step passes when real people run it on Linux and macOS for a release cycle. If the module ABI cannot express what you need, you have learned the seam is wrong before spending four years on it. Rolling back is deleting a shared library.</span><span data-l="zh">对着 src/emacs-module.h.in 做成动态模块，发给用户用。不分叉，不给发行版强加工具链，没有合并税。通过标准是：有真人在 Linux 和 macOS 上跑满一个发布周期。如果模块 ABI 表达不了你要的东西，那你在花掉四年之前就已经知道接缝选错了。回滚就是删掉一个共享库。</span></p></div><span class="cost"><span data-l="en">2-6 weeks</span><span data-l="zh">2–6 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">If you must touch the core, take one leaf file and keep the C</span><span data-l="zh">非要动内核，就挑一个叶子文件，并且把 C 留着</span></h3><p><span data-l="en">Pick a C file whose functions never hold a Lisp object across a collection point — the shape of floatfns.c and marker.c, which remacs retired and never regretted. Port it behind the same symbols and the same docstrings. Keep the C compiled under a build flag instead of deleting it, which is the correction remacs&#x27;s own maintainers reached for on the reboot. Acceptance is byte-identical behaviour on the existing test suite.</span><span data-l="zh">挑一个 C 文件，它的函数不会跨着一次回收持有 Lisp 对象——就是 floatfns.c 和 marker.c 那种形状，remacs 把它们退役之后从没后悔过。用同样的符号、同样的 docstring 把它移过去。C 用构建开关留着继续编，不要删掉，这正是 remacs 维护者在重启时想做的修正。通过标准是：在现有测试套件上行为逐字节一致。</span></p></div><span class="cost"><span data-l="en">4-8 weeks per file</span><span data-l="zh">每个文件 4–8 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Leave the collector alone until Rust can see it</span><span data-l="zh">在 Rust 能看见收集器之前，别碰它</span></h3><p><span data-l="en">The allocator, the collector, the loader and the display engine stay in C. Issue #1532 is open and its answer is not in this repository — Rust would need a way to let a foreign collector trace objects the borrow checker owns. Until that exists, porting these subsystems produces unsafe Rust with worse tooling than the C it replaced. Revisit when the language changes, not when enthusiasm returns.</span><span data-l="zh">分配器、收集器、加载器、显示引擎，留在 C 里。issue #1532 还开着，而答案不在这个仓库里——Rust 需要一种办法，让外部收集器去遍历 borrow checker 所有的对象。在那之前，把这些子系统移过去，得到的是一堆 unsafe 的 Rust，工具链还不如它替掉的 C。等语言变了再回来看，不是等热情回来。</span></p></div><span class="cost"><span data-l="en">blocked</span><span data-l="zh">阻塞中</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The safety benefit was attributed to Rust without checking whether it survives inside a C-managed heap. It does not. The project found this out in year three.</span><span data-l="zh">安全收益被归给了 Rust，但没有人先检查它在一个由 C 管理的堆里还成不成立。不成立。项目是在第三年才发现的。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></b> — <span data-l="en">Porting DEFUNs cannot reach code that has none. 49 of 119 remaining C files hold zero primitives, which is 77,047 lines.</span><span data-l="zh">搬 DEFUN 碰不到没有 DEFUN 的代码。剩下 119 个 C 文件里 49 个一个 primitive 都没有，合计 77,047 行。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被漏算的成本</span></b> — <span data-l="en">The merge tax was never priced. A fork of a live project pays for every upstream commit, and that bill closed the project.</span><span data-l="zh">合并税从来没有被计入。分叉一个活着的项目，要为上游的每一次提交付账，而这张账单把项目关掉了。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Ownership</span><span data-l="zh">归属</span></b> — <span data-l="en">268 contributors is a large volunteer pool and it was still not enough. The remaining work needed paid specialists on the collector and the bytecode interpreter.</span><span data-l="zh">268 个贡献者已经是很大的志愿者池，依然不够。剩下的活需要在收集器和字节码解释器上有全职投入的专家。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Reversibility</span><span data-l="zh">可逆性</span></b> — <span data-l="en">Ported C was deleted rather than gated, so there was no way back. The reboot branch tried ifdefs instead and stopped after five months.</span><span data-l="zh">移植掉的 C 是被删除而不是被开关圈起来的，所以没有退路。重启分支改用 ifdef，五个月后停了。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有人投入的对照方案</span></b> — <span data-l="en">Native compilation of Lisp shipped in Emacs 28.1 on 2022-04-03, without a fork. The in-stack route was not hypothetical.</span><span data-l="zh">Lisp 的原生编译在 2022-04-03 随 Emacs 28.1 发布，没有分叉。栈内这条路不是假想。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying leaves 309,205 lines of C parsing files, images and TLS streams. That exposure is real and this report does not treat Emacs&#x27;s age as safety.</span><span data-l="zh">不动，就是让 309,205 行 C 继续去解析文件、图像和 TLS 流。这个暴露面是实的，报告没有把 Emacs 的年纪当成安全。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏的不安全面</span></b> — <span data-l="en">The 51 primitives still in Objective-C under src/*.m, 21,340 lines of macOS GUI, are disclosed. The port never touched them.</span><span data-l="zh">src/*.m 里还剩 51 个 primitive、21,340 行 macOS GUI 代码，报告把它披露出来了。移植从没碰过它们。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The report credits what Rust delivered: five C files gone for good, and crates that made the deletions possible. The extraction and module options stay retained.</span><span data-l="zh">报告认下了 Rust 交付的东西：5 个 C 文件彻底走掉，以及让这些删除成为可能的那些 crate。抽取和模块两个方案继续保留。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Stop condition</span><span data-l="zh">停止条件</span></b> — <span data-l="en">The recommendation names the exact trigger that reopens the in-place port, and it is a Rust language capability rather than a change of mind.</span><span data-l="zh">推荐里点明了让就地移植重开的确切触发条件，那是 Rust 语言层面的能力，不是谁改主意。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">remacs/remacs at a684a4c · static read-only analysis + GitHub API history · why-not-rust method 2.0</span><span data-l="zh">remacs/remacs @ a684a4c · 静态只读分析 + GitHub API 历史 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/remacs/remacs at commit a684a4c282f98fbe21df551030f1859f52f3ac6d, dated 2021-04-07, shallow clone, 3,847 tracked files. The fork&#x27;s base is GNU Emacs 26.2.90 per configure.ac. Scope: the C core in src/ is the assessed target; rust_src/ is treated as the completed trial of the proposal. Sampling and counting basis: 88 tracked .rs files hold 30,133 lines. Of those, 3,308 lines across 15 files are port machinery — remacs-macros, remacs-bindings, remacs-util, remacs-lib/docfile.rs and lib.rs, build.rs, and inside rust_src/src the files remacs_sys.rs, lib.rs, ffi.rs, functions.rs, eval_macros.rs, vector_macros.rs and lisp.rs, plus alloc_unexecmacosx and lib-src/hashdir. The remaining 26,825 lines are converted Emacs behaviour. Against that, src/*.c is 309,205 lines across 119 files and src/*.h is 36,970 across 75. Every Rust-versus-C comparison here uses tracked-file wc -l on both sides, never a whole-tree total against a subtree. Rust is 1.5% of the 1,997,194 code-extension lines in the tree, counting .rs .c .h .el .m .java .py .sh; that percentage is reported with its denominator because it is easy to misread. Primitives: 666 #[lisp_fn] attributes in rust_src/src against 748 line-initial DEFUN in src/*.c, so 47% of Lisp-callable primitives had moved. Two DEFUN-shaped strings were excluded after inspection: one inside a comment block in alloc.c and one commented out in xml.c. Nine #[lisp_fn] matches in build.rs, docfile.rs and attributes.rs are tooling that scans for the attribute, not primitives, and are excluded. A further 51 primitives remain in Objective-C under src/*.m. Boundary cost: 919 unsafe occurrences, counted with grep -o rather than grep -c, across 66 of the 75 files in rust_src/src; 164 staticpro GC-root registrations in src/*.c; 9 unstable feature gates and a rust-toolchain pinned to nightly-2020-08-14. The generated/ directory holding bindgen output is gitignored, so the full FFI surface could not be measured and is recorded as a gap. File retirements were established by diffing git ls-files &#x27;src/*.c&#x27; against the emacs-26.2 src tree fetched from the GitHub API: 126 files upstream, 119 here, of which five went to Rust and four went with dropped MS-DOS support. History facts — created 2016-11-22, merged pull requests of 318, 372, 197, 15 and 0 across 2017 to 2021, 902 merged in total, 268 contributors, last code commit 2020-08-17, README notice 2021-04-07, reset-to-emacs-27 last touched 2020-03-16 — come from the GitHub API, because the shallow clone makes git log unusable and the fork carries all of GNU Emacs&#x27;s own commit history, which would contaminate any local per-year count. Maintainer statements are quoted from issues #1532 and #1571 with dates. Objective: no RFC was supplied and the project never stated a threshold, so D1 and G1 are recorded UNKNOWN rather than filled in. User-supplied facts: none. No Amdahl calculation appears, because the proposal stated no performance objective and converting a line share into a time share is a method error. The decision turns on G2, G3 and G4, all FAIL on measured facts and first-party maintainer statements, which is why the result is REJECT rather than DEFER-MEASURE despite G1 being UNKNOWN. Confidence is HIGH because this is an outcome rather than a forecast. No build, test, benchmark or network call was made against the project itself. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/remacs/remacs，commit a684a4c282f98fbe21df551030f1859f52f3ac6d，日期 2021-04-07，shallow clone，3,847 个纳管文件。按 configure.ac，分叉基线是 GNU Emacs 26.2.90。范围：评估对象是 src/ 里的 C 内核，rust_src/ 被当作这个提案已经跑完的试验。采样与计数口径：88 个纳管 .rs 文件共 30,133 行。其中 15 个文件、3,308 行是移植脚手架——remacs-macros、remacs-bindings、remacs-util、remacs-lib/docfile.rs 和 lib.rs、build.rs，以及 rust_src/src 里的 remacs_sys.rs、lib.rs、ffi.rs、functions.rs、eval_macros.rs、vector_macros.rs、lisp.rs，再加 alloc_unexecmacosx 和 lib-src/hashdir。剩下 26,825 行是转换过的 Emacs 行为。对面，src/*.c 是 119 个文件 309,205 行，src/*.h 是 75 个文件 36,970 行。本报告里所有 Rust 对 C 的比较，两边都用纳管文件的 wc -l，不拿整棵树的总数去比一个子树。Rust 占全树 1,997,194 行代码扩展名（.rs .c .h .el .m .java .py .sh）的 1.5%；这个百分比连分母一起给出，因为它很容易被读错。Primitive：rust_src/src 里 666 个 #[lisp_fn]，对 src/*.c 里行首的 748 个 DEFUN，也就是 47% 的可被 Lisp 调用的 primitive 已经搬走。有两处形似 DEFUN 的字符串在人工检查后排除：一处在 alloc.c 的注释块里，一处在 xml.c 里被注释掉。build.rs、docfile.rs、attributes.rs 里另有 9 处 #[lisp_fn] 匹配，那是扫描这个属性的工具代码，不是 primitive，已排除。src/*.m 里还有 51 个 primitive 停在 Objective-C。边界成本：919 处 unsafe，用 grep -o 计数而不是 grep -c，分布在 rust_src/src 的 75 个文件里的 66 个；src/*.c 里 164 处 staticpro GC 根注册；9 个不稳定特性开关，rust-toolchain 钉在 nightly-2020-08-14。放 bindgen 产物的 generated/ 目录被 gitignore 掉了，完整的 FFI 面量不出来，作为证据缺口记录在案。文件退役是用 git ls-files &#x27;src/*.c&#x27; 和 GitHub API 取回的 emacs-26.2 src 树做 diff 得到的：上游 126 个文件，这里 119 个，其中 5 个去了 Rust，4 个随 MS-DOS 支持一起走。历史数据——2016-11-22 建库，2017 到 2021 年合并 PR 分别为 318、372、197、15、0，累计 902，268 个贡献者，最后一次代码提交 2020-08-17，README 公告 2021-04-07，reset-to-emacs-27 最后一次改动 2020-03-16——都来自 GitHub API，因为 shallow clone 让 git log 用不了，而且这个分叉带着 GNU Emacs 自己全部的提交历史，本地按年统计会被污染。维护者的原话引自 issue #1532 和 #1571，都带日期。目标：没有人给出 RFC，项目自己也从未定过阈值，所以 D1 和 G1 记为 UNKNOWN，不去替它填。用户提供的事实：无。本报告没有 Amdahl 计算，因为提案没有提出性能目标，而把行数占比换算成时间占比是方法错误。决策落在 G2、G3、G4 上，这三道门都在实测事实和第一方维护者陈述上失败，所以结论是 REJECT 而不是 DEFER-MEASURE，尽管 G1 是 UNKNOWN。置信度 HIGH，因为这是一个已经发生的结果，不是预测。没有对项目本身做过任何构建、测试、基准或网络调用。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A build of remacs at this commit on current hardware</span><span data-l="zh">在当前硬件上构建这个 commit 的 remacs</span></td><td><span data-l="en">No build, test or benchmark was run. Every claim here is static structure, maintainer statement, or repository metadata. A working build would settle whether the macOS breakage is the collector problem or something else.</span><span data-l="zh">没有做过任何构建、测试或基准。这里的每条主张要么是静态结构，要么是维护者的陈述，要么是仓库元数据。一个能跑起来的构建能确定 macOS 上的问题是收集器那件事还是别的。</span></td></tr><tr><td><span data-l="en">The size of the generated FFI surface</span><span data-l="zh">生成出来的 FFI 面到底多大</span></td><td><span data-l="en">rust_src/.gitignore excludes generated/, so the bindgen output that remacs_sys.rs includes is not in the checkout. The interop surface is therefore larger than the 170 lines that are visible, by an amount this report cannot state.</span><span data-l="zh">rust_src/.gitignore 把 generated/ 排除在外，所以 remacs_sys.rs 里 include 进来的 bindgen 产物不在检出目录里。互操作面因此比看得见的那 170 行更大，大多少，本报告说不出来。</span></td></tr><tr><td><span data-l="en">A root-cause classification of Emacs&#x27;s own advisory history</span><span data-l="zh">对 Emacs 自身安全公告做根因分类</span></td><td><span data-l="en">This would turn D1 from UNKNOWN into a stated requirement, and it would tell the leaf-extraction option which files to aim at first.</span><span data-l="zh">这能把 D1 从 UNKNOWN 变成一条写明的需求，也能告诉叶子抽取方案该先打哪几个文件。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit a684a4c · history via GitHub API · no build, benchmark or network call against the project</span><span data-l="zh">公开仓库 · 在 commit a684a4c 上做静态分析 · 历史数据来自 GitHub API · 没有对项目做构建、基准或网络调用</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-02",
+  "repository": {
+    "path": "https://github.com/remacs/remacs",
+    "commit": "a684a4c282f98fbe21df551030f1859f52f3ac6d",
+    "scope": "the whole fork; the C core in src/ is the assessed target and rust_src/ is the completed experiment",
+    "sampling": "shallow clone, 3,847 tracked files enumerated; rust_src/, src/, lisp/ measured; history, contributor, pull-request and successor facts taken from the GitHub API because --depth 1 leaves git log unusable; no build, test or benchmark was run"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A build of remacs at this commit on current hardware",
+      "The size of the generated FFI surface",
+      "A root-cause classification of Emacs's own advisory history"
+    ]
+  },
+  "objective": {
+    "driver": "maintainability and latent memory safety of a 40-year-old C core",
+    "requirement": "reduce the memory-unsafety and maintenance exposure of Emacs's C core without breaking the 1,507,964 lines of Emacs Lisp that depend on its primitives",
+    "baseline": "309,205 lines of C across 119 files in src/, plus 36,970 lines of headers; no stated threshold anywhere in the project",
+    "target": "never stated by the project; the README argues tooling, ecosystem and contributor experience"
+  },
+  "decision": {
+    "authorization": "REJECT",
+    "scope": "STAY",
+    "selected_option_id": "stay-native-comp",
+    "confidence": "HIGH",
+    "robustness": "STABLE",
+    "because": "remacs ran this experiment to the end. Four years and four months, 268 contributors, 902 merged pull requests. What came out is 26,825 lines of converted Emacs behaviour against 309,205 lines of C still sitting in src/, and five of 126 C files retired. The wall was where the maintainers said it was: the collector and the loader are C tricks, and Rust holding Lisp objects that a C collector traces is not memory-safe. 919 unsafe sites in the ported code say the same thing.",
+    "change_trigger": "Stable. The in-place port reopens only if Rust gains a way to let a foreign collector trace objects the borrow checker owns. That is a language-level change, not a project decision. Nothing in the Emacs tree moves it."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "stay-native-comp",
+      "name": "requirement",
+      "state": "UNKNOWN",
+      "evidence": "README.md:82-106 'Why Rust?' lists learning curve, tooling, packaging, C interop and compile-time checks. No SLO, no memory-safety incident record, no cost figure, no threshold. A latent safety requirement does exist at the C trust boundary, but remacs never stated it and G2 shows the port could not deliver it."
+    },
+    {
+      "id": "G2",
+      "option_id": "stay-native-comp",
+      "name": "rust-specific causality",
+      "state": "FAIL",
+      "evidence": "Issue #1532, opened by a contributor 2019-08-02: 'we're back to the C world of \"If you don't want memory corruption you have to be really careful, the compiler won't keep you safe\"'. 164 staticpro GC-root registrations live in src/*.c; the ported Rust carries 919 unsafe occurrences across 66 of its 75 files. The mechanism Rust is bought for does not survive inside a C-managed heap."
+    },
+    {
+      "id": "G3",
+      "option_id": "stay-native-comp",
+      "name": "economics and smallest sufficient option",
+      "state": "FAIL",
+      "evidence": "26,825 lines of converted behaviour after 902 merged pull requests, against 309,205 lines of C still in src/*.c. Upstream Emacs reached a comparable goal without a fork: 28.1 shipped native compilation of Lisp on 2022-04-03. Two smaller Rust options meet more of the objective at a fraction of the cost: the dynamic module ABI, and single leaf-file extraction."
+    },
+    {
+      "id": "G4",
+      "option_id": "stay-native-comp",
+      "name": "delivery and reversibility",
+      "state": "FAIL",
+      "evidence": "Maintainer, issue #1571 2020-04-12: 'we have to update remacs for code by many more people that lands in upstream' and 'It's work that doesn't really pay off'. Another, 2020-04-27: 'We have a mix up in our port blocking usage on current MacOS... It has proven hard to identify exactly what is wrong.' The ported C was deleted rather than gated, so there was no rollback; the reboot branch that tried ifdefs instead stopped on 2020-03-16."
+    }
+  ],
+  "options": [
+    {
+      "id": "stay-native-comp",
+      "name": "Keep the C core; native-compile Lisp",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "reduce the memory-unsafety and maintenance exposure of Emacs's C core without breaking the 1,507,964 lines of Emacs Lisp that depend on its primitives",
+      "benefit_interval": "shipped upstream 2022-04-03 with no fork",
+      "one_time_cost": "already paid upstream",
+      "recurring_cost": "libgccjit as an optional build dependency",
+      "time_to_value": "shipped",
+      "compatibility": "native",
+      "reversibility": "build flag",
+      "evidence_strength": "STRONG",
+      "disposition": "selected",
+      "reason": "Emacs 28.1 (2022-04-03) added native compilation of Lisp files, which moves performance-sensitive work out of C into compiled Lisp. It reduces C's role without a fork, without a second toolchain, and without touching primitive semantics."
+    },
+    {
+      "id": "rust-module",
+      "name": "Rust behind the dynamic module ABI",
+      "implementation": "rust",
+      "scope": "adopt",
+      "target": "reduce the memory-unsafety and maintenance exposure of Emacs's C core without breaking the 1,507,964 lines of Emacs Lisp that depend on its primitives",
+      "benefit_interval": "new functionality in Rust, no core change",
+      "one_time_cost": "per module",
+      "recurring_cost": "module maintained outside the Emacs tree",
+      "time_to_value": "days per module",
+      "compatibility": "the published module ABI",
+      "reversibility": "delete the .so",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "src/emacs-module.c (1,274 lines) and src/emacs-module.h.in already expose a supported ABI, enabled by default wherever dlopen exists. It adds Rust without a fork, which is the shape the successor project chose."
+    },
+    {
+      "id": "rust-leaf-extract",
+      "name": "Port one leaf C file behind its existing API",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "reduce the memory-unsafety and maintenance exposure of Emacs's C core without breaking the 1,507,964 lines of Emacs Lisp that depend on its primitives",
+      "benefit_interval": "class removed in that one file; remacs proved five",
+      "one_time_cost": "weeks per file plus a parity harness",
+      "recurring_cost": "a Rust toolchain in every Emacs build",
+      "time_to_value": "weeks",
+      "compatibility": "same C symbols, same docstrings",
+      "reversibility": "build flag, if the C is kept",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "floatfns.c, marker.c, cmds.c, casetab.c and decompress.c are gone from src/ and live in Rust. The method works on files whose functions do not hold a Lisp object across a collection point. It does not scale to the collector or the loader."
+    },
+    {
+      "id": "rust-inplace-port",
+      "name": "Port the C core to Rust in place, in a fork",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "reduce the memory-unsafety and maintenance exposure of Emacs's C core without breaking the 1,507,964 lines of Emacs Lisp that depend on its primitives",
+      "benefit_interval": "measured: 26,825 lines and 5 files in 4 yr 4 mo",
+      "one_time_cost": "268 contributors, 902 merged PRs, 4 yr 4 mo",
+      "recurring_cost": "tracking every upstream Emacs commit forever",
+      "time_to_value": "never reached",
+      "compatibility": "1,507,964 lines of Emacs Lisp, bug-for-bug",
+      "reversibility": "none",
+      "evidence_strength": "STRONG",
+      "disposition": "exclude",
+      "reason": "This is the assessed proposal, and remacs is its completed trial. It fails G2 on the collector, G3 on four years of output, and G4 on the merge tax and a macOS breakage nobody could locate."
+    },
+    {
+      "id": "adopt-rust-editor",
+      "name": "Use a Rust editor instead",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "reduce the memory-unsafety and maintenance exposure of Emacs's C core without breaking the 1,507,964 lines of Emacs Lisp that depend on its primitives",
+      "benefit_interval": "class removed for that user; no Emacs Lisp",
+      "one_time_cost": "per user, relearning",
+      "recurring_cost": "a different package ecosystem",
+      "time_to_value": "days per user",
+      "compatibility": "none with elisp",
+      "reversibility": "switch back",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Meets a single user's safety and performance preferences immediately. It abandons 1,507,964 lines of Emacs Lisp, so it answers a different question than the one the project faces."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "The README's case for Rust is learning curve, tooling, packaging, C interop and compile-time checks. All five are developer-experience arguments. No SLO appears, no vulnerability record, no cost ceiling. Nothing here has a number to beat.",
+      "source": "README.md:82-106 'Why Rust?' section",
+      "baseline_regime": "stated project rationale, not a measurement",
+      "caveat": "A latent safety requirement does exist: Emacs parses untrusted files, images and TLS streams in C. remacs never named it as the driver, and D6 shows the in-place port could not deliver it.",
+      "change_trigger": "The requirement becomes assessable once a threshold is stated: a CVE class count, a startup budget, or a maintenance cost."
+    },
+    {
+      "id": "D2",
+      "name": "Reachable end-to-end impact",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The port advanced by moving DEFUNs, so its reach is bounded by where DEFUNs live. 49 of the 119 remaining C files hold none at all, which is 77,047 lines. 82 files hold five or fewer: 123,817 lines, 40% of src/. xdisp.c is 33,281 lines and 14 primitives.",
+      "source": "git ls-files 'src/*.c' | xargs grep -c '^DEFUN' · line counts by wc -l",
+      "baseline_regime": "static structure at commit a684a4c",
+      "caveat": "This is a line share, not a time share, and it is not converted into one. No Amdahl figure appears in this report because the proposal never stated a performance objective.",
+      "change_trigger": "A porting method that reached non-DEFUN machinery would change this bound. Nobody has proposed one."
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "MODERATE",
+      "claim": "Emacs runs a C mark-and-sweep collector. No option on the table replaces it, so collector-induced pauses are identical across all five. There is nothing to compare.",
+      "source": "src/alloc.c · 164 staticpro GC-root registrations across src/*.c",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [],
+      "state": "N/A",
+      "strength": "MODERATE",
+      "claim": "Emacs is one long-lived process on one person's machine. There is no fleet, no per-instance cost curve, and no compute bill that a language change would move.",
+      "source": "desktop application, single process",
+      "baseline_regime": "n/a",
+      "caveat": "",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup \u0026 load shape",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "Emacs boots by dumping a pre-loaded image, and on macOS that is src/unexmacosx.c, 1,408 lines. Rust had to be bent around it. rust_src/alloc_unexecmacosx exists only to route Rust's global allocator through unexec_malloc, and it needs a nightly-only feature to do so.",
+      "source": "rust_src/alloc_unexecmacosx/src/lib.rs:1 #![feature(allocator_api)] · src/unexmacosx.c",
+      "baseline_regime": "structural, at the dump boundary",
+      "caveat": "A maintainer described the same problem more broadly in issue #1571: 'Emacs uses some C tricks to make its lisp compilation work and to load faster... Rust's memory model and other bits make this a non-trivial change.'",
+      "change_trigger": ""
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness — the collector",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "Ported Rust holds Lisp_Objects. A C collector traces them through 164 staticpro roots the borrow checker never sees, so a live object reachable only from Rust can be freed. The contributor who found it put it plainly: the compiler will not keep you safe.",
+      "source": "issue #1532 (2019-08-02, open) · 919 unsafe occurrences in 66 of 75 files under rust_src/src",
+      "baseline_regime": "first-party maintainer analysis on the target",
+      "caveat": "A second contributor went further: 'Garbage collection fundamentally collides with the \"single owner\" concept of Rust.' The mitigation discussed was to ban Rust heap allocation, not to fix the model.",
+      "change_trigger": "Rust would need a way to let a foreign collector trace owned objects. That is a language change, not a project decision."
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness — clean seams",
+      "option_ids": [
+        "rust-module",
+        "rust-leaf-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Where the seam is clean, the benefit is real. Five C files left src/ for Rust and stayed gone: floatfns.c, marker.c, cmds.c, casetab.c, decompress.c. Their functions do not hold a Lisp object across a collection point. That is the shape that worked.",
+      "source": "diff of git ls-files 'src/*.c' against the emacs-26.2 src tree via GitHub API",
+      "baseline_regime": "static file inventory, two trees compared",
+      "caveat": "Four more C files also disappeared: dosfns.c, msdos.c, w16select.c, unexcoff.c. Those went with dropped MS-DOS support, not with Rust. They are not counted as conversions.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "Rust's concurrency story is the one benefit Emacs cannot spend. Elisp semantics assume a single thread of execution, and src/thread.c is cooperative by design. Issue #701, 'What's the plan for multithreading?', was opened in March 2018 and never answered.",
+      "source": "src/thread.c (1,029 lines, 15 DEFUN) · issue #701 (2018-03-25, open)",
+      "baseline_regime": "language semantics plus open issue",
+      "caveat": "Breaking the single-thread assumption changes observable elisp behaviour in any language. Rust does not make that decision cheaper.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution \u0026 build",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "The port could not be built on stable Rust. rust-toolchain pins nightly-2020-08-14, and the code opens 9 unstable feature gates. Every Emacs packager on every platform would have needed that exact nightly. Emacs's own C build needs no such pin.",
+      "source": "rust-toolchain · 9 occurrences of #![feature( across tracked .rs files",
+      "baseline_regime": "build requirement in this commit",
+      "caveat": "The module-ABI option avoids this entirely: a Rust module is built by its own author, not by every Emacs distributor.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "rust-module",
+        "rust-leaf-extract"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The ecosystem argument held up. remacs pulled base64, flate2, md5, sha1, sha2, rand and itertools from crates.io, and those crates are what let five C files go. The pull is toward leaf functionality, which is where the wins landed.",
+      "source": "rust_src/Cargo.toml.in dependency list",
+      "baseline_regime": "declared dependencies in this commit",
+      "caveat": "None of these crates helps with the collector, the loader, the display engine or the bytecode interpreter, which is where the remaining C mass sits.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "1,507,964 lines of Emacs Lisp across 1,733 files depend on how these primitives behave, docstrings included. A maintainer named the standard in 2023: 'Rewriting the elisp engine is going to be fun because you need to be bug compatible.' There is no spec.",
+      "source": "git ls-files '*.el' | xargs wc -l · issue #1571 comment 2023-09-16",
+      "baseline_regime": "static inventory plus maintainer statement",
+      "caveat": "The macOS GUI was never touched by the port at all: 51 DEFUNs still sit in Objective-C under src/*.m, across 21,340 lines.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-inplace-port"
+      ],
+      "state": "DISFAVORS",
+      "strength": "STRONG",
+      "claim": "268 contributors and 902 merged pull requests bought 26,825 lines of converted behaviour and five retired C files. Then the merge tax closed it: 'we have to update remacs for code by many more people that lands in upstream'. Merged PRs went 372, 197, 15, 0.",
+      "source": "GitHub API: contributors, search/issues merged per year · issue #1571 comment 2020-04-12",
+      "baseline_regime": "GitHub API at 2026-08-02, shallow clone so local git log is unusable",
+      "caveat": "The same maintainer added 'It's work that doesn't really pay off.' Nobody in the thread disputed the arithmetic.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "stay-native-comp",
+        "rust-module"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "Upstream reached a version of the goal without forking anything. Emacs 28.1 shipped on 2022-04-03 with native compilation of Lisp files, one year after remacs's README declared the port unmaintained. A contributor had predicted exactly that in the same thread.",
+      "source": "emacs-mirror/emacs tag emacs-28.1 (2022-04-03) · etc/NEWS:21 'Emacs now optionally supports native compilation of Lisp files' · issue #1571 comment 2020-05-02",
+      "baseline_regime": "upstream release artifact, verified via GitHub API",
+      "caveat": "Native compilation is a performance and C-footprint answer, not a memory-safety answer. The safety question at the C trust boundary stays open, which is why the extraction and module options are retained.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Mozilla · Servo as a Gecko replacement",
+      "outcome": "NEVER SHIPPED",
+      "match": "whole-core replacement of a large C/C++ desktop codebase, with funding far below the scope; the same month remacs's work stopped",
+      "mismatch": "a funded corporate team with a greenfield engine, not volunteers porting in place inside a fork",
+      "workload_regime": "browser engine, first-party retrospective",
+      "source_class": "first-party · engineering blog",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "Mozilla · Stylo",
+      "outcome": "SHIPPED",
+      "match": "the extraction-versus-replacement pair inside one codebase, which is exactly the split between remacs's five files and its 309,205 remaining lines",
+      "mismatch": "a seam with a parallelism payoff and no foreign garbage collector tracing Rust's objects",
+      "workload_regime": "shipped in Firefox 57, Nov 2017",
+      "source_class": "first-party · engineering blog",
+      "url": "https://bholley.net/blog/2017/stylo.html"
+    },
+    {
+      "name": "curl · the hyper backend",
+      "outcome": "ABANDONED",
+      "match": "a technically sound C-to-Rust safety migration that died on staffing at high completion, with the cleaner-seam Rust work surviving alongside it",
+      "mismatch": "one backend of a library with a stable API, not a fork tracking a live upstream editor",
+      "workload_regime": "removed in curl 8.12.0, Feb 2025",
+      "source_class": "first-party · maintainer blog",
+      "url": "https://daniel.haxx.se/blog/2024/12/21/dropping-hyper/"
+    },
+    {
+      "name": "emacs-ng",
+      "outcome": "ALIVE",
+      "match": "the same codebase, the same language, the same contributor pool — the only variable changed is the size of the claim",
+      "mismatch": "its Rust is additive rather than a replacement, so it is not evidence about porting the C core at all",
+      "workload_regime": "GitHub API at 2026-08-02",
+      "source_class": "repository metadata",
+      "url": "https://github.com/emacs-ng/emacs-ng"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Write down what you are fixing",
+      "owner": "whoever proposes the port",
+      "cost_range": "1 week",
+      "artifact": "a one-page requirement naming the gap, its current measured value, and the threshold that counts as fixed",
+      "acceptance": "the threshold is a number a third party could check against a build",
+      "deadline_or_stop": "stop if no threshold can be written; the objective is a preference, not a requirement",
+      "rollback": "nothing has been built"
+    },
+    {
+      "step": 2,
+      "title": "Ship it as a module first",
+      "owner": "the module author",
+      "cost_range": "2-6 weeks",
+      "artifact": "a dynamic module built against src/emacs-module.h.in, distributed to users outside the Emacs tree",
+      "acceptance": "users run it on Linux and macOS for one Emacs release cycle without a fork",
+      "deadline_or_stop": "if the module ABI cannot carry the feature, the seam is wrong — report that instead of forking",
+      "rollback": "delete the shared library"
+    },
+    {
+      "step": 3,
+      "title": "If you must touch the core, take one leaf file and keep the C",
+      "owner": "the porting contributor",
+      "cost_range": "4-8 weeks per file",
+      "artifact": "one C file reimplemented in Rust behind identical symbols, with the C retained under a build flag",
+      "acceptance": "byte-identical behaviour on the existing test suite, including docstrings in the DOC file",
+      "deadline_or_stop": "stop if the file's functions hold a Lisp object across a collection point; that is issue #1532 territory",
+      "rollback": "flip the build flag back to the C implementation"
+    },
+    {
+      "step": 4,
+      "title": "Leave the collector alone until Rust can see it",
+      "owner": "nobody, for now",
+      "cost_range": "blocked",
+      "artifact": "a written answer to issue #1532 that does not rely on banning Rust heap allocation",
+      "acceptance": "a foreign collector can trace objects owned by Rust code without unsafe at every call site",
+      "deadline_or_stop": "blocked on a Rust language capability; no project decision unblocks it",
+      "rollback": "not applicable; no work is authorized"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at commit a684a4c represents the final state of the project; the README's own 'not maintained' notice is that commit.",
+    "One #[lisp_fn] attribute in rust_src/src equals one Lisp-callable primitive, and one line-initial DEFUN in src/*.c equals one primitive still in C. The README uses the same two counts, which is why they are used here.",
+    "Port machinery is counted as the 15 files that exist only because the port exists: the proc macro, the bindgen driver, the FFI declaration module, the lisp.h mirror, the test-only mock module, the macro files, the build script, the unexec allocator shim and the hashdir helper. Reclassifying lisp.rs as converted behaviour would move 816 lines.",
+    "The five files credited as conversions are those present in the emacs-26.2 src tree and absent from remacs, excluding the four that went with dropped MS-DOS support."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "The safety benefit was attributed to Rust without checking whether it survives inside a C-managed heap. It does not. The project found this out in year three.",
+        "evidence": "issue #1532 · G2 FAIL"
+      },
+      {
+        "id": "M2",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "Porting DEFUNs cannot reach code that has none. 49 of 119 remaining C files hold zero primitives, which is 77,047 lines.",
+        "evidence": "D2 · grep -c '^DEFUN' across src/*.c"
+      },
+      {
+        "id": "M3",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "The merge tax was never priced. A fork of a live project pays for every upstream commit, and that bill closed the project.",
+        "evidence": "issue #1571 comment 2020-04-12 · D11"
+      },
+      {
+        "id": "M4",
+        "name": "Ownership",
+        "state": "HIT",
+        "claim": "268 contributors is a large volunteer pool and it was still not enough. The remaining work needed paid specialists on the collector and the bytecode interpreter.",
+        "evidence": "issue #1571 comment 2020-04-12 · GitHub API contributor count"
+      },
+      {
+        "id": "M5",
+        "name": "Reversibility",
+        "state": "HIT",
+        "claim": "Ported C was deleted rather than gated, so there was no way back. The reboot branch tried ifdefs instead and stopped after five months.",
+        "evidence": "issue #1571 comment 2020-04-27 · branch reset-to-emacs-27"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "Native compilation of Lisp shipped in Emacs 28.1 on 2022-04-03, without a fork. The in-stack route was not hypothetical.",
+        "evidence": "emacs-mirror/emacs tag emacs-28.1 · etc/NEWS:21"
+      },
+      {
+        "id": "S2",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying leaves 309,205 lines of C parsing files, images and TLS streams. That exposure is real and this report does not treat Emacs's age as safety.",
+        "evidence": "git ls-files 'src/*.c' | xargs wc -l"
+      },
+      {
+        "id": "S3",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The 51 primitives still in Objective-C under src/*.m, 21,340 lines of macOS GUI, are disclosed. The port never touched them.",
+        "evidence": "D10 · grep -c '^DEFUN' src/*.m"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The report credits what Rust delivered: five C files gone for good, and crates that made the deletions possible. The extraction and module options stay retained.",
+        "evidence": "D6 second record · D9 · Cargo.toml.in"
+      },
+      {
+        "id": "S5",
+        "name": "Stop condition",
+        "state": "PASS",
+        "claim": "The recommendation names the exact trigger that reopens the in-place port, and it is a Rust language capability rather than a change of mind.",
+        "evidence": "change trigger · issue #1532"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>

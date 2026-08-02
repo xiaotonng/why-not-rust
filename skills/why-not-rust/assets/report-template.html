@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{LANG}}" data-theme="dark">
+<html lang="{{LANG}}" data-theme="dark" data-lang="{{LANG_DEFAULT}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,6 +8,9 @@
   Fill this template according to references/report-style.md, then delete this block.
   Duplicate BEGIN/END blocks, remove unused OPTIONAL blocks, and replace every token.
   Body classes: v-stay|v-extract|v-partial|v-migrate plus a-approve|a-reject|a-defer.
+  Bilingual text ships as <span data-l="en">…</span><span data-l="zh">…</span> pairs;
+  the root data-lang attribute selects one. Keep verdict, authorization and evidence
+  state words in English in both languages.
   Embed the complete assessment JSON in the inert block at the end.
   SECURITY: never substitute raw data. Use scripts/report_safety.py for every text,
   href, and JSON value, including mixed-case script-closer attacks.
@@ -15,152 +18,249 @@
 <style>
   :root[data-theme="dark"] {
     color-scheme: dark;
-    --page:#0c0d10; --surface:#14161b; --surface-2:#1a1d24; --line:#292d36;
-    --ink:#f2f3f5; --ink-2:#b6bac4; --ink-3:#808694;
-    --blue:#438fe8; --blue-tint:rgba(67,143,232,.14);
-    --rust:#e06b33; --rust-tint:rgba(224,107,51,.14);
-    --teal:#3cc795; --teal-tint:rgba(60,199,149,.14);
-    --amber:#efaa22; --amber-tint:rgba(239,170,34,.14);
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
   }
   :root[data-theme="light"] {
     color-scheme: light;
-    --page:#f7f7f5; --surface:#fff; --surface-2:#f0f0ec; --line:#deded8;
-    --ink:#111215; --ink-2:#4f535b; --ink-3:#7e838c;
-    --blue:#2878d4; --blue-tint:rgba(40,120,212,.10);
-    --rust:#c54a16; --rust-tint:rgba(197,74,22,.10);
-    --teal:#087b58; --teal-tint:rgba(8,123,88,.10);
-    --amber:#986200; --amber-tint:rgba(152,98,0,.11);
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
   }
-  body.v-stay { --scope:var(--blue); --scope-tint:var(--blue-tint); }
-  body.v-extract { --scope:var(--teal); --scope-tint:var(--teal-tint); }
-  body.v-partial { --scope:var(--amber); --scope-tint:var(--amber-tint); }
-  body.v-migrate { --scope:var(--rust); --scope-tint:var(--rust-tint); }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
 
-  * { box-sizing:border-box; margin:0; }
-  html { background:var(--page); font-size:16px; }
-  body { background:var(--page); color:var(--ink); padding:0 24px 96px;
-    font:400 .9375rem/1.6 system-ui,-apple-system,"Segoe UI","PingFang SC","Noto Sans CJK SC",sans-serif; }
-  .wrap { max-width:1120px; margin:0 auto; }
-  .mono { font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
-  a { color:var(--blue); text-decoration:none; } a:hover { text-decoration:underline; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
 
-  .mast { display:flex; align-items:center; gap:12px; padding:20px 0; border-bottom:1px solid var(--line); }
-  .logo { font-weight:750; letter-spacing:.015em; } .logo .q { color:var(--rust); }
-  .meta { margin-left:auto; display:flex; gap:15px; align-items:center; color:var(--ink-3); font-size:.76rem; }
-  .theme { border:1px solid var(--line); background:var(--surface-2); color:var(--ink-2); border-radius:7px; padding:4px 10px; cursor:pointer; }
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
 
-  .hero { padding:40px 0 32px; border-bottom:1px solid var(--line); }
-  .kicker { color:var(--ink-3); font-size:.76rem; letter-spacing:.14em; text-transform:uppercase; }
-  .kicker .project { color:var(--ink-2); }
-  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:36px; margin-top:14px; align-items:start; }
-  .decision-row { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .scope-word { color:var(--scope); font-size:3.55rem; line-height:.95; font-weight:820; letter-spacing:-.035em; }
-  .scope-sub { color:var(--ink-2); font-size:1.1rem; font-weight:600; }
-  .auth { display:inline-flex; align-items:center; gap:7px; margin-top:15px; padding:5px 11px; border-radius:999px; font-size:.74rem; font-weight:750; letter-spacing:.04em; }
-  .a-approve .auth { background:var(--teal-tint); color:var(--teal); }
-  .a-reject .auth { background:var(--blue-tint); color:var(--blue); }
-  .a-defer .auth { background:var(--amber-tint); color:var(--amber); }
-  .auth i { width:7px; height:7px; border-radius:50%; background:currentColor; }
-  .why { margin-top:14px; max-width:690px; color:var(--ink-2); font-size:1rem; }
-  .trigger { margin-top:8px; color:var(--ink-3); font-size:.8rem; }
-  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
-  .chip { border:1px solid var(--line); background:var(--surface); color:var(--ink-2); border-radius:999px; padding:3px 10px; font-size:.72rem; }
-  .chip.scope { background:var(--scope-tint); color:var(--scope); border-color:transparent; font-weight:650; }
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
 
-  .gatebox { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; }
-  .gatebox h2 { font-size:.8rem; color:var(--ink-3); text-transform:uppercase; letter-spacing:.1em; }
-  .gates { display:grid; gap:8px; margin-top:11px; }
-  .gate { display:grid; grid-template-columns:34px 74px 1fr; gap:9px; align-items:start; padding:9px 0; border-top:1px solid var(--line); }
-  .gate:first-child { border-top:0; }
-  .gate .id { color:var(--ink-3); font-size:.74rem; padding-top:1px; }
-  .state { display:inline-block; width:max-content; padding:1px 7px; border-radius:999px; font-size:.64rem; font-weight:750; letter-spacing:.04em; }
-  .state.pass { background:var(--teal-tint); color:var(--teal); }
-  .state.fail { background:var(--blue-tint); color:var(--blue); }
-  .state.unknown { background:var(--amber-tint); color:var(--amber); }
-  .gate .name { font-size:.8rem; font-weight:650; }
-  .gate .ev { color:var(--ink-3); font-size:.72rem; margin-top:2px; line-height:1.4; }
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
 
-  .tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:12px; padding:25px 0; border-bottom:1px solid var(--line); }
-  .tile { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
-  .tile .label { color:var(--ink-3); font-size:.72rem; }
-  .tile .value { margin-top:3px; font-size:1.45rem; font-weight:680; letter-spacing:-.015em; }
-  .tile .unit { color:var(--ink-2); font-size:.78rem; font-weight:500; margin-left:3px; }
-  .tile .note { color:var(--ink-3); font-size:.7rem; margin-top:2px; }
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
 
-  section { padding:32px 0 5px; }
-  .section-title { display:flex; align-items:baseline; gap:10px; font-size:1.05rem; }
-  .section-title .no { color:var(--ink-3); font-size:.8rem; font-weight:500; }
-  .sub { color:var(--ink-3); font-size:.8rem; margin-top:4px; }
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
 
-  .table-wrap { overflow-x:auto; margin-top:15px; border:1px solid var(--line); border-radius:11px; }
-  table { width:100%; border-collapse:collapse; background:var(--surface); }
-  th,td { text-align:left; vertical-align:top; padding:10px 12px; border-bottom:1px solid var(--line); }
-  th { color:var(--ink-3); font-size:.68rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase; background:var(--surface-2); }
-  td { color:var(--ink-2); font-size:.77rem; }
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
   tr:last-child td { border-bottom:0; }
-  tr.selected td:first-child { box-shadow:inset 3px 0 var(--teal); }
-  tr.excluded { opacity:.62; }
-  .option-name { color:var(--ink); font-weight:680; white-space:nowrap; }
-  .scope-tag,.ev-tag,.dir-tag { display:inline-block; padding:1px 7px; border-radius:999px; font-size:.65rem; white-space:nowrap; }
-  .scope-tag { background:var(--surface-2); color:var(--ink-2); }
-  .ev-tag.strong { background:var(--teal-tint); color:var(--teal); }
-  .ev-tag.moderate { background:var(--blue-tint); color:var(--blue); }
-  .ev-tag.weak,.ev-tag.unknown { background:var(--amber-tint); color:var(--amber); }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
 
-  .ledger { display:grid; gap:8px; margin-top:15px; }
-  .lens { display:grid; grid-template-columns:205px 190px 92px minmax(0,1fr); gap:12px; padding:11px 13px; background:var(--surface); border:1px solid var(--line); border-radius:9px; align-items:start; }
-  .lens .name { color:var(--ink); font-size:.8rem; font-weight:650; }
-  .dir-tag.rust { background:var(--rust-tint); color:var(--rust); }
-  .dir-tag.current { background:var(--blue-tint); color:var(--blue); }
-  .dir-tag.neutral { background:var(--surface-2); color:var(--ink-2); }
-  .dir-tag.unknown { background:var(--amber-tint); color:var(--amber); }
-  .lens .claim { color:var(--ink-2); font-size:.77rem; }
-  .lens .source { color:var(--ink-3); font-size:.68rem; margin-top:3px; word-break:break-word; }
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
 
-  .cards,.duo,.precedents,.challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:15px; }
-  .card,.col,.precedent,.challenge-col { background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:14px 16px; }
-  .card { border-left:3px solid var(--line); }
-  .card.rust { border-left-color:var(--rust); } .card.current { border-left-color:var(--blue); } .card.unknown { border-left-color:var(--amber); }
-  .card h3,.col h3,.precedent h3,.challenge-col h3 { font-size:.86rem; }
-  .card p,.precedent p { color:var(--ink-2); font-size:.79rem; margin-top:5px; }
-  .ref { display:inline-block; color:var(--ink-3); background:var(--surface-2); border-radius:5px; padding:2px 7px; font-size:.67rem; margin-top:7px; word-break:break-all; }
-  .col h3 { display:flex; align-items:center; gap:8px; }
-  .col h3 i { width:10px; height:10px; border-radius:3px; }
-  .col ul { padding-left:18px; margin-top:9px; color:var(--ink-2); font-size:.79rem; }
-  .col li { margin:6px 0; }
-  .precedent .top { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
-  .precedent .outcome { font-size:.64rem; border-radius:999px; padding:1px 7px; background:var(--surface-2); color:var(--ink-2); }
-  .precedent .match { color:var(--ink-3); font-size:.7rem; margin-top:6px; }
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
 
-  .path { margin-top:15px; counter-reset:step; }
-  .step { display:grid; grid-template-columns:32px 1fr auto; gap:13px; padding:12px 0; border-top:1px solid var(--line); }
-  .step:first-child { border-top:0; }
-  .step .number { counter-increment:step; width:25px; height:25px; display:grid; place-items:center; border-radius:7px; background:var(--surface-2); border:1px solid var(--line); color:var(--ink-2); font-size:.75rem; }
-  .step .number::before { content:counter(step); }
-  .step h3 { font-size:.86rem; }
-  .step p { color:var(--ink-2); font-size:.78rem; margin-top:3px; }
-  .step .cost { color:var(--ink-3); font-size:.7rem; white-space:nowrap; }
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
 
-  .checks { display:grid; gap:7px; margin-top:10px; }
-  .check { display:grid; grid-template-columns:70px 1fr; gap:8px; color:var(--ink-2); font-size:.76rem; padding-top:7px; border-top:1px solid var(--line); }
-  .check:first-child { border-top:0; }
-  .check b { color:var(--ink); }
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
 
-  .method { margin-top:15px; background:var(--surface); border:1px solid var(--line); border-radius:11px; padding:16px 18px; color:var(--ink-2); font-size:.78rem; }
-  .method h3 { color:var(--ink); font-size:.82rem; margin-bottom:7px; }
-  .method table { margin-top:10px; }
-  footer { margin-top:44px; padding-top:16px; border-top:1px solid var(--line); color:var(--ink-3); font-size:.72rem; display:flex; gap:16px; flex-wrap:wrap; }
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
 
-  @media (max-width:940px) { .hero-grid { grid-template-columns:1fr; } }
-  @media (max-width:780px) {
-    body { padding-inline:16px; }
-    .meta span:not(:first-child) { display:none; }
-    .cards,.duo,.precedents,.challenge-grid { grid-template-columns:1fr; }
-    .lens { grid-template-columns:1fr 1fr; }
-    .lens .claim { grid-column:1/-1; }
-    .scope-word { font-size:2.8rem; }
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
   }
-  @media print { body { padding:0 8mm; } .theme { display:none; } .scope-word { font-size:2.7rem; } }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
 </style>
 </head>
 <body class="{{VERDICT_CLASS}} {{AUTH_CLASS}}">
@@ -168,8 +268,10 @@
 
 <header class="mast">
   <div class="logo mono">why<span class="q">-not-</span>rust</div>
-  <div class="meta"><span>{{PROJECT_NAME}}</span><span>{{DATE}}</span><span class="mono">method 2.0</span>
-    <button class="theme" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">{{L_THEME}}</button>
+  <div class="meta">
+    <span class="mono">{{PROJECT_NAME}}</span><span>{{DATE}}</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">{{L_LANG}}</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">{{L_THEME}}</button>
   </div>
 </header>
 
@@ -177,24 +279,29 @@
   <div class="kicker">{{L_KICKER}} · <span class="project">{{PROJECT_DESC}}</span></div>
   <div class="hero-grid">
     <div>
-      <div class="decision-row"><div class="scope-word">{{SCOPE_WORD}}</div><div class="scope-sub">{{SCOPE_SUB}}</div></div>
+      <div class="scope-word">{{SCOPE_WORD}}</div>
+      <div class="scope-sub">{{SCOPE_SUB}}</div>
       <div class="auth"><i></i>{{L_AUTH}} · {{AUTH_WORD}}</div>
       <p class="why">{{DECISION_WHY}}</p>
       <p class="trigger">{{CHANGE_TRIGGER}}</p>
       <div class="chips">
-        <span class="chip scope">{{L_SCOPE}}: {{SCOPE}}</span>
-        <span class="chip">{{L_CONFIDENCE}}: {{CONFIDENCE}}</span>
-        <span class="chip">{{L_ROBUSTNESS}}: {{ROBUSTNESS}}</span>
-        <span class="chip">{{TARGET_ARCHETYPE}}</span>
+        <span class="scope">{{L_SCOPE}} <b>{{SCOPE}}</b></span>
+        <span>{{L_CONFIDENCE}} <b>{{CONFIDENCE}}</b></span>
+        <span>{{L_ROBUSTNESS}} <b>{{ROBUSTNESS}}</b></span>
+        <span>{{TARGET_ARCHETYPE}}</span>
       </div>
     </div>
     <aside class="gatebox">
       <h2>{{L_GATES}}</h2>
-      <div class="gates">
-        <!-- BEGIN REPEAT gate (exactly G1–G4; state class pass|fail|unknown) -->
-        <div class="gate"><span class="id mono">{{GATE_ID}}</span><span class="state {{GATE_STATE_CLASS}}">{{GATE_STATE}}</span><div><div class="name">{{GATE_NAME}}</div><div class="ev">{{GATE_EVIDENCE}}</div></div></div>
-        <!-- END REPEAT gate -->
+      <!-- BEGIN REPEAT gate (exactly G1–G4; state class pass|fail|unknown) -->
+      <div class="gate">
+        <span class="id mono">{{GATE_ID}}</span>
+        <div>
+          <div class="head"><span class="name">{{GATE_NAME}}</span><span class="state {{GATE_STATE_CLASS}}">{{GATE_STATE}}</span></div>
+          <div class="ev">{{GATE_EVIDENCE}}</div>
+        </div>
       </div>
+      <!-- END REPEAT gate -->
     </aside>
   </div>
 </section>
@@ -212,7 +319,7 @@
     <thead><tr><th>{{H_OPTION}}</th><th>{{H_SCOPE}}</th><th>{{H_BENEFIT}}</th><th>{{H_COST}}</th><th>{{H_TIME}}</th><th>{{H_COMPAT}}</th><th>{{H_EVIDENCE}}</th></tr></thead>
     <tbody>
       <!-- BEGIN REPEAT option (row class selected|excluded|empty) -->
-      <tr class="{{OPTION_ROW_CLASS}}"><td><span class="option-name">{{OPTION_NAME}}</span><div class="source">{{OPTION_DISPOSITION}}</div></td><td><span class="scope-tag">{{OPTION_SCOPE}}</span></td><td>{{OPTION_BENEFIT}}</td><td>{{OPTION_COST}}</td><td>{{OPTION_TIME}}</td><td>{{OPTION_COMPAT}}</td><td><span class="ev-tag {{OPTION_EVIDENCE_CLASS}}">{{OPTION_EVIDENCE}}</span></td></tr>
+      <tr class="{{OPTION_ROW_CLASS}}"><td><span class="option-name">{{OPTION_NAME}}</span><span class="source">{{OPTION_DISPOSITION}}</span></td><td><span class="scope-tag">{{OPTION_SCOPE}}</span></td><td>{{OPTION_BENEFIT}}</td><td>{{OPTION_COST}}</td><td>{{OPTION_TIME}}</td><td>{{OPTION_COMPAT}}</td><td><span class="ev-tag {{OPTION_EVIDENCE_CLASS}}">{{OPTION_EVIDENCE}}</span></td></tr>
       <!-- END REPEAT option -->
     </tbody>
   </table></div>
@@ -224,7 +331,13 @@
   <p class="sub">{{LENSES_SUB}}</p>
   <div class="ledger">
     <!-- BEGIN REPEAT lens (applicable + decision-relevant unknowns; state class rust|current|neutral|unknown) -->
-    <div class="lens"><div class="name">{{LENS_ID}} · {{LENS_NAME}}</div><div><span class="dir-tag {{LENS_STATE_CLASS}}">{{LENS_STATE}}</span></div><div><span class="ev-tag {{LENS_EVIDENCE_CLASS}}">{{LENS_EVIDENCE}}</span></div><div class="claim">{{LENS_CLAIM}}<div class="source mono">{{LENS_SOURCE}}</div></div></div>
+    <div class="lens">
+      <div>
+        <div class="name">{{LENS_ID}} · {{LENS_NAME}}</div>
+        <div class="tags"><span class="dir-tag {{LENS_STATE_CLASS}}">{{LENS_STATE}}</span><span class="ev-tag {{LENS_EVIDENCE_CLASS}}">{{LENS_EVIDENCE}}</span></div>
+      </div>
+      <div><div class="claim">{{LENS_CLAIM}}</div><div class="source mono">{{LENS_SOURCE}}</div></div>
+    </div>
     <!-- END REPEAT lens -->
   </div>
   <p class="sub">{{NA_LENSES_NOTE}}</p>
@@ -267,7 +380,7 @@
   <h2 class="section-title"><span class="no">{{N_PATH}}</span>{{L_PATH}}</h2>
   <div class="path">
     <!-- BEGIN REPEAT step -->
-    <div class="step"><span class="number"></span><div><h3>{{STEP_TITLE}}</h3><p>{{STEP_BODY}}</p></div><span class="cost">{{STEP_COST}}</span></div>
+    <div class="step"><span class="number mono"></span><div><h3>{{STEP_TITLE}}</h3><p>{{STEP_BODY}}</p></div><span class="cost">{{STEP_COST}}</span></div>
     <!-- END REPEAT step -->
   </div>
 </section>
@@ -275,24 +388,26 @@
 <section>
   <h2 class="section-title"><span class="no">{{N_CHALLENGES}}</span>{{L_CHALLENGES}}</h2>
   <div class="challenge-grid">
-    <div class="challenge-col"><h3>{{CHALLENGE_MIGRATION_LABEL}}</h3><div class="checks">
-      <!-- BEGIN REPEAT migration check --><div class="check"><span class="state {{CHECK_STATE_CLASS}}">{{CHECK_STATE}}</span><div><b>{{CHECK_NAME}}</b> — {{CHECK_BODY}}</div></div><!-- END REPEAT migration check -->
-    </div></div>
-    <div class="challenge-col"><h3>{{CHALLENGE_STAY_LABEL}}</h3><div class="checks">
-      <!-- BEGIN REPEAT staying check --><div class="check"><span class="state {{CHECK_STATE_CLASS}}">{{CHECK_STATE}}</span><div><b>{{CHECK_NAME}}</b> — {{CHECK_BODY}}</div></div><!-- END REPEAT staying check -->
-    </div></div>
+    <div class="challenge-col"><h3>{{CHALLENGE_MIGRATION_LABEL}}</h3>
+      <!-- BEGIN REPEAT migration check --><div class="check"><span class="state {{CHECK_STATE_CLASS}}">{{CHECK_STATE}}</span><b>{{CHECK_NAME}}</b> — {{CHECK_BODY}}</div><!-- END REPEAT migration check -->
+    </div>
+    <div class="challenge-col"><h3>{{CHALLENGE_STAY_LABEL}}</h3>
+      <!-- BEGIN REPEAT staying check --><div class="check"><span class="state {{CHECK_STATE_CLASS}}">{{CHECK_STATE}}</span><b>{{CHECK_NAME}}</b> — {{CHECK_BODY}}</div><!-- END REPEAT staying check -->
+    </div>
   </div>
 </section>
 
 <section>
   <h2 class="section-title"><span class="no">{{N_METHOD}}</span>{{L_METHOD}}</h2>
-  <div class="method"><h3>{{METHOD_TITLE}}</h3><p>{{METHOD_BODY}}</p><table>
-    <thead><tr><th>{{GAP_LABEL}}</th><th>{{GAP_EFFECT_LABEL}}</th></tr></thead>
-    <tbody><!-- BEGIN REPEAT gap --><tr><td>{{GAP_WHAT}}</td><td>{{GAP_EFFECT}}</td></tr><!-- END REPEAT gap --></tbody>
-  </table></div>
+  <div class="method"><h3>{{METHOD_TITLE}}</h3><p>{{METHOD_BODY}}</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{{GAP_LABEL}}</th><th>{{GAP_EFFECT_LABEL}}</th></tr></thead>
+      <tbody><!-- BEGIN REPEAT gap --><tr><td>{{GAP_WHAT}}</td><td>{{GAP_EFFECT}}</td></tr><!-- END REPEAT gap --></tbody>
+    </table></div>
+  </div>
 </section>
 
-<footer><span>why-not-rust · method 2.0 · {{FOOTER_DISCLOSURE}}</span><span>github.com/xiaotonng/why-not-rust</span></footer>
+<footer><span>why-not-rust · method 2.0 · {{FOOTER_DISCLOSURE}}</span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
 </div>
 
 <script type="application/json" id="why-not-rust-assessment">

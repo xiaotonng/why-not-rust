@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>why-not-rust · zed-industries/zed</title>
+
+<style>
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page:#0a0a0b; --raised:#111113; --line:#232327; --line-soft:#1a1a1d;
+    --ink:#f4f4f5; --ink-2:#a8a8b0; --ink-3:#6e6e78;
+    --blue:#5b9cf0; --teal:#3fbfa0; --rust:#f0803c; --amber:#e0a93c;
+    --wash:rgba(255,255,255,.028);
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --page:#fcfcfb; --raised:#ffffff; --line:#e4e2dd; --line-soft:#efedE8;
+    --ink:#16161a; --ink-2:#55555f; --ink-3:#8b8b95;
+    --blue:#1f6fd0; --teal:#0f8f74; --rust:#c85a15; --amber:#9a6b00;
+    --wash:rgba(0,0,0,.022);
+  }
+  :root {
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --accent:var(--blue);
+    --measure:74ch;
+  }
+  body.v-stay    { --accent:var(--blue); }
+  body.v-extract { --accent:var(--teal); }
+  body.v-partial { --accent:var(--amber); }
+  body.v-migrate { --accent:var(--rust); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { background:var(--page); }
+  body {
+    background:var(--page); color:var(--ink); font-family:var(--sans);
+    font-size:16px; line-height:1.62; -webkit-font-smoothing:antialiased;
+    padding:0 32px 96px;
+    /* Evidence is full of long file paths, commit SHAs and URLs. Without this
+       a single unbreakable token pushes the page wider than a phone screen. */
+    overflow-wrap:break-word;
+  }
+  .wrap { max-width:1080px; margin:0 auto; }
+  .mono { font-family:var(--mono); font-variant-ligatures:none; }
+  a { color:inherit; }
+
+  /* ---------- masthead ---------- */
+  .mast { display:flex; align-items:center; gap:14px; padding:26px 0 22px; }
+  .logo { font-size:.9rem; font-weight:600; letter-spacing:-.02em; }
+  .logo .q { color:var(--accent); }
+  .mast .meta { margin-left:auto; display:flex; gap:14px; align-items:center; color:var(--ink-3); font-size:.78rem; }
+  .btn {
+    font:inherit; font-size:.72rem; color:var(--ink-2); background:none; cursor:pointer;
+    border:1px solid var(--line); border-radius:6px; padding:3px 9px; line-height:1.5;
+  }
+  .btn:hover { color:var(--ink); border-color:var(--ink-3); }
+
+  /* ---------- hero ---------- */
+  .hero { padding:22px 0 40px; border-top:1px solid var(--line); }
+  .kicker {
+    font-size:.7rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:600;
+  }
+  .kicker .project { color:var(--ink-2); text-transform:none; letter-spacing:.02em; }
+  .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 330px; gap:56px; margin-top:26px; align-items:start; }
+  .scope-word {
+    font-size:clamp(3.2rem,8vw,4.6rem); line-height:.94; font-weight:760;
+    letter-spacing:-.045em; color:var(--accent);
+  }
+  .scope-sub { margin-top:12px; font-size:1.02rem; color:var(--ink); font-weight:500; }
+  .auth {
+    display:inline-flex; align-items:center; gap:8px; margin-top:20px;
+    font-size:.74rem; font-weight:650; letter-spacing:.05em; color:var(--ink-2);
+  }
+  .auth i { width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex:none; }
+  body.a-approve .auth i { background:var(--teal); }
+  body.a-reject  .auth i { background:var(--blue); }
+  body.a-defer   .auth i { background:var(--amber); }
+  .why { margin-top:18px; font-size:1.02rem; line-height:1.66; color:var(--ink); max-width:var(--measure); }
+  .trigger {
+    margin-top:16px; padding-left:15px; border-left:2px solid var(--line);
+    font-size:.87rem; line-height:1.6; color:var(--ink-2); max-width:var(--measure);
+  }
+  .chips { display:flex; flex-wrap:wrap; gap:9px 20px; margin-top:26px; font-size:.75rem; color:var(--ink-3); }
+  .chips b { color:var(--ink-2); font-weight:600; }
+  .chips .scope b { color:var(--accent); }
+
+  /* ---------- gates ---------- */
+  .gatebox h2 {
+    font-size:.68rem; letter-spacing:.13em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line);
+  }
+  .gate { display:grid; grid-template-columns:26px 1fr; gap:11px; padding:13px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .gate:last-child { border-bottom:0; }
+  .gate .id { color:var(--ink-3); font-size:.7rem; padding-top:3px; }
+  .gate .head { display:flex; align-items:center; gap:8px; }
+  .gate .name { font-size:.88rem; font-weight:620; }
+  .gate .ev { color:var(--ink-3); font-size:.78rem; line-height:1.5; margin-top:3px; }
+
+  /* state words: a dot plus a word. No filled pills anywhere. */
+  .state { display:inline-flex; align-items:center; gap:5px; font-size:.66rem; font-weight:700; letter-spacing:.07em; white-space:nowrap; }
+  .state::before { content:""; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .state.pass    { color:var(--teal); }
+  .state.fail    { color:var(--blue); }
+  .state.unknown { color:var(--amber); }
+
+  /* ---------- magnitude figures ---------- */
+  .tiles {
+    /* Six magnitude tiles is the house style, and 150px + a 24px gutter is what
+       lets all six sit on one row inside the 1080px measure. At 168/34 the sixth
+       tile orphaned onto a row of its own on every report. */
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:30px 24px; padding:32px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  .tile .label { font-size:.72rem; color:var(--ink-3); line-height:1.4; }
+  /* Sized so a nine-character value — which is 117 of the 120 tiles in the
+     gallery — stays on one line in a six-across row. Longer composite values
+     ("16,350–808,625") wrap at a space, which no usable size prevents. */
+  .tile .value { margin-top:7px; font-size:1.55rem; font-weight:640; letter-spacing:-.035em; line-height:1.12; }
+  /* The unit is a single token ("lines", "2016–2021"); never break inside it. */
+  .tile .unit { font-size:.8rem; font-weight:500; color:var(--ink-3); margin-left:5px; letter-spacing:0; white-space:nowrap; }
+  .tile .note { margin-top:6px; font-size:.71rem; color:var(--ink-3); line-height:1.45; }
+
+  /* ---------- sections ---------- */
+  section { padding-top:58px; }
+  .section-title { display:flex; align-items:baseline; gap:12px; font-size:1.18rem; font-weight:640; letter-spacing:-.02em; }
+  .section-title .no { font-family:var(--mono); font-size:.72rem; color:var(--ink-3); font-weight:500; }
+  .sub { margin-top:9px; font-size:.85rem; color:var(--ink-3); max-width:var(--measure); line-height:1.6; }
+
+  /* ---------- options table ---------- */
+  .table-wrap { overflow-x:auto; margin-top:22px; }
+  table { width:100%; border-collapse:collapse; font-size:.79rem; min-width:820px; }
+  th {
+    text-align:left; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-3); font-weight:650; padding:0 14px 10px 0; border-bottom:1px solid var(--line);
+  }
+  td { padding:15px 14px 15px 0; border-bottom:1px solid var(--line-soft); vertical-align:top; color:var(--ink-2); line-height:1.5; }
+  tr:last-child td { border-bottom:0; }
+  tr.selected td { background:var(--wash); }
+  tr.selected td:first-child { box-shadow:inset 2px 0 0 var(--accent); padding-left:13px; }
+  tr.excluded td { opacity:.6; }
+  .option-name { color:var(--ink); font-weight:620; display:block; }
+  td .source { color:var(--ink-3); font-size:.72rem; margin-top:3px; display:block; line-height:1.45; }
+  .scope-tag { font-family:var(--mono); font-size:.66rem; letter-spacing:.05em; color:var(--ink-3); }
+  .ev-tag { font-size:.66rem; font-weight:700; letter-spacing:.06em; }
+  .ev-tag.strong { color:var(--teal); } .ev-tag.moderate { color:var(--ink-2); }
+  .ev-tag.weak { color:var(--amber); } .ev-tag.unknown { color:var(--amber); }
+
+  /* ---------- twelve-lens ledger ---------- */
+  .ledger { margin-top:22px; border-top:1px solid var(--line); }
+  .lens { display:grid; grid-template-columns:186px minmax(0,1fr); gap:26px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .lens .name { font-size:.82rem; font-weight:620; color:var(--ink); }
+  .lens .tags { display:flex; flex-direction:column; gap:5px; margin-top:7px; }
+  .dir-tag { font-size:.66rem; font-weight:650; letter-spacing:.04em; line-height:1.4; }
+  .dir-tag.rust { color:var(--rust); } .dir-tag.current { color:var(--blue); }
+  .dir-tag.neutral { color:var(--ink-3); } .dir-tag.unknown { color:var(--amber); }
+  .lens .claim { font-size:.87rem; color:var(--ink-2); line-height:1.6; }
+  .lens .source { margin-top:6px; font-size:.72rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- evidence cards ---------- */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:26px 34px; margin-top:24px; }
+  .card { padding-left:15px; border-left:2px solid var(--line); }
+  .card.rust { border-left-color:var(--rust); }
+  .card.current { border-left-color:var(--blue); }
+  .card.unknown { border-left-color:var(--amber); }
+  .card h3 { font-size:.9rem; font-weight:620; letter-spacing:-.01em; }
+  .card p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; }
+  .card .ref { display:block; margin-top:9px; font-size:.7rem; color:var(--ink-3); word-break:break-word; }
+
+  /* ---------- buys / doesn't buy ---------- */
+  .duo { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .col h3 { display:flex; align-items:center; gap:8px; font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; }
+  .col h3 i { width:7px; height:7px; border-radius:50%; flex:none; }
+  .col ul { list-style:none; margin-top:14px; }
+  .col li { padding:11px 0; border-bottom:1px solid var(--line-soft); font-size:.85rem; color:var(--ink-2); line-height:1.58; }
+  .col li:last-child { border-bottom:0; }
+  .col li b { color:var(--ink); font-weight:620; }
+
+  /* ---------- precedents ---------- */
+  .precedents { margin-top:22px; border-top:1px solid var(--line); }
+  .precedent { padding:19px 0; border-bottom:1px solid var(--line-soft); }
+  .precedent .top { display:flex; align-items:baseline; gap:11px; flex-wrap:wrap; }
+  .precedent h3 { font-size:.9rem; font-weight:620; }
+  .precedent .outcome { font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; color:var(--accent); }
+  .precedent p { margin-top:7px; font-size:.85rem; color:var(--ink-2); line-height:1.6; max-width:var(--measure); }
+  .precedent .match { margin-top:8px; font-size:.75rem; color:var(--ink-3); line-height:1.55; }
+  .precedent .ref { display:inline-block; margin-top:8px; font-size:.7rem; color:var(--ink-3); word-break:break-all; }
+  .precedent .ref:hover { color:var(--accent); }
+
+  /* ---------- reversible path ---------- */
+  .path { margin-top:22px; counter-reset:step; border-top:1px solid var(--line); }
+  .step { display:grid; grid-template-columns:30px minmax(0,1fr) auto; gap:16px; padding:19px 0; border-bottom:1px solid var(--line-soft); align-items:start; }
+  .step .number { counter-increment:step; font-family:var(--mono); font-size:.74rem; color:var(--ink-3); padding-top:2px; }
+  .step .number::before { content:counter(step,decimal-leading-zero); }
+  .step h3 { font-size:.9rem; font-weight:620; }
+  .step p { margin-top:6px; font-size:.83rem; color:var(--ink-2); line-height:1.6; }
+  .step .cost { font-size:.72rem; color:var(--ink-3); white-space:nowrap; padding-top:3px; }
+
+  /* ---------- challenge audit ---------- */
+  .challenge-grid { display:grid; grid-template-columns:1fr 1fr; gap:44px; margin-top:24px; }
+  .challenge-col h3 { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); font-weight:650; padding-bottom:11px; border-bottom:1px solid var(--line); }
+  .check { padding:13px 0; border-bottom:1px solid var(--line-soft); font-size:.83rem; color:var(--ink-2); line-height:1.58; }
+  .check:last-child { border-bottom:0; }
+  .check .state { margin-right:9px; vertical-align:1px; }
+  .check b { color:var(--ink); font-weight:620; }
+
+  /* ---------- method ---------- */
+  .method { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+  .method h3 { font-size:.88rem; font-weight:620; }
+  .method p { margin-top:10px; font-size:.83rem; color:var(--ink-2); line-height:1.68; max-width:var(--measure); }
+  .method table { margin-top:24px; min-width:0; }
+
+  footer {
+    margin-top:64px; padding-top:20px; border-top:1px solid var(--line);
+    color:var(--ink-3); font-size:.73rem; display:flex; gap:20px; flex-wrap:wrap;
+  }
+
+  @media (max-width:960px) { .hero-grid { grid-template-columns:1fr; gap:38px; } }
+  @media (max-width:760px) {
+    body { padding:0 18px 64px; font-size:15px; }
+    .mast { flex-wrap:wrap; gap:10px; }
+    .mast .meta { margin-left:auto; gap:10px; }
+    .mast .meta span:not(:first-child) { display:none; }
+    .cards,.duo,.challenge-grid { grid-template-columns:1fr; gap:30px; }
+    .lens { grid-template-columns:1fr; gap:9px; }
+    .step { grid-template-columns:24px minmax(0,1fr); }
+    .step .cost { grid-column:2; }
+    section { padding-top:44px; }
+  }
+  @media print {
+    body { padding:0 8mm; font-size:11pt; }
+    .btn { display:none; }
+    section { padding-top:26px; break-inside:avoid; }
+  }
+
+  /* ---------- bilingual switch ----------
+     Both languages ship in the document; the root data-lang attribute selects
+     one. No new script element is involved: the toggle is the same kind of inline handler
+     as the theme button. */
+  :root[data-lang="en"] [data-l="zh"] { display:none; }
+  :root[data-lang="zh"] [data-l="en"] { display:none; }
+  :root[data-lang="zh"] body {
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",var(--sans);
+    line-height:1.75;
+  }
+  :root[data-lang="zh"] .mono,
+  :root[data-lang="zh"] .scope-word,
+  :root[data-lang="zh"] .scope-tag,
+  :root[data-lang="zh"] .outcome,
+  :root[data-lang="zh"] .step .number { font-family:var(--mono); }
+  :root[data-lang="zh"] .kicker { letter-spacing:.06em; }
+  :root[data-lang="zh"] .lens { grid-template-columns:172px minmax(0,1fr); }
+</style>
+</head>
+<body class="v-migrate a-approve">
+<div class="wrap">
+
+<header class="mast">
+  <div class="logo mono">why<span class="q">-not-</span>rust</div>
+  <div class="meta">
+    <span class="mono">zed-industries/zed</span><span>2026-08-02</span><span class="mono">method 2.0</span>
+    <button class="btn" onclick="document.documentElement.dataset.lang=document.documentElement.dataset.lang==='en'?'zh':'en'">EN / 中文</button>
+    <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'"><span data-l="en">light / dark</span><span data-l="zh">浅色 / 深色</span></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="kicker"><span data-l="en">Rust adoption decision</span><span data-l="zh">Rust 采用决策</span> · <span class="project"><span data-l="en">Rust · code editor plus its own GPU UI framework · 1,539,358 lines of Rust across 1,926 files</span><span data-l="zh">Rust · 代码编辑器加自研 GPU UI 框架 · 1,539,358 行 Rust，分布在 1,926 个文件里</span></span></div>
+  <div class="hero-grid">
+    <div>
+      <div class="scope-word">MIGRATE</div>
+      <div class="scope-sub"><span data-l="en">the deadline is measurable and the rewrite shipped; the mechanism is not the advertised one</span><span data-l="zh">截止时间可量，重写也交付了；起作用的机制不是宣传的那个</span></div>
+      <div class="auth"><i></i><span data-l="en">Authorization</span><span data-l="zh">授权</span> · APPROVE</div>
+      <p class="why"><span data-l="en">The deadline is in the source. crates/gpui/src/app/bench_context.rs:62 sets the benchmark harness&#x27;s default frame budget at 120fps, 8.33ms, and the harness reports how many budgets each frame blew. A collected runtime inside a DOM cannot promise that. The rewrite shipped anyway: 39,386 commits and 1,275 releases since February 2021. What Rust bought is narrower than the pitch. Leaving the web view bought the frame rate, and C++ would have bought it too. Rust bought 1,943 spawn sites a compiler checks, and 776 of 1,111 unsafe blocks parked in eleven gpui* crates instead of spread through 1.5M lines.</span><span data-l="zh">截止时间就写在代码里。crates/gpui/src/app/bench_context.rs:62 把 benchmark 的默认帧预算设成 120fps，也就是 8.33ms，跑完还报出每帧超了几个预算。带 GC 的运行时套在 DOM 上，给不出这个承诺。这次重写确实交付了：2021 年 2 月至今 39,386 次提交、1,275 个 release。但 Rust 买到的东西比宣传里窄。帧率是靠离开 web view 拿到的，换 C++ 一样拿得到。Rust 买到的是 1,943 处 spawn 有编译器盯着，以及 1,111 个 unsafe 块里的 776 个关在十一个 gpui* crate 内，没散进 150 万行。</span></p>
+      <p class="trigger"><span data-l="en">Stable for Zed. It does not transfer by itself. Copy the decision only if you can name a per-frame deadline the way bench_context.rs:62 does, and only if no old product has to stay alive. Zed&#x27;s delivery gate passed partly on situation: Atom was archived rather than migrated, so there was no ABI, no data format and no extension ecosystem to preserve. Change either condition and the scope drops below MIGRATE.</span><span data-l="zh">对 Zed 本身，结论稳定。但它不会自动搬到别处。要照抄这个决定，前提是你能像 bench_context.rs:62 那样把逐帧截止时间说成一个数，而且没有旧产品需要继续养着。Zed 的交付门有一半是靠处境过的：Atom 是归档而不是迁移，所以没有 ABI、没有数据格式、没有插件生态要保。这两条里改掉任何一条，范围就掉到 MIGRATE 以下。</span></p>
+      <div class="chips">
+        <span class="scope"><span data-l="en">Scope</span><span data-l="zh">范围</span> <b><span data-l="en">rebuild the editor in Rust on a purpose-built GPU UI framework</span><span data-l="zh">用 Rust 重建编辑器，配一套专门写的 GPU UI 框架</span></b></span>
+        <span><span data-l="en">Confidence</span><span data-l="zh">置信度</span> <b>MEDIUM</b></span>
+        <span><span data-l="en">Robustness</span><span data-l="zh">稳健性</span> <b>STABLE</b></span>
+        <span><span data-l="en">native-desktop-gui · editor with a per-frame input deadline and a hand-written renderer</span><span data-l="zh">原生桌面 GUI · 带逐帧输入截止时间的编辑器，渲染器自己写</span></span>
+      </div>
+    </div>
+    <aside class="gatebox">
+      <h2><span data-l="en">Four proof gates</span><span data-l="zh">四道证据门</span></h2>
+      <div class="gate"><span class="id mono">G1</span><div><div class="head"><span class="name"><span data-l="en">Requirement</span><span data-l="zh">需求</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">8.33ms per frame, written into the harness at bench_context.rs:62.</span><span data-l="zh">每帧 8.33ms，写死在 bench_context.rs:62 的脚手架里。</span></div></div></div>
+<div class="gate"><span class="id mono">G2</span><div><div class="head"><span class="name"><span data-l="en">Causality</span><span data-l="zh">因果</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">Threading a compiler checks, and unsafe kept in one place.</span><span data-l="zh">编译器能查的并发，加上 unsafe 只待在一个地方。</span></div></div></div>
+<div class="gate"><span class="id mono">G3</span><div><div class="head"><span class="name"><span data-l="en">Economics</span><span data-l="zh">经济性</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">127,694 lines of UI framework, because no Rust GUI existed.</span><span data-l="zh">127,694 行 UI 框架，因为当年没有现成的 Rust GUI。</span></div></div></div>
+<div class="gate"><span class="id mono">G4</span><div><div class="head"><span class="name"><span data-l="en">Delivery</span><span data-l="zh">交付</span></span><span class="state pass">PASS</span></div><div class="ev"><span data-l="en">39,386 commits, 1,275 releases, nothing to stay compatible with.</span><span data-l="zh">39,386 次提交，1,275 个 release，没有兼容性要背。</span></div></div></div>
+    </aside>
+  </div>
+</section>
+
+<div class="tiles">
+  <div class="tile"><div class="label"><span data-l="en">Frame budget</span><span data-l="zh">帧预算</span></div><div class="value mono">8.33<span class="unit"><span data-l="en">ms</span><span data-l="zh">ms</span></span></div><div class="note"><span data-l="en">crates/gpui/src/app/bench_context.rs:62 · DEFAULT_FPS = 120</span><span data-l="zh">crates/gpui/src/app/bench_context.rs:62 · DEFAULT_FPS = 120</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">UI framework written from nothing</span><span data-l="zh">从零写出来的 UI 框架</span></div><div class="value mono">127,694<span class="unit"><span data-l="en">lines</span><span data-l="zh">行</span></span></div><div class="note"><span data-l="en">eleven gpui* crates · 235 files · plus 4,050 lines of shaders</span><span data-l="zh">十一个 gpui* crate · 235 个文件 · 另有 4,050 行 shader</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">unsafe blocks at the OS and GPU boundary</span><span data-l="zh">落在 OS 与 GPU 边界上的 unsafe 块</span></div><div class="value mono">776<span class="unit"><span data-l="en">of 1,111</span><span data-l="zh">／共 1,111</span></span></div><div class="note"><span data-l="en">728 of them in the macOS and Windows backends alone</span><span data-l="zh">其中 728 个只在 macOS 和 Windows 两个后端里</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">First commit to first release</span><span data-l="zh">首个 commit 到首个 release</span></div><div class="value mono">108<span class="unit"><span data-l="en">days</span><span data-l="zh">天</span></span></div><div class="note"><span data-l="en">b400449 2021-02-20 → v0.1 2021-06-08 · GitHub API</span><span data-l="zh">b400449 2021-02-20 → v0.1 2021-06-08 · GitHub API</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Releases since</span><span data-l="zh">此后发出的 release</span></div><div class="value mono">1,275<span class="unit"><span data-l="en">releases</span><span data-l="zh">个</span></span></div><div class="note"><span data-l="en">39,386 commits · 9,444 of them in the last 365 days · GitHub API</span><span data-l="zh">39,386 次提交 · 其中 9,444 次在最近 365 天 · GitHub API</span></div></div>
+<div class="tile"><div class="label"><span data-l="en">Published decomposition of one frame</span><span data-l="zh">公开的单帧时间拆解</span></div><div class="value mono">0<span class="unit"><span data-l="en">artifacts</span><span data-l="zh">份</span></span></div><div class="note"><span data-l="en">why D2 stays UNKNOWN inside an APPROVE</span><span data-l="zh">APPROVE 里 D2 仍然记 UNKNOWN 的原因</span></div></div>
+</div>
+
+<section>
+  <h2 class="section-title"><span class="no">01</span><span data-l="en">The options</span><span data-l="zh">备选方案</span></h2>
+  <p class="sub"><span data-l="en">Every option is judged against one objective: hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running.</span><span data-l="zh">所有方案对着同一个目标：在三个桌面平台上，把编辑器的「输入到出帧」延迟压在 8.33ms 预算内，同时没有旧产品需要继续跑着。</span></p>
+  <div class="table-wrap"><table>
+    <thead><tr><th><span data-l="en">Option</span><span data-l="zh">方案</span></th><th><span data-l="en">Scope</span><span data-l="zh">范围</span></th><th><span data-l="en">Benefit</span><span data-l="zh">收益</span></th><th><span data-l="en">Cost</span><span data-l="zh">成本</span></th><th><span data-l="en">Time to value</span><span data-l="zh">见效时间</span></th><th><span data-l="en">Compatibility / rollback</span><span data-l="zh">兼容 / 回滚</span></th><th><span data-l="en">Evidence</span><span data-l="zh">证据</span></th></tr></thead>
+    <tbody>
+      <tr class="selected"><td><span class="option-name"><span data-l="en">Rust plus a purpose-built GPU UI framework</span><span data-l="zh">Rust 加一套专门写的 GPU UI 框架</span></span><span class="source"><span data-l="en">recommended · the only option that owns the whole frame</span><span data-l="zh">推荐 · 唯一把整帧握在自己手里的方案</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">budget met and instrumented in the shipped build</span><span data-l="zh">预算达成，且在发布版里带着测量</span></td><td><span data-l="en">127,694 lines of framework; three backends forever</span><span data-l="zh">框架 127,694 行；三套后端要养一辈子</span></td><td><span data-l="en">108 days to v0.1</span><span data-l="zh">到 v0.1 用了 108 天</span></td><td><span data-l="en">nothing to preserve · no rollback needed</span><span data-l="zh">没有东西要保 · 也不需要回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Stay on Electron and optimise the architecture</span><span data-l="zh">留在 Electron，改架构去优化</span></span><span class="source"><span data-l="en">retain · VS Code funded this and won a market with it</span><span data-l="zh">保留 · VS Code 走的就是这条，而且赢下了市场</span></span></td><td><span class="scope-tag">STAY</span></td><td><span data-l="en">large gains available; the 8.33ms budget is not among them</span><span data-l="zh">能拿到的收益不小；8.33ms 预算不在其中</span></td><td><span data-l="en">cheapest by far; the DOM stays yours to route around</span><span data-l="zh">成本最低；但 DOM 只能绕，不能改</span></td><td><span data-l="en">per release</span><span data-l="zh">随版本发布</span></td><td><span data-l="en">full · git revert</span><span data-l="zh">完全兼容 · git revert</span></td><td><span class="ev-tag strong">STRONG</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Rust kernel behind N-API, DOM UI kept</span><span data-l="zh">Rust 内核藏在 N-API 后面，UI 继续用 DOM</span></span><span class="source"><span data-l="en">retain · the smallest Rust scope, aimed at the wrong layer</span><span data-l="zh">保留 · 最小的 Rust 范围，但打在错误的层</span></span></td><td><span class="scope-tag">EXTRACT</span></td><td><span data-l="en">helps the rope and the parser; leaves layout and paint where they were</span><span data-l="zh">对 rope 和解析器有用；布局和绘制原地不动</span></td><td><span data-l="en">small; boundary tax lands on every keystroke</span><span data-l="zh">投入小；边界税落在每次按键上</span></td><td><span data-l="en">months</span><span data-l="zh">数月</span></td><td><span data-l="en">internal API · build-flag rollback</span><span data-l="zh">只动内部 API · 构建开关回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class=""><td><span class="option-name"><span data-l="en">Native rewrite in C++ on an existing toolkit</span><span data-l="zh">用 C++ 在现成工具包上做原生重写</span></span><span class="source"><span data-l="en">retain · this is what G2 has to beat, and it only loses on two lenses</span><span data-l="zh">保留 · G2 要赢的是它，而它只在两条维度上输</span></span></td><td><span class="scope-tag">MIGRATE</span></td><td><span data-l="en">same frame budget; Sublime Text shipped this shape years earlier</span><span data-l="zh">同样的帧预算；Sublime Text 多年前就做出来了</span></td><td><span data-l="en">similar rewrite; whole tree becomes the unsafe surface</span><span data-l="zh">重写量相近；整棵树都变成 unsafe 面</span></td><td><span data-l="en">comparable</span><span data-l="zh">相当</span></td><td><span data-l="en">nothing to preserve · no rollback</span><span data-l="zh">没有东西要保 · 无回滚</span></td><td><span class="ev-tag moderate">MODERATE</span></td></tr>
+<tr class="excluded"><td><span class="option-name"><span data-l="en">Adopt an existing native UI toolkit</span><span data-l="zh">直接采用现成的原生 UI 工具包</span></span><span class="source"><span data-l="en">exclude · GPUI rasterises its own glyphs; a toolkit will not</span><span data-l="zh">排除 · GPUI 自己栅格化字形，工具包不会替你做</span></span></td><td><span class="scope-tag">ADOPT</span></td><td><span data-l="en">solves the chrome; the text surface is the product</span><span data-l="zh">解决外壳；但产品本体是文本那一面</span></td><td><span data-l="en">low to start; the editor view still has to be written</span><span data-l="zh">起步便宜；编辑器视图照样得自己写</span></td><td><span data-l="en">weeks to a window</span><span data-l="zh">几周能出个窗口</span></td><td><span data-l="en">toolkit&#x27;s matrix · swap the toolkit</span><span data-l="zh">跟着工具包的平台矩阵 · 换掉即可</span></td><td><span class="ev-tag weak">WEAK</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">02</span><span data-l="en">Evidence ledger</span><span data-l="zh">证据账本</span></h2>
+  <p class="sub"><span data-l="en">Each state is scoped to named options and none of them add up to a score. Two performance lenses sit at UNKNOWN even though the verdict is APPROVE: the requirement is written down, the frame it applies to has never been decomposed in public.</span><span data-l="zh">每条状态都绑到具体方案上，加起来也不构成分数。有两条性能维度停在 UNKNOWN，尽管结论是 APPROVE：需求写下来了，但那一帧的时间去向从来没有公开拆过。</span></p>
+  <div class="ledger">
+    <div class="lens"><div><div class="name">D1 · <span data-l="en">Requirement &amp; ownership</span><span data-l="zh">需求与归属</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · native options</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">The requirement is a per-frame deadline and it is written into code, not a blog post. bench_context.rs:62 puts the default budget at 120fps. input_latency_ui.rs:327 ships the same thresholds to users. window.rs:1592 caps the rate under thermal pressure. Every option that compiles to native code can attack this; Rust is not singled out here.</span><span data-l="zh">需求是一个逐帧截止时间，而且写进了代码，不是写在博客上。bench_context.rs:62 把默认预算定在 120fps，input_latency_ui.rs:327 把同一组阈值发给用户，window.rs:1592 在热压力下降帧。任何编译成原生代码的方案都能打这个目标，这一条不专属 Rust。</span></div><div class="source mono">crates/gpui/src/app/bench_context.rs:62 · crates/input_latency_ui/src/input_latency_ui.rs:327 · crates/gpui/src/window.rs:1592</div></div></div>
+<div class="lens"><div><div class="name">D2 · <span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-gpui</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">No Amdahl figure appears here and none should. A deadline is not a speedup ratio, so the calculator has nothing to work on. What is missing is narrower and more useful: nobody has published a split of one 8.33ms frame into layout, glyph rasterisation, scene building, GPU submit and compositor wait. The tooling for it is in the tree.</span><span data-l="zh">这里没有 Amdahl 数字，也不该有。截止时间不是加速比，计算器没东西可算。缺的是另一样更有用的：没有人公开把一帧 8.33ms 拆成布局、字形栅格化、场景构建、GPU 提交和合成器等待。做这件事的工具就在仓库里。</span></div><div class="source mono">docs/src/performance.md (135 lines) · 13 [[bench]] targets · no published frame decomposition</div></div></div>
+<div class="lens"><div><div class="name">D3 · <span data-l="en">Tail &amp; runtime</span><span data-l="zh">尾延迟与运行时</span></div><div class="tags"><span class="dir-tag current">SUPPORTS · rust-gpui, cpp-native</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">An 8.33ms window has no room for a collector pause, and the baseline had one. This is the clearest mechanism in the whole case. It is also the least Rust-specific: any compiled stack without a managed runtime removes it. C++ ties on this lens.</span><span data-l="zh">8.33ms 的窗口塞不进一次 GC 停顿，而基线里有。这是整个案子里机制最清楚的一条，也是最不专属 Rust 的一条：任何没有托管运行时的编译型栈都能去掉它。这条上 C++ 打平。</span></div><div class="source mono">crates/gpui/src/window.rs:1592 frame pacer · no collector in either candidate</div></div></div>
+<div class="lens"><div><div class="name">D4 · <span data-l="en">Fleet footprint</span><span data-l="zh">内存占用</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · stay-electron, rust-gpui</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">Electron carries a Chromium baseline that a native binary does not. That is the usual argument and this repository does not settle it. No steady-state resident-memory or CPU comparison against a current Electron editor appears anywhere in the tree.</span><span data-l="zh">Electron 背着一份 Chromium 底子，原生二进制没有。常见论证就是这个，而这个仓库结不了它。树里找不到任何跟当代 Electron 编辑器对比的稳态内存或 CPU 数据。</span></div><div class="source mono">no footprint comparison in the repository</div></div></div>
+<div class="lens"><div><div class="name">D5 · <span data-l="en">Startup shape</span><span data-l="zh">启动形态</span></div><div class="tags"><span class="dir-tag unknown">UNKNOWN · rust-gpui, stay-electron</span><span class="ev-tag unknown">UNKNOWN</span></div></div><div><div class="claim"><span data-l="en">Atom&#x27;s headline complaint was boot time, so this lens matters more than it usually does for a desktop app. Zed instruments startup at crates/zed/src/main.rs:198 and feeds it to hang detection and telemetry. No decomposition of boot into runtime init, I/O and useful work is published. Atom&#x27;s cost is widely attributed to eager module loading, which VS Code attacked inside Electron.</span><span data-l="zh">Atom 最出名的抱怨是启动慢，所以这条比一般桌面应用重要。Zed 在 crates/zed/src/main.rs:198 记了启动时间，接到 hang 检测和 telemetry 上。但没有公开把启动拆成运行时初始化、I/O 和有效工作。Atom 那笔开销普遍被归给模块的急加载，而 VS Code 是在 Electron 内部解决的。</span></div><div class="source mono">crates/zed/src/main.rs:198 STARTUP_TIME · no published boot decomposition</div></div></div>
+<div class="lens"><div><div class="name">D6 · <span data-l="en">Safety &amp; correctness</span><span data-l="zh">安全与正确性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-gpui</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Against the baseline there is no memory-safety prize to win, because JavaScript was already safe. Against C++ there is: 1,111 unsafe { blocks are declared and 776 of them sit in the eleven gpui* crates, 728 in the macOS and Windows backends alone. The rest of the tree is checked. The residue is C — 24 tree-sitter packages and 47 -sys crates in Cargo.lock, and Cargo.toml:856 pins a fork carrying a serialize() buffer-overflow fix.</span><span data-l="zh">跟基线比，内存安全这块没奖可拿，因为 JavaScript 本来就是安全的。跟 C++ 比就有：1,111 个 unsafe 块是显式声明的，776 个在十一个 gpui* crate 里，光 macOS 和 Windows 后端就占 728 个，剩下的树是被检查过的。残留是 C——Cargo.lock 里 24 个 tree-sitter 包、47 个 -sys crate，而 Cargo.toml:856 钉的是一个带 serialize() 缓冲区溢出修复的 fork。</span></div><div class="source mono">1,111 occurrences of `unsafe {` across *.rs · 776 in crates/gpui and crates/gpui_* · Cargo.toml:856</div></div></div>
+<div class="lens"><div><div class="name">D7 · <span data-l="en">Concurrency &amp; invariants</span><span data-l="zh">并发与不变量</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-gpui</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The whole design is &#x27;keep the foreground thread under the deadline by moving everything else off it&#x27;. There are 1,943 cx.spawn and cx.background_spawn call sites across 426 files. 4,734 #[gpui::test] cases run on a deterministic scheduler, and 215 of them re-run under explicit seed iterations to search interleavings. This is the one lens where Rust beats the C++ option on evidence rather than on taste.</span><span data-l="zh">整套设计就是「把别的活挪走，让前台线程留在截止时间内」。cx.spawn 和 cx.background_spawn 共 1,943 处，分布在 426 个文件。4,734 个 #[gpui::test] 跑在确定性调度器上，其中 215 个用显式 seed 迭代反复搜交错。这是唯一一条 Rust 靠证据而不是靠口味赢过 C++ 方案的维度。</span></div><div class="source mono">1,489 `cx.spawn` + 454 `cx.background_spawn` across 426 files · 4,734 `#[gpui::test]` · 215 with `iterations =`</div></div></div>
+<div class="lens"><div><div class="name">D8 · <span data-l="en">Distribution &amp; embedding</span><span data-l="zh">分发与嵌入</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-gpui</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">Atom ran extensions in-process as JavaScript. Zed runs them as WebAssembly under wasmtime 36, against 77 versioned .wit interface files. That is a Rust-ecosystem asset doing real architectural work, and it is a different answer to the problem Atom&#x27;s extension model created.</span><span data-l="zh">Atom 的插件是进程内的 JavaScript。Zed 把插件跑成 WebAssembly，宿主是 wasmtime 36，接口是 77 个带版本的 .wit 文件。这是 Rust 生态里一个真的在承重的资产，也是对 Atom 插件模型那个问题的另一种答法。</span></div><div class="source mono">Cargo.toml:880 wasmtime = 36 · 77 tracked *.wit files · crates/extension_host (10,341 lines)</div></div></div>
+<div class="lens"><div><div class="name">D9 · <span data-l="en">Ecosystem &amp; alternatives</span><span data-l="zh">生态与替代品</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-gpui</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">In 2021 Rust had no GUI framework that could hold this budget, so they wrote one. The bill is 127,694 lines across 235 files, 4,050 lines of Metal, HLSL and WGSL shaders, eight GPU primitive types at scene.rs:222, a glyph rasteriser and atlas, and 776 unsafe blocks of platform glue. C++ would have had Qt or Skia off the shelf. This lens counts against the option that was chosen.</span><span data-l="zh">2021 年的 Rust 没有能撑住这个预算的 GUI 框架，所以他们自己写了一套。账单是 235 个文件、127,694 行，加 4,050 行 Metal、HLSL、WGSL shader，scene.rs:222 里八种 GPU 图元，一套字形栅格化和图集，以及 776 个平台胶水的 unsafe 块。C++ 那边 Qt 或 Skia 现成就有。这一条是记在被选方案头上的负号。</span></div><div class="source mono">127,694 lines across 235 files in crates/gpui and crates/gpui_* · 4,050 lines of *.metal/*.hlsl/*.wgsl · crates/gpui/src/scene.rs:222</div></div></div>
+<div class="lens"><div><div class="name">D10 · <span data-l="en">Boundary &amp; compatibility</span><span data-l="zh">边界与兼容</span></div><div class="tags"><span class="dir-tag rust">DISFAVORS · rust-kernel-electron</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">The cheap Rust option puts a kernel behind N-API and keeps the DOM. The deadline does not live behind that seam. It lives in layout, glyph raster and scene submission — the exact stretch GPUI owns and a web view does not hand over. VS Code ran this experiment with a native text buffer and reverted it.</span><span data-l="zh">便宜那个 Rust 方案是把内核塞到 N-API 后面，UI 继续用 DOM。截止时间不在那条接缝后面，它在布局、字形栅格化和场景提交里，正好是 GPUI 自己握着、而 web view 不会交出来的那一段。VS Code 拿原生文本缓冲做过这个实验，后来回退了。</span></div><div class="source mono">crates/gpui/src/scene.rs:222 (8 primitive types) · crates/gpui/src/text_system.rs:336 · crates/editor/src/element.rs (12,510 lines)</div></div></div>
+<div class="lens"><div><div class="name">D11 · <span data-l="en">Delivery economics</span><span data-l="zh">交付经济性</span></div><div class="tags"><span class="dir-tag rust">SUPPORTS · rust-gpui</span><span class="ev-tag strong">STRONG</span></div></div><div><div class="claim"><span data-l="en">This is the lens most rewrites fail, and Zed passes it on shipping evidence. First commit 2021-02-20, v0.1 released 108 days later, 1,275 releases since, 39,386 commits, 9,444 of them in the last 365 days and 624 in the last 30. Three platforms. The 1.5M line figure overstates the bill: 230,346 lines sit in test and fixture paths and 262,512 belong to the agent stack built in 2024-26.</span><span data-l="zh">多数重写死在这条上，Zed 是靠已经交付的证据过的。首个 commit 2021-02-20，108 天后发 v0.1，此后 1,275 个 release、39,386 次提交，最近 365 天 9,444 次、最近 30 天 624 次，三个平台。150 万行这个数字把账单说大了：230,346 行在测试和 fixture 路径里，262,512 行属于 2024-26 年才建的 agent 栈。</span></div><div class="source mono">GitHub API repos/zed-industries/zed · 121 files / 230,346 lines in test and fixture paths · 262,512 lines in the agent crates</div></div></div>
+<div class="lens"><div><div class="name">D12 · <span data-l="en">Counterfactual</span><span data-l="zh">对照方案</span></div><div class="tags"><span class="dir-tag neutral">NEUTRAL · rust-gpui, cpp-native</span><span class="ev-tag moderate">MODERATE</span></div></div><div><div class="claim"><span data-l="en">On the frame budget the two native options tie, and Sublime Text shipped the C++ version of this answer long before Rust was an option. Anyone crediting Rust for Zed&#x27;s frame rate is crediting the wrong variable. The split shows up at D6 and D7 instead, and nowhere else.</span><span data-l="zh">在帧预算上，两个原生方案打平，而 Sublime Text 在 Rust 还不是选项的年代就交付了 C++ 版的这个答案。把 Zed 的帧率记在 Rust 头上，记错了变量。真正分开的地方在 D6 和 D7，别处没有。</span></div><div class="source mono">case-library.md Zed entry attribution note · D3, D6, D7 in this ledger</div></div></div>
+  </div>
+  <p class="sub"><span data-l="en">No lens is N/A here. D4 footprint and D5 startup would be the candidates, and both are recorded UNKNOWN instead. They bear on the decision and the repository does not measure them.</span><span data-l="zh">这里没有 N/A。最接近的是 D4 内存占用和 D5 启动，两条都记成了 UNKNOWN。它们跟决策有关，而仓库里没有测量。</span></p>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">03</span><span data-l="en">What decided it</span><span data-l="zh">决定性证据</span></h2>
+  <div class="cards">
+    <div class="card current"><h3><span data-l="en">The 8.33ms budget is a constant, not a slogan</span><span data-l="zh">8.33ms 预算是个常量，不是口号</span></h3><p><span data-l="en">crates/gpui/src/app/bench_context.rs:62 reads `const DEFAULT_FPS: u64 = 120;`. The harness turns that into a per-frame budget and prints how many budgets each frame overran, from HDR histograms at p50, p90, p95, p99 and max. The same thresholds ship to users: input_latency_ui.rs:327 buckets input-to-frame latency at 0-4ms, 4-8ms labelled 120fps, 8-16ms labelled 60fps, and up to a 100ms+ bucket labelled sluggish. This is what separates the case from a superlative in a README.</span><span data-l="zh">crates/gpui/src/app/bench_context.rs:62 写的是 `const DEFAULT_FPS: u64 = 120;`。脚手架把它换成每帧预算，再打印每帧超了几个预算，数据来自 HDR 直方图的 p50、p90、p95、p99 和最大值。同一组阈值也发给用户：input_latency_ui.rs:327 把输入到出帧的延迟分成 0-4ms、标着 120fps 的 4-8ms、标着 60fps 的 8-16ms，一直到标着 sluggish 的 100ms 以上。这就是它跟 README 里一句形容词的区别。</span></p><span class="ref mono">crates/gpui/src/app/bench_context.rs:62 · crates/input_latency_ui/src/input_latency_ui.rs:327</span></div>
+<div class="card current"><h3><span data-l="en">Rust did not buy the frame rate. Leaving the web view did.</span><span data-l="zh">帧率不是 Rust 买来的，是离开 web view 买来的。</span></h3><p><span data-l="en">Removing a collector from an 8.33ms window is the mechanism, and it belongs to &#x27;compiled native&#x27;, not to &#x27;Rust&#x27;. Sublime Text shipped that answer in C++ years earlier. What Rust contributes shows up in two places instead: 1,943 cx.spawn and cx.background_spawn sites across 426 files that a compiler type-checks, and 776 of 1,111 unsafe blocks confined to eleven gpui* crates while the other 1.4M lines stay checked. Attribute the speed to the architecture and the safety of the architecture to the language.</span><span data-l="zh">把 GC 从 8.33ms 窗口里拿掉，机制是这个，而它属于「编译型原生」，不属于「Rust」。Sublime Text 多年前就用 C++ 交付了这个答案。Rust 的贡献落在另外两处：426 个文件里 1,943 处 cx.spawn 和 cx.background_spawn 由编译器做类型检查；1,111 个 unsafe 块里 776 个关在十一个 gpui* crate 内，剩下 140 万行保持被检查。速度记给架构，架构的安全记给语言。</span></p><span class="ref mono">1,489 `cx.spawn` + 454 `cx.background_spawn` · 776 of 1,111 `unsafe {` in crates/gpui, crates/gpui_*</span></div>
+<div class="card current"><h3><span data-l="en">They wrote 127,694 lines of UI framework because there wasn&#x27;t one</span><span data-l="zh">他们写了 127,694 行 UI 框架，因为当时没有</span></h3><p><span data-l="en">The eleven gpui* crates are 127,694 lines across 235 files, plus 4,050 lines of Metal, HLSL and WGSL. scene.rs:222 defines eight GPU primitive types; text_system.rs:336 rasterises glyphs into an atlas Zed owns. A C++ team would have started from Qt or Skia. This is the cost of choosing a language whose GUI ecosystem was not ready, and it is the one lens in this ledger that argues against the option that was picked.</span><span data-l="zh">十一个 gpui* crate 共 235 个文件、127,694 行，另加 4,050 行 Metal、HLSL 和 WGSL。scene.rs:222 定义了八种 GPU 图元；text_system.rs:336 把字形栅格化进 Zed 自己管的图集。C++ 团队会从 Qt 或 Skia 起步。这是选了一门 GUI 生态还没准备好的语言要付的钱，也是这本账里唯一一条不利于被选方案的维度。</span></p><span class="ref mono">crates/gpui + crates/gpui_* · 127,694 lines / 235 files · crates/gpui/src/scene.rs:222</span></div>
+<div class="card current"><h3><span data-l="en">Rust top to bottom stops at the parser</span><span data-l="zh">Rust 从头到尾，到解析器就停了</span></h3><p><span data-l="en">Cargo.lock carries 24 tree-sitter packages and 47 -sys crates. The tree-sitter grammars are generated C, they compile into the binary, and they parse whatever file you open. Cargo.toml:856 pins a Zed fork of tree-sitter-markdown described in the manifest as carrying a `serialize()` buffer-overflow fix. The memory-unsafety class did not leave the code path where an editor meets untrusted input.</span><span data-l="zh">Cargo.lock 里有 24 个 tree-sitter 包和 47 个 -sys crate。tree-sitter 的语法是生成出来的 C，会编进二进制，解析的是你打开的任何文件。Cargo.toml:856 钉的是 Zed 自己 fork 的 tree-sitter-markdown，manifest 里写明它带一个 `serialize()` 缓冲区溢出修复。在编辑器接触不可信输入的那条路径上，内存不安全这个缺陷类没有离开。</span></p><span class="ref mono">Cargo.toml:856 · 24 tree-sitter packages and 47 -sys crates in Cargo.lock</span></div>
+<div class="card unknown"><h3><span data-l="en">Nobody has published where the 8.33ms goes</span><span data-l="zh">没有人公开过这 8.33ms 花在哪</span></h3><p><span data-l="en">docs/src/performance.md is 135 lines of internal procedure: samply flamecharts, Tracy spans, a built-in `zed open performance profiler`, and a `warn_if_gt` timer. The instruments exist. The artifact does not. No public decomposition splits one frame into layout, glyph raster, scene build, GPU submit and compositor wait, so D2 stays UNKNOWN inside an APPROVE. The requirement is proven; the share Zed&#x27;s own code owns is not.</span><span data-l="zh">docs/src/performance.md 是 135 行内部流程：samply 火焰图、Tracy span、内置的 `zed open performance profiler`，还有一个 `warn_if_gt` 计时器。仪器都在，产出物没有。没有一份公开材料把一帧拆成布局、字形栅格化、场景构建、GPU 提交和合成器等待，所以 D2 在 APPROVE 里仍然是 UNKNOWN。需求成立；Zed 自己代码占多少，没有。</span></p><span class="ref mono">docs/src/performance.md (135 lines) · no published frame decomposition</span></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">04</span><span data-l="en">What Rust buys here, and what it doesn&#x27;t</span><span data-l="zh">Rust 在这里买得到什么，买不到什么</span></h2>
+  <div class="duo">
+    <div class="col"><h3><i style="background:var(--rust)"></i><span data-l="en">Buys</span><span data-l="zh">买得到</span></h3><ul>
+      <li><b><span data-l="en">A tail with no collector in it</span><span data-l="zh">尾延迟里没有 GC</span></b> — <span data-l="en">an 8.33ms window has no room for a stop-the-world pause. Removing the managed runtime is the mechanism, and C++ would have removed it too.</span><span data-l="zh">8.33ms 的窗口塞不下一次 stop-the-world。去掉托管运行时就是那个机制，换 C++ 也照样能去掉。</span></li><li><b><span data-l="en">Threading at a scale you can check</span><span data-l="zh">并发规模大到需要有人替你查</span></b> — <span data-l="en">1,943 spawn sites across 426 files, with Send and Sync doing the checking, plus 4,734 deterministic-scheduler tests and 215 of them re-run across seeds. This is the part C++ does not match.</span><span data-l="zh">426 个文件里 1,943 处 spawn，靠 Send 和 Sync 把关，再加 4,734 个确定性调度器测试，其中 215 个跨 seed 反复跑。这块 C++ 跟不上。</span></li><li><b><span data-l="en">unsafe with an address</span><span data-l="zh">unsafe 有固定住址</span></b> — <span data-l="en">776 of 1,111 blocks live in eleven gpui* crates and 728 in two OS backends. Audit that surface and you have audited the surface.</span><span data-l="zh">1,111 个块里 776 个住在十一个 gpui* crate，728 个在两个 OS 后端。审完那一片，就是审完了全部。</span></li><li><b><span data-l="en">A sandbox for the thing that killed Atom</span><span data-l="zh">给当年拖垮 Atom 的那部分套上沙箱</span></b> — <span data-l="en">extensions run as WebAssembly under wasmtime 36 against 77 versioned .wit files, instead of in-process script.</span><span data-l="zh">插件跑成 WebAssembly，宿主 wasmtime 36，对着 77 个带版本的 .wit 文件，而不是进程内脚本。</span></li>
+    </ul></div>
+    <div class="col"><h3><i style="background:var(--blue)"></i><span data-l="en">Doesn&#x27;t buy</span><span data-l="zh">买不到</span></h3><ul>
+      <li><b><span data-l="en">Credit for the frame rate</span><span data-l="zh">帧率的功劳</span></b> — <span data-l="en">that belongs to compiled native code and to a renderer Zed controls. Sublime Text made the point in C++ before Rust was a candidate.</span><span data-l="zh">那份功劳属于编译型原生代码和一个 Zed 自己控制的渲染器。Sublime Text 在 Rust 还不是候选之前就用 C++ 证明过了。</span></li><li><b><span data-l="en">Memory safety relative to what they left</span><span data-l="zh">相对他们离开的东西谈内存安全</span></b> — <span data-l="en">Atom was JavaScript. The baseline was already safe, so the safety gain is against the C++ alternative, not against the incumbent.</span><span data-l="zh">Atom 是 JavaScript，基线本来就安全。所以安全上的收益是相对 C++ 那个替代方案，不是相对原来那个。</span></li><li><b><span data-l="en">Escape from C at the parser</span><span data-l="zh">在解析器那里摆脱 C</span></b> — <span data-l="en">24 tree-sitter packages and 47 -sys crates compile in, and one grammar is pinned to a fork for a buffer-overflow fix.</span><span data-l="zh">24 个 tree-sitter 包和 47 个 -sys crate 会编进来，而且有一个语法被钉在带缓冲区溢出修复的 fork 上。</span></li><li><b><span data-l="en">A GUI framework</span><span data-l="zh">一套 GUI 框架</span></b> — <span data-l="en">in 2021 Rust had none that held this budget. 127,694 lines and 4,050 lines of shaders are the invoice for that gap.</span><span data-l="zh">2021 年的 Rust 没有能撑住这个预算的框架。127,694 行代码加 4,050 行 shader 就是这个缺口的账单。</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- OPTIONAL: drop this section in quick mode -->
+<section>
+  <h2 class="section-title"><span class="no">05</span><span data-l="en">Who has done this before</span><span data-l="zh">同型先例</span></h2>
+  <div class="precedents">
+    <article class="precedent"><div class="top"><h3>Microsoft · VS Code</h3><span class="outcome">STAYED</span></div><p><span data-l="en">The same product category, the same Electron baseline, the opposite decision. Their native text buffer attempt got reverted: &#x27;TL;DR: We tried. It didn&#x27;t work out for us&#x27; — converting between the native representation and V8 ate the gain, and a better TypeScript data structure fixed it. Perceived speed came from extension-host isolation, lazy activation, virtualised lists and V8 snapshots. Architecture carried the product, in the incumbent language.</span><span data-l="zh">同一个产品品类、同一条 Electron 基线、相反的决定。他们试过原生文本缓冲，后来回退了：&#x27;TL;DR: We tried. It didn&#x27;t work out for us&#x27;——原生表示和 V8 之间的转换把收益吃掉了，最后靠一个更好的 TypeScript 数据结构解决。用户感知的速度来自扩展宿主隔离、懒激活、虚拟化列表和 V8 快照。是架构撑起了产品，语言没换。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">code editor, Electron baseline, perceived-speed objective — the exact counterfactual for stay-electron</span><span data-l="zh">代码编辑器、Electron 基线、以感知速度为目标——正好是 stay-electron 的对照</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">VS Code never adopted a per-frame deadline, so it was never held to Zed&#x27;s requirement</span><span data-l="zh">VS Code 从来没接受逐帧截止时间这个约束，所以从没被按 Zed 的需求要求过</span></div><a class="ref mono" href="https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Amazon · Prime Video living-room UI</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">A steady-60fps goal met by putting a Rust and WASM core under a React UI. 37K lines of Rust after about a year; the WASM VM added up to 7.5MB while saving 30MB of JS heap. The business logic stayed JavaScript because the seam was coarse enough to hold. This is the hybrid option Zed did not take, working, on constrained hardware.</span><span data-l="zh">目标是稳定 60fps，做法是在 React UI 下面塞一个 Rust + WASM 内核。一年左右写了 3.7 万行 Rust；WASM 虚拟机最多加 7.5MB，同时省下 30MB 的 JS 堆。业务逻辑留在 JavaScript，因为那条接缝够粗，撑得住。这就是 Zed 没走的那个混合方案，在受限硬件上跑通了。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">a hard frame-rate goal on a UI, met by a native core under a scripting layer</span><span data-l="zh">UI 上有硬帧率目标，靠脚本层下面的原生内核达成</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">a TV client SDK with a coarse seam; Zed&#x27;s deadline sits in the paint path, which no seam isolates</span><span data-l="zh">那是接缝很粗的电视客户端 SDK；Zed 的截止时间在绘制路径上，没有接缝能隔开</span></div><a class="ref mono" href="https://www.amazon.science/blog/how-prime-video-updates-its-app-for-more-than-8-000-device-types">first-party · engineering blog</a></article>
+<article class="precedent"><div class="top"><h3>Tauri on Linux · WebKitGTK</h3><span class="outcome">STAYED</span></div><p><span data-l="en">The &#x27;just use the system webview&#x27; answer, audited. Tauri&#x27;s own maintainers wrote that they cannot fully recommend Tauri on Linux and that WebKitGTK is getting worse each release; one app measured 40fps on WebKitGTK against 240fps after converting to Electron. A smaller installer is not a frame budget. If the rendering engine is not yours, neither is the deadline.</span><span data-l="zh">「直接用系统 webview」这个答案，被审过了。Tauri 自己的维护者写道，现阶段无法完全推荐在 Linux 上用 Tauri，WebKitGTK 每个版本都在变差；有个应用实测在 WebKitGTK 上 40fps，改成 Electron 后 240fps。安装包更小不等于帧预算。渲染引擎不是你的，截止时间也就不是你的。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">the cheap alternative to writing GPUI, on the same three-platform target</span><span data-l="zh">不写 GPUI 的那个便宜替代，目标平台也是同样三个</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Tauri is a Rust shell around someone else&#x27;s renderer; GPUI is the renderer</span><span data-l="zh">Tauri 是包在别人渲染器外面的 Rust 外壳；GPUI 本身就是渲染器</span></div><a class="ref mono" href="https://github.com/tauri-apps/tauri/discussions/8524">first-party maintainer · issue tracker</a></article>
+<article class="precedent"><div class="top"><h3>Alacritty · the fastest-terminal claim</h3><span class="outcome">MIGRATED</span></div><p><span data-l="en">A greenfield Rust plus OpenGL desktop app whose performance superlative failed audit. Dan Luu measured its latency mid-pack and called throughput dumps &#x27;as useless a benchmark as I can think of&#x27;. GPU throughput is not input latency. The reason Zed&#x27;s claim survives the same audit is that its metric is defined in code and reported in the shipped build.</span><span data-l="zh">一个全新写的 Rust + OpenGL 桌面应用，性能上的最高级形容词没过审计。Dan Luu 实测它的延迟只在中游，还说吞吐量转储是「我能想到最没用的 benchmark」。GPU 吞吐不是输入延迟。Zed 的说法能过同一道审计，是因为它的指标定义在代码里，而且发布版会报出来。</span></p><div class="match"><span data-l="en">matches</span><span data-l="zh">匹配</span>: <span data-l="en">greenfield Rust GPU-rendered desktop app making a latency claim — the failure mode G1 has to clear</span><span data-l="zh">全新写的 Rust GPU 渲染桌面应用，提延迟主张——G1 必须避开的正是这个失败模式</span> · <span data-l="en">differs</span><span data-l="zh">不匹配</span>: <span data-l="en">Alacritty defined no metric and shipped no harness; Zed defines both at bench_context.rs:62 and input_latency_ui.rs:327</span><span data-l="zh">Alacritty 没定义指标也没有脚手架；Zed 在 bench_context.rs:62 和 input_latency_ui.rs:327 两处都定义了</span></div><a class="ref mono" href="https://danluu.com/term-latency/">third-party · independent measurement</a></article>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">06</span><span data-l="en">What to do next</span><span data-l="zh">可逆路径</span></h2>
+  <div class="path">
+    <div class="step"><span class="number mono"></span><div><h3><span data-l="en">Write the deadline down before you name a language</span><span data-l="zh">先把截止时间写下来，再谈语言</span></h3><p><span data-l="en">Whoever wants the rewrite states the budget as a number and the percentile it must hold at. Zed&#x27;s version is one line: bench_context.rs:62. Put it in the code, wire a harness that reports overruns, and give it a name in the shipped build the way input_latency_ui.rs:327 does. If you cannot write the number down, stop here. You have a preference, not a requirement, and no gate in this method will pass on a preference. Nothing ships in this step.</span><span data-l="zh">想推重写的人先把预算写成一个数，并说清它要在哪个分位上守住。Zed 的版本就一行：bench_context.rs:62。把它放进代码，接一个会报超预算的脚手架，再像 input_latency_ui.rs:327 那样在发布版里给它一个名字。写不出这个数就停在这里——你手上是偏好，不是需求，这套方法里没有哪道门会为偏好放行。这一步不发任何东西。</span></p></div><span class="cost"><span data-l="en">1 week</span><span data-l="zh">1 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Measure the stack you already have against it</span><span data-l="zh">先拿现有的栈去撞这个数</span></h3><p><span data-l="en">Instrument the current build and publish the histogram before proposing to replace it. Split the misses by cause: collector pauses, layout, paint, main-thread I/O. VS Code&#x27;s record is the warning here — process isolation, lazy activation and virtualised lists closed most of a similar gap without leaving TypeScript. If architecture inside the incumbent stack gets you under the budget, stop, and take the cheap win. Only instrumentation is added, so backing out is deleting it.</span><span data-l="zh">在提议替换之前，先给现有构建装上测量并把直方图发出来。把没达标的情况按原因拆开：GC 停顿、布局、绘制、主线程 I/O。VS Code 的记录是这里的警告——扩展宿主隔离、懒激活、虚拟化列表，在没离开 TypeScript 的情况下就补掉了类似的大半缺口。如果在原栈里改架构就能压进预算，那就停下，把这个便宜的收益拿走。这一步只加测量，撤销就是删掉它。</span></p></div><span class="cost"><span data-l="en">2–4 weeks</span><span data-l="zh">2–4 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Price the framework, not the application</span><span data-l="zh">算框架的钱，别算应用的钱</span></h3><p><span data-l="en">Inventory what your target language does not supply and cost each piece. Zed&#x27;s answer was 127,694 lines across 235 files, 4,050 lines of shaders, eight GPU primitive types, a glyph rasteriser and three platform backends holding 776 unsafe blocks. Renderer, text shaping, IME, accessibility and windowing all belong on that list. If an existing native toolkit covers them, adopt it and skip the framework entirely. The output is a document, so there is nothing to revert.</span><span data-l="zh">把目标语言里没有的东西列出来，逐项估价。Zed 的答案是 235 个文件、127,694 行，4,050 行 shader，八种 GPU 图元，一套字形栅格化，以及装着 776 个 unsafe 块的三个平台后端。渲染器、文本排版、IME、无障碍、窗口管理都得进这张单子。如果现成的原生工具包覆盖得了，就采用它，框架整块跳过。产出是一份文档，没有东西要回退。</span></p></div><span class="cost"><span data-l="en">2 weeks</span><span data-l="zh">2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Name everything that has to stay compatible</span><span data-l="zh">把所有必须保持兼容的东西点出来</span></h3><p><span data-l="en">Zed&#x27;s delivery gate passed partly because Atom was archived rather than migrated. No ABI, no data format, no extension ecosystem, no rollback anyone asked for. Write the equivalent list for your product: public API, on-disk format, plugin surface, user migration, and who owns each one. A long list with a product that must keep running caps the scope at PARTIAL, whatever the frame budget says. The current product carries on unchanged while this is written.</span><span data-l="zh">Zed 的交付门有一半是因为 Atom 被归档而不是迁移才过的：没有 ABI、没有数据格式、没有插件生态、也没人要回滚。给你的产品写一份对应清单：公开 API、磁盘格式、插件面、用户迁移，以及每一项归谁。清单很长而且旧产品必须继续跑，那不管帧预算怎么说，范围上限就是 PARTIAL。写这份东西的时候，现有产品原样继续。</span></p></div><span class="cost"><span data-l="en">1–2 weeks</span><span data-l="zh">1–2 周</span></span></div>
+<div class="step"><span class="number mono"></span><div><h3><span data-l="en">Keep the budget instrumented after you ship</span><span data-l="zh">发出去之后，测量别拆</span></h3><p><span data-l="en">A deadline you stop measuring is a deadline you stop meeting. Zed keeps the histogram in the product and flushes it through telemetry, which is why the requirement is still checkable five years on. Treat a percentile drifting above budget across a release as a regression with an owner, not as a cost of new features. The instrumentation is additive, so removing it is the rollback.</span><span data-l="zh">不再测量的截止时间，就是不再达成的截止时间。Zed 把直方图留在产品里，通过 telemetry 上报，所以五年后这个需求仍然可查。某个分位跨版本漂到预算之上，就当成有人负责的回归，不当成新功能的代价。测量是加法，回滚就是把它删掉。</span></p></div><span class="cost"><span data-l="en">ongoing</span><span data-l="zh">长期</span></span></div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">07</span><span data-l="en">Arguing both sides</span><span data-l="zh">对称反证</span></h2>
+  <div class="challenge-grid">
+    <div class="challenge-col"><h3><span data-l="en">Against migrating</span><span data-l="zh">反驳「迁移」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Attribution</span><span data-l="zh">归因</span></b> — <span data-l="en">The frame budget is a compiled-native effect, not a Rust effect. C++ removes the collector too, and Sublime Text shipped that answer first. The Rust-specific part is narrower: the concurrency check and the contained unsafe surface.</span><span data-l="zh">帧预算是编译型原生的效果，不是 Rust 的效果。C++ 一样能去掉 GC，Sublime Text 还更早交付了这个答案。属于 Rust 的那部分要窄得多：并发检查，和被圈住的 unsafe 面。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Baseline and regime</span><span data-l="zh">基线与工况</span></b> — <span data-l="en">The comparison people make is Zed against Atom. Atom was archived in January 2023 and never got the optimisation programme VS Code ran. Measuring against an abandoned 2015 Electron app flatters the result.</span><span data-l="zh">大家做的对比是 Zed 对 Atom。Atom 在 2023 年 1 月归档，从来没经历 VS Code 那套优化。拿一个 2015 年的、已经放弃的 Electron 应用当基线，结果自然好看。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">End-to-end reach</span><span data-l="zh">端到端影响面</span></b> — <span data-l="en">No published decomposition splits one 8.33ms frame into layout, glyph raster, scene build, GPU submit and compositor wait. D2 is UNKNOWN inside an APPROVE, and the report says so rather than filling the gap.</span><span data-l="zh">没有公开材料把一帧 8.33ms 拆成布局、字形栅格化、场景构建、GPU 提交和合成器等待。D2 在 APPROVE 里仍是 UNKNOWN，报告照实写，没有拿估算把缺口补上。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Omitted cost</span><span data-l="zh">被漏掉的成本</span></b> — <span data-l="en">127,694 lines of UI framework, 4,050 lines of shaders and 776 unsafe blocks of platform glue are the price of a 2021 Rust GUI ecosystem that could not hold the budget. That line item rarely appears in the retelling.</span><span data-l="zh">127,694 行 UI 框架、4,050 行 shader、776 个平台胶水的 unsafe 块，是 2021 年 Rust GUI 生态撑不住这个预算要付的钱。复述这个故事的时候，这一项通常不出现。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Delivery ownership</span><span data-l="zh">交付归属</span></b> — <span data-l="en">The scope shipped and stayed shipped. 39,386 commits, 1,275 releases, three platforms, and 624 commits in the last 30 days. This is not a stalled rewrite.</span><span data-l="zh">范围交付了，而且一直在交付。39,386 次提交、1,275 个 release、三个平台，最近 30 天 624 次提交。这不是一场停摆的重写。</span></div>
+    </div>
+    <div class="challenge-col"><h3><span data-l="en">Against staying</span><span data-l="zh">反驳「不动」</span></h3>
+      <div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Cost of inaction</span><span data-l="zh">不动的代价</span></b> — <span data-l="en">Staying was not a stable option, it was an ending one. GitHub archived Atom and the last push was 2023-01-03. Keeping a product on a stack whose vendor is winding it down is a cost, and the report counts it.</span><span data-l="zh">留下来不是一个稳定选项，是一个正在结束的选项。GitHub 把 Atom 归档了，最后一次推送是 2023-01-03。把产品留在一个上游正在收尾的栈上，本身就是成本，报告把它算进来了。</span></div>
+<div class="check"><span class="state unknown">HIT</span><b><span data-l="en">Endless optimise-first</span><span data-l="zh">无限期的「先优化」</span></b> — <span data-l="en">Optimising a DOM against a per-frame deadline has no end state an application team can reach, because layout and paint belong to the engine. Tauri&#x27;s Linux record shows what happens when the renderer is not yours.</span><span data-l="zh">拿 DOM 去撞逐帧截止时间，应用团队达不到终点，因为布局和绘制归引擎。Tauri 在 Linux 上的记录说明了渲染器不归自己时会发生什么。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Funded counterfactual</span><span data-l="zh">有人投入的对照方案</span></b> — <span data-l="en">VS Code is the funded Electron counterfactual and it won a market. The report keeps it retained with STRONG evidence and says plainly that it reaches everything except a per-frame deadline.</span><span data-l="zh">VS Code 就是那个有人投钱的 Electron 对照，而且它赢下了市场。报告把它保留为 STRONG 证据，并直说它除了逐帧截止时间之外什么都达得到。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Native-advantage denial</span><span data-l="zh">否认原生优势</span></b> — <span data-l="en">The report grants that a collector pause inside an 8.33ms window is a mechanism, not a talking point, and grades D3 as SUPPORTS for both native options.</span><span data-l="zh">报告承认 8.33ms 窗口里的一次 GC 停顿是机制，不是说辞，并把 D3 给两个原生方案都记成 SUPPORTS。</span></div>
+<div class="check"><span class="state pass">PASS</span><b><span data-l="en">Unsafe-surface omission</span><span data-l="zh">遗漏的不安全面</span></b> — <span data-l="en">The C surface is disclosed on the Rust side: 24 tree-sitter packages, 47 -sys crates, and a grammar pinned to a fork for a buffer-overflow fix at Cargo.toml:856.</span><span data-l="zh">Rust 这边的 C 面被披露了：24 个 tree-sitter 包、47 个 -sys crate，还有 Cargo.toml:856 那个为缓冲区溢出修复而钉住的语法 fork。</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2 class="section-title"><span class="no">08</span><span data-l="en">How this was produced</span><span data-l="zh">方法与记录</span></h2>
+  <div class="method"><h3><span data-l="en">zed-industries/zed at 90d024b · static read-only analysis · why-not-rust method 2.0</span><span data-l="zh">zed-industries/zed @ 90d024b · 静态只读分析 · why-not-rust 方法 2.0</span></h3><p><span data-l="en">Repository: github.com/zed-industries/zed at commit 90d024b88abc91264d9a0ad260eb4f365fa695c3, shallow clone, 4,235 tracked files, HEAD dated 2026-08-02. Scope: the editor and its UI framework assessed as one target, retrospectively — the decision under review is the one taken in 2021, not a proposal. Sampling: 1,539,358 lines of Rust across 1,926 files. On a general-purpose-source basis that is 1,539,358 of 1,556,319 lines, or 98.9%, the remainder being 13,682 lines of Python, 1,186 of JavaScript, 1,137 of PowerShell, 835 of shell, 116 of TypeScript and one 5-line Objective-C bridging header at crates/media/src/bindings.h. Shader source is counted separately: 4,050 lines of Metal, HLSL and WGSL. Tree-sitter query files (.scm, 9,140 lines) and WIT interface files (.wit, 4,017 lines) are excluded from that basis as neither is a general-purpose language. The eleven gpui* crates are 127,694 lines across 235 files. 230,346 lines across 121 files sit in test or fixture paths, and 784 inline #[cfg(test)] modules are not separated out, so the product-code figure is lower than 1.3M; the largest single .rs file in the tree is a test file, crates/editor/src/editor_tests.rs at 42,718 lines, and the second largest is a 21,343-line eval fixture. 262,512 lines belong to the 2024-26 agent crates. 1,111 occurrences of `unsafe {` were counted across *.rs with comments included; 776 are in crates/gpui and crates/gpui_*, 728 of those in the macOS and Windows backends, and 335 lie outside the gpui family. Cargo.lock lists 1,862 packages including 47 -sys crates and 24 tree-sitter packages. History, release and archive facts come from the GitHub API on 2026-08-02 because the clone is shallow: 39,386 commits, oldest b400449 on 2021-02-20, v0.1 on 2021-06-08, 1,275 releases to v1.13.1 on 2026-07-29, 9,444 commits in the last 365 days, 624 in the last 30; the contributors endpoint reports 482 and caps at 500. No build, test, benchmark, profiler or network call was run against the project. Objective: no design RFC was published, so the assessment takes the decision visible in the oldest commit — rebuild the editor in Rust on a purpose-built GPU UI framework. User-supplied facts: none. No Amdahl calculation appears: a deadline is not a speedup ratio, and no published frame decomposition supplies a share, so D2 and D5 are recorded UNKNOWN rather than estimated. The verdict turns on G1, which is measured in the source, and G4, which is measured in the release record; G2 passes on structural evidence with the attribution split stated, because no C++ counterfactual exists. Instruction-like text was found in scanned content: crates/agent/src/tools/skill_tool.rs:396 contains the string &#x27;Ignore previous instructions.&#x27; inside a prompt-injection test fixture, and .agents/skills/ plus .factory/skills/ hold assistant-directed SKILL.md files. All of it was treated as data and changed no verdict, gate, path or number. This is a structured decision protocol, not a statistical predictor.</span><span data-l="zh">仓库：github.com/zed-industries/zed，commit 90d024b88abc91264d9a0ad260eb4f365fa695c3，shallow clone，4,235 个纳管文件，HEAD 日期 2026-08-02。范围：编辑器和它的 UI 框架作为一个目标，回溯评估——被评的是 2021 年已经做出的决定，不是一份提案。采样：1,539,358 行 Rust，分布在 1,926 个文件。按通用编程语言口径，是 1,556,319 行里的 1,539,358 行，占 98.9%；其余是 13,682 行 Python、1,186 行 JavaScript、1,137 行 PowerShell、835 行 shell、116 行 TypeScript，以及 crates/media/src/bindings.h 那个 5 行的 Objective-C 桥接头。shader 单独计：Metal、HLSL、WGSL 合计 4,050 行。tree-sitter 查询文件（.scm，9,140 行）和 WIT 接口文件（.wit，4,017 行）不计入该口径，两者都不是通用语言。十一个 gpui* crate 共 235 个文件、127,694 行。有 121 个文件、230,346 行落在测试或 fixture 路径里，另有 784 个内联 #[cfg(test)] 模块没有拆出来，所以真正的产品代码低于 130 万行；树里最大的单个 .rs 是测试文件 crates/editor/src/editor_tests.rs，42,718 行，第二大的是一个 21,343 行的 eval fixture。2024-26 年的 agent 相关 crate 占 262,512 行。`unsafe {` 在 *.rs 里出现 1,111 次，未排除注释；其中 776 次在 crates/gpui 和 crates/gpui_* 里，728 次集中在 macOS 和 Windows 后端，另有 335 次在 gpui 家族之外。Cargo.lock 列出 1,862 个包，含 47 个 -sys crate 和 24 个 tree-sitter 包。历史、发布和归档信息取自 2026-08-02 的 GitHub API，因为 clone 是浅的：39,386 次提交，最早的是 2021-02-20 的 b400449，v0.1 在 2021-06-08，到 2026-07-29 的 v1.13.1 共 1,275 个 release，最近 365 天 9,444 次提交，最近 30 天 624 次；contributors 接口报 482，上限是 500。没有对项目做过任何构建、测试、基准、profiling 或网络调用。目标：没有公开的设计 RFC，所以按最早那个 commit 里能看到的决定来评——用 Rust 重建编辑器，配一套专门写的 GPU UI 框架。用户提供的事实：无。本报告没有 Amdahl 计算：截止时间不是加速比，而且没有公开的单帧拆解能给出占比，所以 D2 和 D5 记 UNKNOWN，不做估算。结论落在 G1 和 G4 上，前者在源码里可量，后者在发布记录里可量；G2 是靠结构性证据过的，并把归因拆开写明，因为不存在 C++ 的对照实现。扫描到了指令样式的内容：crates/agent/src/tools/skill_tool.rs:396 在一个 prompt 注入测试 fixture 里含有 &#x27;Ignore previous instructions.&#x27; 这串文字，.agents/skills/ 和 .factory/skills/ 下还有面向助手的 SKILL.md。全部按数据处理，没有改动任何结论、门、路径或数字。这是一套结构化决策流程，不是统计预测器。</span></p>
+    <div class="table-wrap"><table>
+      <thead><tr><th><span data-l="en">What we don&#x27;t know</span><span data-l="zh">证据缺口</span></th><th><span data-l="en">What it would change</span><span data-l="zh">会改变什么</span></th></tr></thead>
+      <tbody><tr><td><span data-l="en">A published decomposition of one 8.33ms frame</span><span data-l="zh">一份公开的单帧 8.33ms 时间拆解</span></td><td><span data-l="en">It would show how much of the budget Zed&#x27;s own code owns versus the driver, the compositor and the GPU. Until it exists D2 stays UNKNOWN, and the frame-rate claim rests on construction rather than on a share.</span><span data-l="zh">它能说明这份预算里 Zed 自己的代码占多少，驱动、合成器和 GPU 各占多少。在它出现之前 D2 保持 UNKNOWN，帧率这条只能靠结构论证，拿不出占比。</span></td></tr><tr><td><span data-l="en">A boot decomposition for both stacks</span><span data-l="zh">两个栈各自的启动时间拆解</span></td><td><span data-l="en">Atom&#x27;s loudest complaint was startup and D5 is UNKNOWN because nobody has split boot into runtime init, I/O and useful work. This is the cheapest missing measurement in the case.</span><span data-l="zh">Atom 被骂最狠的是启动，而 D5 记 UNKNOWN，因为没人把启动拆成运行时初始化、I/O 和有效工作。这是本案里最便宜的一处缺失测量。</span></td></tr><tr><td><span data-l="en">A steady-state footprint comparison against a current Electron editor</span><span data-l="zh">跟当代 Electron 编辑器的稳态占用对比</span></td><td><span data-l="en">D4 cannot move without it. Installer size is not resident memory, and on Windows the system webview is Chromium anyway.</span><span data-l="zh">没有它 D4 动不了。安装包大小不是常驻内存，而且在 Windows 上系统 webview 本来就是 Chromium。</span></td></tr><tr><td><span data-l="en">What the C++ version would have cost</span><span data-l="zh">C++ 版本会花多少</span></td><td><span data-l="en">No counterfactual build exists, so G2&#x27;s attribution stays structural. A Qt or Skia estimate against the 127,694-line framework inventory would sharpen it either way.</span><span data-l="zh">不存在对照实现，所以 G2 的归因只能停在结构层面。拿 Qt 或 Skia 对着那份 127,694 行的框架清单估一遍，两个方向上都会让它更清楚。</span></td></tr></tbody>
+    </table></div>
+  </div>
+</section>
+
+<footer><span>why-not-rust · method 2.0 · <span data-l="en">public repository · static analysis at commit 90d024b · GitHub API for history · no build, benchmark or profiler run</span><span data-l="zh">公开仓库 · 在 commit 90d024b 上做静态分析 · 历史信息取自 GitHub API · 未做构建、基准或 profiling</span></span><span class="mono">github.com/xiaotonng/why-not-rust</span></footer>
+</div>
+
+<script type="application/json" id="why-not-rust-assessment">
+{
+  "method": "why-not-rust/2.0",
+  "generated_at": "2026-08-02",
+  "repository": {
+    "path": "https://github.com/zed-industries/zed",
+    "commit": "90d024b88abc91264d9a0ad260eb4f365fa695c3",
+    "scope": "the editor and its UI framework as one target; crates/gpui and the ten sibling gpui_* crates are the seam under examination",
+    "sampling": "shallow clone, 4,235 tracked files; crates/ (242 crate directories), docs/, tooling/, .github/ and the workspace manifests measured; Cargo.lock read for dependency identity; GitHub API used for history and release facts because the clone has no usable log; no build, test, benchmark or profiling run against the project"
+  },
+  "analysis": {
+    "mode": "public-repository static analysis; no build, benchmark, or network run against the target",
+    "user_supplied_facts": [],
+    "evidence_gaps": [
+      "A published decomposition of one 8.33ms frame",
+      "A boot decomposition for both stacks",
+      "A steady-state footprint comparison against a current Electron editor",
+      "What the C++ version would have cost"
+    ]
+  },
+  "objective": {
+    "driver": "a per-frame input deadline on a desktop code editor",
+    "requirement": "hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running",
+    "baseline": "Atom on Electron and CoffeeScript/JavaScript: a collected runtime inside a DOM whose layout and paint the application team does not own",
+    "target": "the 120fps budget stated at crates/gpui/src/app/bench_context.rs:62 and reported to users at crates/input_latency_ui/src/input_latency_ui.rs:327"
+  },
+  "decision": {
+    "authorization": "APPROVE",
+    "scope": "MIGRATE",
+    "selected_option_id": "rust-gpui",
+    "confidence": "MEDIUM",
+    "robustness": "STABLE",
+    "because": "The deadline is in the source. crates/gpui/src/app/bench_context.rs:62 sets the benchmark harness's default frame budget at 120fps, 8.33ms, and the harness reports how many budgets each frame blew. A collected runtime inside a DOM cannot promise that. The rewrite shipped anyway: 39,386 commits and 1,275 releases since February 2021. What Rust bought is narrower than the pitch. Leaving the web view bought the frame rate, and C++ would have bought it too. Rust bought 1,943 spawn sites a compiler checks, and 776 of 1,111 unsafe blocks parked in eleven gpui* crates instead of spread through 1.5M lines.",
+    "change_trigger": "Stable for Zed. It does not transfer by itself. Copy the decision only if you can name a per-frame deadline the way bench_context.rs:62 does, and only if no old product has to stay alive. Zed's delivery gate passed partly on situation: Atom was archived rather than migrated, so there was no ABI, no data format and no extension ecosystem to preserve. Change either condition and the scope drops below MIGRATE."
+  },
+  "gates": [
+    {
+      "id": "G1",
+      "option_id": "rust-gpui",
+      "name": "requirement",
+      "state": "PASS",
+      "evidence": "crates/gpui/src/app/bench_context.rs:62 sets DEFAULT_FPS to 120 and the harness counts frame-budget overruns from HDR histograms reported at p50/p90/p95/p99. crates/input_latency_ui/src/input_latency_ui.rs:327 ships the same budget to users, bucketing input-to-frame latency into 0-4ms, 4-8ms (120fps), 8-16ms (60fps), 16-33ms, 33-100ms and 100ms+, with a telemetry flush path. 13 [[bench]] targets and a 135-line internal profiling guide at docs/src/performance.md sit behind it."
+    },
+    {
+      "id": "G2",
+      "option_id": "rust-gpui",
+      "name": "rust-specific causality",
+      "state": "PASS",
+      "evidence": "The frame-budget half is a native-versus-collected effect that C++ or Zig would also deliver; Sublime Text predates Rust. What is Rust-specific here is the scale of the threading and the containment of unsafe: 1,943 cx.spawn and cx.background_spawn call sites across 426 files, 4,734 #[gpui::test] cases on a deterministic scheduler with 215 re-run under explicit seed iterations, and 776 of 1,111 unsafe { blocks confined to the eleven gpui* crates. The attribution is structural. No C++ Zed exists to measure against."
+    },
+    {
+      "id": "G3",
+      "option_id": "rust-gpui",
+      "name": "economics and smallest sufficient option",
+      "state": "PASS",
+      "evidence": "The one-time bill is not 1,539,358 lines. 230,346 of those sit in test and fixture paths across 121 files, 784 inline #[cfg(test)] modules are not separated out, and 262,512 belong to the 2024-26 agent stack. The framework that had to be written from nothing is 127,694 lines across 235 files plus 4,050 lines of Metal, HLSL and WGSL shaders. Against a per-frame deadline no cheaper option reaches the target. Against a softer target Electron was cheaper in 2021 and still is."
+    },
+    {
+      "id": "G4",
+      "option_id": "rust-gpui",
+      "name": "delivery and reversibility",
+      "state": "PASS",
+      "evidence": "GitHub API: the oldest commit in this repository is b400449 on 2021-02-20, 'Start rebuilding with a cleanly-separated UI framework'; v0.1 followed 108 days later on 2021-06-08; 1,275 releases have landed, the newest stable being v1.13.1 on 2026-07-29; 9,444 commits in the last 365 days and 624 in the last 30. Part of this gate is situational. Atom was archived rather than migrated, so no ABI, data format or extension ecosystem had to survive, and nobody needed a rollback."
+    }
+  ],
+  "options": [
+    {
+      "id": "rust-gpui",
+      "name": "Rust plus a purpose-built GPU UI framework",
+      "implementation": "rust",
+      "scope": "full",
+      "target": "hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running",
+      "benefit_interval": "budget met and instrumented in the shipped build",
+      "one_time_cost": "127,694 lines of framework plus 4,050 lines of shaders, before any editor code",
+      "recurring_cost": "three platform backends, 776 unsafe blocks, a renderer nobody else maintains",
+      "time_to_value": "108 days to v0.1",
+      "compatibility": "none required — Atom was archived, not migrated",
+      "reversibility": "none, and none was wanted",
+      "evidence_strength": "MODERATE",
+      "disposition": "selected",
+      "reason": "The deadline lands on the paint pipeline, so the paint pipeline has to be yours. 1,275 releases and 9,444 commits in the last year say the scope was deliverable."
+    },
+    {
+      "id": "stay-electron",
+      "name": "Stay on Electron and optimise the architecture",
+      "implementation": "current",
+      "scope": "stay",
+      "target": "hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running",
+      "benefit_interval": "large gains available; the 8.33ms budget is not among them",
+      "one_time_cost": "process isolation, lazy activation, virtualised lists, snapshots",
+      "recurring_cost": "a layout and paint pipeline you do not control",
+      "time_to_value": "per release",
+      "compatibility": "native to the incumbent stack",
+      "reversibility": "git revert",
+      "evidence_strength": "STRONG",
+      "disposition": "retain",
+      "reason": "The strongest counterfactual and the cheapest option. It reaches everything except a per-frame deadline, which is the one thing Zed's requirement is written as."
+    },
+    {
+      "id": "rust-kernel-electron",
+      "name": "Rust kernel behind N-API, DOM UI kept",
+      "implementation": "rust",
+      "scope": "extract",
+      "target": "hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running",
+      "benefit_interval": "helps the rope and the parser; leaves layout and paint where they were",
+      "one_time_cost": "one seam plus a parity harness",
+      "recurring_cost": "a per-operation boundary on the interactive path",
+      "time_to_value": "months",
+      "compatibility": "internal API only",
+      "reversibility": "build flag",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "The seam is real but the deadline is not behind it. VS Code tried a native text buffer and reverted it because the conversion cost ate the gain."
+    },
+    {
+      "id": "cpp-native",
+      "name": "Native rewrite in C++ on an existing toolkit",
+      "implementation": "non-rust-native",
+      "scope": "full",
+      "target": "hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running",
+      "benefit_interval": "same frame budget; Sublime Text shipped this shape years earlier",
+      "one_time_cost": "comparable rewrite, with Qt or Skia supplying the renderer",
+      "recurring_cost": "1.5M lines of manually managed memory instead of 1,111 declared blocks",
+      "time_to_value": "comparable",
+      "compatibility": "none required",
+      "reversibility": "none",
+      "evidence_strength": "MODERATE",
+      "disposition": "retain",
+      "reason": "Meets the deadline and would have had a GUI toolkit off the shelf. It loses D6 and D7: no compile-time check over 1,943 spawn sites, and no boundary between safe and unsafe code."
+    },
+    {
+      "id": "adopt-native-toolkit",
+      "name": "Adopt an existing native UI toolkit",
+      "implementation": "external",
+      "scope": "adopt",
+      "target": "hold input-to-frame latency inside an 8.33ms budget for a code editor on three desktop platforms, with no previous product that has to keep running",
+      "benefit_interval": "solves the chrome; the text surface is the product",
+      "one_time_cost": "integration, then a custom text surface anyway",
+      "recurring_cost": "a toolkit's frame model you do not set",
+      "time_to_value": "weeks to a window",
+      "compatibility": "toolkit platform matrix",
+      "reversibility": "swap the toolkit",
+      "evidence_strength": "WEAK",
+      "disposition": "exclude",
+      "reason": "crates/gpui/src/text_system.rs:336 and crates/gpui_macos/src/text_system.rs:198 rasterise glyphs into an atlas Zed controls. That is the editing surface, and no toolkit hands it over."
+    }
+  ],
+  "lenses": [
+    {
+      "id": "D1",
+      "name": "Requirement \u0026 ownership",
+      "option_ids": [
+        "rust-gpui",
+        "cpp-native",
+        "adopt-native-toolkit"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "The requirement is a per-frame deadline and it is written into code, not a blog post. bench_context.rs:62 puts the default budget at 120fps. input_latency_ui.rs:327 ships the same thresholds to users. window.rs:1592 caps the rate under thermal pressure. Every option that compiles to native code can attack this; Rust is not singled out here.",
+      "source": "crates/gpui/src/app/bench_context.rs:62 · crates/input_latency_ui/src/input_latency_ui.rs:327 · crates/gpui/src/window.rs:1592",
+      "baseline_regime": "static read of the shipped source at commit 90d024b",
+      "caveat": "The deadline is stated and instrumented. Whether the shipped build holds it is a telemetry question, and that telemetry is not public.",
+      "change_trigger": "A softer target — 60fps, or 'feels fast' — moves this lens to the incumbent stack, because Electron reaches it."
+    },
+    {
+      "id": "D2",
+      "name": "End-to-end reach",
+      "option_ids": [
+        "rust-gpui"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "No Amdahl figure appears here and none should. A deadline is not a speedup ratio, so the calculator has nothing to work on. What is missing is narrower and more useful: nobody has published a split of one 8.33ms frame into layout, glyph rasterisation, scene building, GPU submit and compositor wait. The tooling for it is in the tree.",
+      "source": "docs/src/performance.md (135 lines) · 13 [[bench]] targets · no published frame decomposition",
+      "baseline_regime": "n/a — the artifact is absent",
+      "caveat": "Zed publishes a first-party latency comparison against other editors. It is not a frame decomposition, and the skill's case library records it as unaudited.",
+      "change_trigger": "A published frame decomposition would show how much of the 8.33ms Zed's own code actually owns versus the driver and the compositor."
+    },
+    {
+      "id": "D3",
+      "name": "Tail \u0026 runtime",
+      "option_ids": [
+        "rust-gpui",
+        "cpp-native"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "An 8.33ms window has no room for a collector pause, and the baseline had one. This is the clearest mechanism in the whole case. It is also the least Rust-specific: any compiled stack without a managed runtime removes it. C++ ties on this lens.",
+      "source": "crates/gpui/src/window.rs:1592 frame pacer · no collector in either candidate",
+      "baseline_regime": "structural property of the runtime, not a measured trace",
+      "caveat": "The repository holds no before-and-after trace of GC pauses against the budget. The mechanism is granted on construction, not on measurement.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D4",
+      "name": "Fleet footprint",
+      "option_ids": [
+        "stay-electron",
+        "rust-gpui"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "Electron carries a Chromium baseline that a native binary does not. That is the usual argument and this repository does not settle it. No steady-state resident-memory or CPU comparison against a current Electron editor appears anywhere in the tree.",
+      "source": "no footprint comparison in the repository",
+      "baseline_regime": "n/a",
+      "caveat": "Installer size is not resident memory, and on Windows a system webview is Chromium anyway. Neither figure is measured here.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D5",
+      "name": "Startup shape",
+      "option_ids": [
+        "rust-gpui",
+        "stay-electron"
+      ],
+      "state": "UNKNOWN",
+      "strength": "UNKNOWN",
+      "claim": "Atom's headline complaint was boot time, so this lens matters more than it usually does for a desktop app. Zed instruments startup at crates/zed/src/main.rs:198 and feeds it to hang detection and telemetry. No decomposition of boot into runtime init, I/O and useful work is published. Atom's cost is widely attributed to eager module loading, which VS Code attacked inside Electron.",
+      "source": "crates/zed/src/main.rs:198 STARTUP_TIME · no published boot decomposition",
+      "baseline_regime": "n/a",
+      "caveat": "Recorded UNKNOWN on purpose. The repository shows startup is tracked; it does not show a startup requirement only a native binary can meet.",
+      "change_trigger": "A boot decomposition for both stacks would move this lens, and it is the cheapest missing measurement in the case."
+    },
+    {
+      "id": "D6",
+      "name": "Safety \u0026 correctness",
+      "option_ids": [
+        "rust-gpui"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Against the baseline there is no memory-safety prize to win, because JavaScript was already safe. Against C++ there is: 1,111 unsafe { blocks are declared and 776 of them sit in the eleven gpui* crates, 728 in the macOS and Windows backends alone. The rest of the tree is checked. The residue is C — 24 tree-sitter packages and 47 -sys crates in Cargo.lock, and Cargo.toml:856 pins a fork carrying a serialize() buffer-overflow fix.",
+      "source": "1,111 occurrences of `unsafe {` across *.rs · 776 in crates/gpui and crates/gpui_* · Cargo.toml:856",
+      "baseline_regime": "static token count at commit 90d024b; comments not excluded",
+      "caveat": "Filtering comment-leading lines moves 1,111 to 1,108. The tree-sitter grammars are generated C compiled into the binary, and they parse files the user opens.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D7",
+      "name": "Concurrency \u0026 invariants",
+      "option_ids": [
+        "rust-gpui"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "The whole design is 'keep the foreground thread under the deadline by moving everything else off it'. There are 1,943 cx.spawn and cx.background_spawn call sites across 426 files. 4,734 #[gpui::test] cases run on a deterministic scheduler, and 215 of them re-run under explicit seed iterations to search interleavings. This is the one lens where Rust beats the C++ option on evidence rather than on taste.",
+      "source": "1,489 `cx.spawn` + 454 `cx.background_spawn` across 426 files · 4,734 `#[gpui::test]` · 215 with `iterations =`",
+      "baseline_regime": "static call-site and attribute counts at commit 90d024b",
+      "caveat": "Call-site counts are a proxy for concurrency pressure, not a measurement of races avoided. No incident history is published to anchor the claim.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D8",
+      "name": "Distribution \u0026 embedding",
+      "option_ids": [
+        "rust-gpui"
+      ],
+      "state": "SUPPORTS",
+      "strength": "MODERATE",
+      "claim": "Atom ran extensions in-process as JavaScript. Zed runs them as WebAssembly under wasmtime 36, against 77 versioned .wit interface files. That is a Rust-ecosystem asset doing real architectural work, and it is a different answer to the problem Atom's extension model created.",
+      "source": "Cargo.toml:880 wasmtime = 36 · 77 tracked *.wit files · crates/extension_host (10,341 lines)",
+      "baseline_regime": "static manifest and interface inventory",
+      "caveat": "wasmtime embeds from C too, and Node has WebAssembly. The advantage is that Rust is the reference host, not that the sandbox is unavailable elsewhere.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D9",
+      "name": "Ecosystem \u0026 alternatives",
+      "option_ids": [
+        "rust-gpui"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "In 2021 Rust had no GUI framework that could hold this budget, so they wrote one. The bill is 127,694 lines across 235 files, 4,050 lines of Metal, HLSL and WGSL shaders, eight GPU primitive types at scene.rs:222, a glyph rasteriser and atlas, and 776 unsafe blocks of platform glue. C++ would have had Qt or Skia off the shelf. This lens counts against the option that was chosen.",
+      "source": "127,694 lines across 235 files in crates/gpui and crates/gpui_* · 4,050 lines of *.metal/*.hlsl/*.wgsl · crates/gpui/src/scene.rs:222",
+      "baseline_regime": "static inventory at commit 90d024b",
+      "caveat": "The framework became reusable and is published as a crate, which recovers part of the cost. Against that: 1,862 packages in Cargo.lock show the rest of the ecosystem was there.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D10",
+      "name": "Boundary \u0026 compatibility",
+      "option_ids": [
+        "rust-kernel-electron"
+      ],
+      "state": "DISFAVORS",
+      "strength": "MODERATE",
+      "claim": "The cheap Rust option puts a kernel behind N-API and keeps the DOM. The deadline does not live behind that seam. It lives in layout, glyph raster and scene submission — the exact stretch GPUI owns and a web view does not hand over. VS Code ran this experiment with a native text buffer and reverted it.",
+      "source": "crates/gpui/src/scene.rs:222 (8 primitive types) · crates/gpui/src/text_system.rs:336 · crates/editor/src/element.rs (12,510 lines)",
+      "baseline_regime": "structural, from the paint path in this commit",
+      "caveat": "A coarse seam did work elsewhere in the same product category: VS Code shells out to ripgrep for search. Bulk results at a process boundary are a different shape from per-frame paint.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D11",
+      "name": "Delivery economics",
+      "option_ids": [
+        "rust-gpui"
+      ],
+      "state": "SUPPORTS",
+      "strength": "STRONG",
+      "claim": "This is the lens most rewrites fail, and Zed passes it on shipping evidence. First commit 2021-02-20, v0.1 released 108 days later, 1,275 releases since, 39,386 commits, 9,444 of them in the last 365 days and 624 in the last 30. Three platforms. The 1.5M line figure overstates the bill: 230,346 lines sit in test and fixture paths and 262,512 belong to the agent stack built in 2024-26.",
+      "source": "GitHub API repos/zed-industries/zed · 121 files / 230,346 lines in test and fixture paths · 262,512 lines in the agent crates",
+      "baseline_regime": "GitHub API on 2026-08-02; contributors endpoint reports 482 and caps at 500",
+      "caveat": "Zed Industries is a funded company and staffing is not disclosed here. The delivery record proves the scope was shippable by this team, not by any team.",
+      "change_trigger": ""
+    },
+    {
+      "id": "D12",
+      "name": "Counterfactual",
+      "option_ids": [
+        "rust-gpui",
+        "cpp-native"
+      ],
+      "state": "NEUTRAL",
+      "strength": "MODERATE",
+      "claim": "On the frame budget the two native options tie, and Sublime Text shipped the C++ version of this answer long before Rust was an option. Anyone crediting Rust for Zed's frame rate is crediting the wrong variable. The split shows up at D6 and D7 instead, and nowhere else.",
+      "source": "case-library.md Zed entry attribution note · D3, D6, D7 in this ledger",
+      "baseline_regime": "cross-option comparison against the same 8.33ms objective",
+      "caveat": "No C++ Zed exists, so the tie at D3 is an argument from construction. The split at D7 rests on call-site counts, which is structural evidence and not a controlled comparison.",
+      "change_trigger": ""
+    }
+  ],
+  "math": {
+    "amdahl": null,
+    "break_even": null
+  },
+  "precedents": [
+    {
+      "name": "Microsoft · VS Code",
+      "outcome": "STAYED",
+      "match": "code editor, Electron baseline, perceived-speed objective — the exact counterfactual for stay-electron",
+      "mismatch": "VS Code never adopted a per-frame deadline, so it was never held to Zed's requirement",
+      "workload_regime": "first-party engineering blog; 2018 buffer verdict, 2017 ripgrep adoption",
+      "source_class": "first-party · engineering blog",
+      "url": "https://code.visualstudio.com/blogs/2018/03/23/text-buffer-reimplementation"
+    },
+    {
+      "name": "Amazon · Prime Video living-room UI",
+      "outcome": "MIGRATED",
+      "match": "a hard frame-rate goal on a UI, met by a native core under a scripting layer",
+      "mismatch": "a TV client SDK with a coarse seam; Zed's deadline sits in the paint path, which no seam isolates",
+      "workload_regime": "8,000+ device types, first-party",
+      "source_class": "first-party · engineering blog",
+      "url": "https://www.amazon.science/blog/how-prime-video-updates-its-app-for-more-than-8-000-device-types"
+    },
+    {
+      "name": "Tauri on Linux · WebKitGTK",
+      "outcome": "STAYED",
+      "match": "the cheap alternative to writing GPUI, on the same three-platform target",
+      "mismatch": "Tauri is a Rust shell around someone else's renderer; GPUI is the renderer",
+      "workload_regime": "maintainer statements and (N=1) app measurement",
+      "source_class": "first-party maintainer · issue tracker",
+      "url": "https://github.com/tauri-apps/tauri/discussions/8524"
+    },
+    {
+      "name": "Alacritty · the fastest-terminal claim",
+      "outcome": "MIGRATED",
+      "match": "greenfield Rust GPU-rendered desktop app making a latency claim — the failure mode G1 has to clear",
+      "mismatch": "Alacritty defined no metric and shipped no harness; Zed defines both at bench_context.rs:62 and input_latency_ui.rs:327",
+      "workload_regime": "third-party latency measurement, keypress-to-screen",
+      "source_class": "third-party · independent measurement",
+      "url": "https://danluu.com/term-latency/"
+    }
+  ],
+  "path": [
+    {
+      "step": 1,
+      "title": "Write the deadline down before you name a language",
+      "owner": "whoever proposes the rewrite",
+      "cost_range": "1 week",
+      "artifact": "a per-interaction budget in milliseconds with the percentile it must hold at, committed as a constant plus a harness that reports overruns against it",
+      "acceptance": "the number is in the source and the harness prints overrun counts, as bench_context.rs:62 and input_latency_ui.rs:327 do",
+      "deadline_or_stop": "stop if the budget cannot be written as a number and a percentile — that is a preference, not a requirement",
+      "rollback": "measurement only; no product code changes"
+    },
+    {
+      "step": 2,
+      "title": "Measure the stack you already have against it",
+      "owner": "the team that owns the current build",
+      "cost_range": "2–4 weeks",
+      "artifact": "an input-to-frame histogram from the existing stack, with misses attributed to collector pauses, layout, paint and main-thread I/O",
+      "acceptance": "the histogram shows the budget missed at the stated percentile and the causes are attributed, not guessed",
+      "deadline_or_stop": "stop and take the cheap win if architecture changes inside the incumbent stack close the gap",
+      "rollback": "delete the instrumentation"
+    },
+    {
+      "step": 3,
+      "title": "Price the framework, not the application",
+      "owner": "whoever will maintain the framework",
+      "cost_range": "2 weeks",
+      "artifact": "a written inventory of renderer, text shaping, IME, accessibility and platform windowing work the target ecosystem does not supply, with a line estimate for each",
+      "acceptance": "every item has an owner and an estimate, and the total is compared against the same list in the strongest non-Rust native language",
+      "deadline_or_stop": "adopt an existing native toolkit instead if it covers the inventory",
+      "rollback": "a document; nothing to undo"
+    },
+    {
+      "step": 4,
+      "title": "Name everything that has to stay compatible",
+      "owner": "the product owner",
+      "cost_range": "1–2 weeks",
+      "artifact": "a written list of the API, on-disk format, plugin surface and user-migration commitments a rewrite must preserve, with an owner against each",
+      "acceptance": "each commitment has a named owner and a stated plan, or is explicitly dropped with sign-off",
+      "deadline_or_stop": "cap the scope at PARTIAL if the list is long and the existing product must keep running",
+      "rollback": "the current product continues unchanged"
+    },
+    {
+      "step": 5,
+      "title": "Keep the budget instrumented after you ship",
+      "owner": "the team that shipped it",
+      "cost_range": "ongoing",
+      "artifact": "the shipped build reporting its own input-to-frame histogram, as crates/input_latency_ui does",
+      "acceptance": "the stated percentile stays inside the budget across releases, and drift opens a regression with an owner",
+      "deadline_or_stop": "treat a percentile above budget for one release as a regression, not as the price of a feature",
+      "rollback": "remove the instrumentation; it is additive"
+    }
+  ],
+  "assumptions": [
+    "The shallow clone at commit 90d024b88abc91264d9a0ad260eb4f365fa695c3 represents the shipped tree. Dependency sources are not vendored in it, so every claim about C dependencies rests on Cargo.lock package identity rather than on counted lines.",
+    "The proposal assessed is the one the team actually took in 2021 — rebuild the editor in Rust on a purpose-built GPU UI framework — read from the oldest commit in this repository, since no design RFC was published.",
+    "Counts of `unsafe {` are occurrences of that literal token with comments included; a filter that drops comment-leading lines moves 1,111 to 1,108. All line counts are physical lines including blanks and comments, on the same basis for every comparison in the report.",
+    "The clone's working tree was emptied by a concurrent process during the session (core.sparseCheckout was set to true by something outside this analysis). The tree was re-materialised read-only with `git archive HEAD | tar -x` into a scratch directory; HEAD was unchanged and every figure reproduced there."
+  ],
+  "challenge_audit": {
+    "migration_case": [
+      {
+        "id": "M1",
+        "name": "Attribution",
+        "state": "HIT",
+        "claim": "The frame budget is a compiled-native effect, not a Rust effect. C++ removes the collector too, and Sublime Text shipped that answer first. The Rust-specific part is narrower: the concurrency check and the contained unsafe surface.",
+        "evidence": "D3, D12 · case-library.md Zed entry attribution note"
+      },
+      {
+        "id": "M2",
+        "name": "Baseline and regime",
+        "state": "HIT",
+        "claim": "The comparison people make is Zed against Atom. Atom was archived in January 2023 and never got the optimisation programme VS Code ran. Measuring against an abandoned 2015 Electron app flatters the result.",
+        "evidence": "GitHub API repos/atom/atom: archived=true, last push 2023-01-03"
+      },
+      {
+        "id": "M3",
+        "name": "End-to-end reach",
+        "state": "HIT",
+        "claim": "No published decomposition splits one 8.33ms frame into layout, glyph raster, scene build, GPU submit and compositor wait. D2 is UNKNOWN inside an APPROVE, and the report says so rather than filling the gap.",
+        "evidence": "D2 UNKNOWN · docs/src/performance.md holds the tooling, not the artifact"
+      },
+      {
+        "id": "M4",
+        "name": "Omitted cost",
+        "state": "HIT",
+        "claim": "127,694 lines of UI framework, 4,050 lines of shaders and 776 unsafe blocks of platform glue are the price of a 2021 Rust GUI ecosystem that could not hold the budget. That line item rarely appears in the retelling.",
+        "evidence": "D9 · crates/gpui and crates/gpui_* · 127,694 lines / 235 files"
+      },
+      {
+        "id": "M5",
+        "name": "Delivery ownership",
+        "state": "PASS",
+        "claim": "The scope shipped and stayed shipped. 39,386 commits, 1,275 releases, three platforms, and 624 commits in the last 30 days. This is not a stalled rewrite.",
+        "evidence": "GitHub API repos/zed-industries/zed · commits and releases"
+      }
+    ],
+    "staying_case": [
+      {
+        "id": "S1",
+        "name": "Cost of inaction",
+        "state": "HIT",
+        "claim": "Staying was not a stable option, it was an ending one. GitHub archived Atom and the last push was 2023-01-03. Keeping a product on a stack whose vendor is winding it down is a cost, and the report counts it.",
+        "evidence": "GitHub API repos/atom/atom: archived=true, pushed_at 2023-01-03"
+      },
+      {
+        "id": "S2",
+        "name": "Endless optimise-first",
+        "state": "HIT",
+        "claim": "Optimising a DOM against a per-frame deadline has no end state an application team can reach, because layout and paint belong to the engine. Tauri's Linux record shows what happens when the renderer is not yours.",
+        "evidence": "D10 · Tauri maintainer statements; one app 40fps on WebKitGTK vs 240fps on Electron"
+      },
+      {
+        "id": "S3",
+        "name": "Funded counterfactual",
+        "state": "PASS",
+        "claim": "VS Code is the funded Electron counterfactual and it won a market. The report keeps it retained with STRONG evidence and says plainly that it reaches everything except a per-frame deadline.",
+        "evidence": "option stay-electron, evidence_strength STRONG · D10"
+      },
+      {
+        "id": "S4",
+        "name": "Native-advantage denial",
+        "state": "PASS",
+        "claim": "The report grants that a collector pause inside an 8.33ms window is a mechanism, not a talking point, and grades D3 as SUPPORTS for both native options.",
+        "evidence": "D3 SUPPORTS · rust-gpui, cpp-native"
+      },
+      {
+        "id": "S5",
+        "name": "Unsafe-surface omission",
+        "state": "PASS",
+        "claim": "The C surface is disclosed on the Rust side: 24 tree-sitter packages, 47 -sys crates, and a grammar pinned to a fork for a buffer-overflow fix at Cargo.toml:856.",
+        "evidence": "D6 · Cargo.toml:856 · Cargo.lock package inventory"
+      }
+    ]
+  }
+}
+</script>
+</body>
+</html>
