@@ -123,6 +123,25 @@ class CaseReportTests(unittest.TestCase):
                             "argue different directions",
                         )
 
+    def test_gallery_index_is_current_and_complete(self) -> None:
+        """index.html is the Pages landing page; it must match the case modules."""
+        import build_index  # noqa: PLC0415 — imported here to keep module import cheap
+
+        index = ROOT / "examples" / "index.html"
+        self.assertTrue(index.exists(), "examples/index.html is not committed")
+        listed = set(build_index.DESKTOP) | set(build_index.SYSTEMS)
+        self.assertEqual(
+            listed, EXPECTED_SLUGS,
+            "every published case must appear on the index, and nothing else",
+        )
+        html = index.read_text(encoding="utf-8")
+        for slug in EXPECTED_SLUGS:
+            with self.subTest(slug=slug):
+                self.assertIn(f'href="{slug}-why-not-rust.html"', html)
+        # Same self-containment rule as the reports themselves.
+        self.assertNotIn("http://", html.replace("http://www.w3.org", ""))
+        self.assertEqual(html.count("<script"), 0)
+
     def test_every_case_pins_a_full_commit_sha(self) -> None:
         """A short hash is ambiguous, and the record exists to be reproducible."""
         for slug, case in self.cases.items():

@@ -3,6 +3,10 @@
 Twenty open-source projects, each run through the same four proof gates. Every report is
 a self-contained HTML file you can open in a browser.
 
+**Read them online: <https://xiaotonng.github.io/why-not-rust/>** — GitHub renders `.html`
+files in-repo as source, so use the published site for links you intend to share. Each
+report is at `https://xiaotonng.github.io/why-not-rust/<slug>-why-not-rust.html`.
+
 The gallery is in two batches. **Desktop applications** come first: apps — mostly Mac
 apps — whose teams believed a Rust rewrite was the answer. Four of them tried and left
 the evidence behind. **Systems and developer tooling** is the second batch.

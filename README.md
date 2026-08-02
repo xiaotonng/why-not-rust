@@ -24,7 +24,7 @@ It is not a Rust rejection generator. It is equally willing to say “migrate th
 unsafe parser,” “extract the hot kernel,” “adopt the existing Rust library,” or “the
 time is in SQL; keep the application where it is.”
 
-See it decide: **[twenty real projects, twenty verdicts](examples/README.md)** — ten
+See it decide: **[twenty real projects, twenty verdicts](https://xiaotonng.github.io/why-not-rust/)** — ten
 desktop applications whose teams bet on a Rust rewrite (Zed, fish, Ghostty, remacs,
 xi-editor, Lapce, Spacedrive, Signal Desktop, Bitwarden, KeePassXC), and ten systems and
 tooling projects (curl, SQLite, OpenSSL, FFmpeg, Redis, esbuild, flake8, prisma-engines,
